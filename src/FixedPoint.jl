@@ -2,12 +2,12 @@ module FixedPoint
 
 import Base: convert, promote_rule, show, showcompact, isinteger, abs
 
-export FixedPoint, Fixed32
+export Fixed, Fixed32
 
-abstract FixedPoint <: Real
+abstract Fixed <: Real
 
 # 32-bit fixed point; parameter `f` is the number of fraction bits
-immutable Fixed32{f} <: FixedPoint
+immutable Fixed32{f} <: Fixed
     i::Int32
 
     # constructor for manipulating the representation;
@@ -33,11 +33,13 @@ abs{f}(x::Fixed32{f}) = Fixed32{f}(abs(x.i),0)
 
 +{f}(x::Fixed32{f}, y::Fixed32{f}) = Fixed32{f}(x.i+y.i,0)
 -{f}(x::Fixed32{f}, y::Fixed32{f}) = Fixed32{f}(x.i-y.i,0)
-*{f}(x::Fixed32{f}, y::Fixed32{f}) = Fixed32{f}((Base.widemul(x.i,y.i)+(int64(1)<<(f-1)))>>f,0)
-/{f}(x::Fixed32{f}, y::Fixed32{f}) = Fixed32{f}(div((int64(x.i)<<f)+(int64(1)<<(f-1)), y.i),0)
-# without rounding:
+
+# with truncation:
 #*{f}(x::Fixed32{f}, y::Fixed32{f}) = Fixed32{f}(Base.widemul(x.i,y.i)>>f,0)
-#/{f}(x::Fixed32{f}, y::Fixed32{f}) = Fixed32{f}(div(int64(x.i)<<f, y.i),0)
+# with rounding up:
+*{f}(x::Fixed32{f}, y::Fixed32{f}) = Fixed32{f}((Base.widemul(x.i,y.i)+(int64(1)<<(f-1)))>>f,0)
+
+/{f}(x::Fixed32{f}, y::Fixed32{f}) = Fixed32{f}(div(int64(x.i)<<f, y.i),0)
 
 # conversions and promotions
 convert{f}(::Type{Fixed32{f}}, x::Integer) = Fixed32{f}(x<<f,0)

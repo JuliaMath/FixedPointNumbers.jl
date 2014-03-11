@@ -14,4 +14,4 @@ before_install:
   - sudo apt-get install libpcre3-dev julia -y
 script:
   - julia -e 'Pkg.init(); run(`ln -s $(pwd()) $(Pkg.dir("FixedPoint"))`); Pkg.pin("FixedPoint"); Pkg.resolve()'
-  - julia -e 'using FixedPoint; @assert isdefined(:FixedPoint); @assert typeof(FixedPoint) === Module'
+  - julia test/test.jl

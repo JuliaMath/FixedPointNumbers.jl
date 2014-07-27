@@ -42,10 +42,10 @@ rawone(v) = reinterpret(one(v))
 # Conversions
 convert{T<:Ufixed}(::Type{T}, x::Real) = T(iround(rawtype(T), rawone(T)*x),0)
 
-convert(::Type{BigFloat}, x::Ufixed) = reinterpret(x)/BigFloat(rawone(x))
-convert{T<:FloatingPoint}(::Type{T}, x::Ufixed) = reinterpret(x)/convert(T, rawone(x))
+convert(::Type{BigFloat}, x::Ufixed) = reinterpret(x)*(1/BigFloat(rawone(x)))
+convert{T<:FloatingPoint}(::Type{T}, x::Ufixed) = reinterpret(x)*(1/convert(T, rawone(x)))
 convert(::Type{Bool}, x::Ufixed) = x == zero(x) ? false : true
-convert{T<:Integer}(::Type{T}, x::Ufixed) = convert(T, x/one(T))
+convert{T<:Integer}(::Type{T}, x::Ufixed) = convert(T, x*(1/one(T)))
 convert{Ti<:Integer}(::Type{Rational{Ti}}, x::Ufixed) = convert(Ti, reinterpret(x))//convert(Ti, rawone(x))
 convert(::Type{Rational}, x::Ufixed) = reinterpret(x)//rawone(x)
 

@@ -13,7 +13,7 @@ abstract Ufixed <: AbstractFixed  # unsigned variant
 export
     AbstractFixed,
     Fixed,
-    UFixed,
+    Ufixed,
     Fixed32,
     Ufixed8,
     Ufixed10,

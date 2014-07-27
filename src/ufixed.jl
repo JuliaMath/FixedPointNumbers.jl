@@ -59,11 +59,11 @@ eps{T<:Ufixed}(::T) = eps(T)
 sizeof{T<:Ufixed}(::Type{T}) = sizeof(rawtype(T))
 
 # Arithmetic
-# Ufixed types are closed under all basic operations except division
+# Ufixed types are closed under addition and subtraction
 +{T,f}(x::UfixedBase{T,f}, y::UfixedBase{T,f}) = UfixedBase{T,f}(convert(T, reinterpret(x)+reinterpret(y)),0)
 -{T,f}(x::UfixedBase{T,f}, y::UfixedBase{T,f}) = UfixedBase{T,f}(convert(T, reinterpret(x)-reinterpret(y)),0)
-*{T,f}(x::UfixedBase{T,f}, y::UfixedBase{T,f}) = UfixedBase{T,f}(convert(T, reinterpret(x)*reinterpret(y)),0)
-/(x::Ufixed, y::Ufixed) = convert(Float32, x)/convert(Float32, y)
+*{T,f}(x::UfixedBase{T,f}, y::UfixedBase{T,f}) = float32(x)*float32(y)
+/(x::Ufixed, y::Ufixed) = float32(x)/float32(y)
 
 # Comparisons
 < {T<:Ufixed}(x::T, y::T) = reinterpret(x) <  reinterpret(y)

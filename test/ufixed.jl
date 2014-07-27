@@ -51,6 +51,11 @@ for T in FixedPoint.UF
     @test x+y == T(0x35,0)
     @test (x+y) - x == y
     @test (x-y) + y == x
+    @test x*y == float32(x)*float32(y)
+    @test x/y == float32(x)/float32(y)
+    @test x^2 == float32(x)^2
+    @test x^2.1f0 == float32(x)^2.1f0
+    @test x^2.1 == float64(x)^2.1
 end
 
 function testtrunc{T}(inc::T)

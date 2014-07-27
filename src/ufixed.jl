@@ -37,17 +37,17 @@ for T in UF
 end
 zero(x::Ufixed) = zero(typeof(x))
  one(x::Ufixed) =  one(typeof(x))
-rawone(v) = asraw(one(v))
+rawone(v) = reinterpret(one(v))
 
 # Conversions
 convert{T<:Ufixed}(::Type{T}, x::Real) = T(iround(rawtype(T), rawone(T)*x),0)
 
-convert(::Type{BigFloat}, x::Ufixed) = asraw(x)/BigFloat(asraw(one(x)))
-convert{T<:FloatingPoint}(::Type{T}, x::Ufixed) = asraw(x)/convert(T, rawone(x))
+convert(::Type{BigFloat}, x::Ufixed) = reinterpret(x)/BigFloat(rawone(x))
+convert{T<:FloatingPoint}(::Type{T}, x::Ufixed) = reinterpret(x)/convert(T, rawone(x))
 convert(::Type{Bool}, x::Ufixed) = x == zero(x) ? false : true
 convert{T<:Integer}(::Type{T}, x::Ufixed) = convert(T, x/one(T))
-convert{Ti<:Integer}(::Type{Rational{Ti}}, x::Ufixed) = convert(Ti, asraw(x))//convert(Ti, rawone(x))
-convert(::Type{Rational}, x::Ufixed) = asraw(x)//rawone(x)
+convert{Ti<:Integer}(::Type{Rational{Ti}}, x::Ufixed) = convert(Ti, reinterpret(x))//convert(Ti, rawone(x))
+convert(::Type{Rational}, x::Ufixed) = reinterpret(x)//rawone(x)
 
 # Traits
 typemin{T<:Ufixed}(::Type{T}) = zero(T)
@@ -60,17 +60,17 @@ sizeof{T<:Ufixed}(::Type{T}) = sizeof(rawtype(T))
 
 # Arithmetic
 # Ufixed types are closed under all basic operations except division
-+{T,f}(x::UfixedBase{T,f}, y::UfixedBase{T,f}) = UfixedBase{T,f}(convert(T, asraw(x)+asraw(y)),0)
--{T,f}(x::UfixedBase{T,f}, y::UfixedBase{T,f}) = UfixedBase{T,f}(convert(T, asraw(x)-asraw(y)),0)
-*{T,f}(x::UfixedBase{T,f}, y::UfixedBase{T,f}) = UfixedBase{T,f}(convert(T, asraw(x)*asraw(y)),0)
++{T,f}(x::UfixedBase{T,f}, y::UfixedBase{T,f}) = UfixedBase{T,f}(convert(T, reinterpret(x)+reinterpret(y)),0)
+-{T,f}(x::UfixedBase{T,f}, y::UfixedBase{T,f}) = UfixedBase{T,f}(convert(T, reinterpret(x)-reinterpret(y)),0)
+*{T,f}(x::UfixedBase{T,f}, y::UfixedBase{T,f}) = UfixedBase{T,f}(convert(T, reinterpret(x)*reinterpret(y)),0)
 /(x::Ufixed, y::Ufixed) = convert(Float32, x)/convert(Float32, y)
 
 # Comparisons
-< {T<:Ufixed}(x::T, y::T) = asraw(x) <  asraw(y)
-<={T<:Ufixed}(x::T, y::T) = asraw(x) <  asraw(y)
+< {T<:Ufixed}(x::T, y::T) = reinterpret(x) <  reinterpret(y)
+<={T<:Ufixed}(x::T, y::T) = reinterpret(x) <  reinterpret(y)
 
 # Functions
-trunc{T<:Ufixed}(x::T) = T(div(asraw(x), rawone(T))*rawone(T),0)
+trunc{T<:Ufixed}(x::T) = T(div(reinterpret(x), rawone(T))*rawone(T),0)
 floor{T<:Ufixed}(x::T) = trunc(x)
 for T in UF
     f = nbitsfrac(T)
@@ -79,44 +79,44 @@ for T in UF
     k = 8*sizeof(R)-f
     ceilmask  = (typemax(R)<<k)>>k
     @eval begin
-        round(x::$T) = (y = trunc(x); return asraw(x-y)&$roundmask>0 ? y+one($T) : y)
-         ceil(x::$T) = (y = trunc(x); return asraw(x-y)&$ceilmask >0 ? y+one($T) : y)
+        round(x::$T) = (y = trunc(x); return reinterpret(x-y)&$roundmask>0 ? y+one($T) : y)
+         ceil(x::$T) = (y = trunc(x); return reinterpret(x-y)&$ceilmask >0 ? y+one($T) : y)
     end
 end
 
-itrunc{T<:Integer}(::Type{T}, x::Ufixed) = convert(T, div(asraw(x), rawone(x)))
-iround{T<:Integer}(::Type{T}, x::Ufixed) = iround(T, asraw(x)/rawone(x))
+itrunc{T<:Integer}(::Type{T}, x::Ufixed) = convert(T, div(reinterpret(x), rawone(x)))
+iround{T<:Integer}(::Type{T}, x::Ufixed) = iround(T, reinterpret(x)/rawone(x))
 ifloor{T<:Integer}(::Type{T}, x::Ufixed) = itrunc(T, x)
- iceil{T<:Integer}(::Type{T}, x::Ufixed) =  iceil(T, asraw(x)/rawone(x))
+ iceil{T<:Integer}(::Type{T}, x::Ufixed) =  iceil(T, reinterpret(x)/rawone(x))
 itrunc(x::Ufixed) = itrunc(Int, x)
 iround(x::Ufixed) = iround(Int, x)
 ifloor(x::Ufixed) = ifloor(Int, x)
  iceil(x::Ufixed) =  iceil(Int, x)
 
 bswap{f}(x::UfixedBase{Uint8,f}) = x
-bswap(x::Ufixed)  = typeof(x)(bswap(asraw(x)),0)
+bswap(x::Ufixed)  = typeof(x)(bswap(reinterpret(x)),0)
 
 for f in (:div, :fld, :rem, :mod, :mod1, :rem1, :fld1, :min, :max)
     @eval begin
-        $f{T<:Ufixed}(x::T, y::T) = T($f(asraw(x),asraw(y)),0)
+        $f{T<:Ufixed}(x::T, y::T) = T($f(reinterpret(x),reinterpret(y)),0)
     end
 end
 function minmax{T<:Ufixed}(x::T, y::T)
-    a, b = minmax(asraw(x), asraw(y))
+    a, b = minmax(reinterpret(x), reinterpret(y))
     T(a,0), T(b,0)
 end
 
 # Iteration
 # The main subtlety here is that iterating over 0x00uf8:0xffuf8 will wrap around
 # unless we iterate using a wider type
-if VERSION.minor < 3
-    start{T<:Ufixed}(r::Range{T}) = convert(typeof(asraw(r.start)+asraw(r.step)), asraw(r.start))
-    next{T<:Ufixed}(r::Range{T}, i::Integer) = (T(i,0), i+asraw(r.step))
+if VERSION < v"0.3-"
+    start{T<:Ufixed}(r::Range{T}) = convert(typeof(reinterpret(r.start)+reinterpret(r.step)), reinterpret(r.start))
+    next{T<:Ufixed}(r::Range{T}, i::Integer) = (T(i,0), i+reinterpret(r.step))
     done{T<:Ufixed}(r::Range{T}, i::Integer) = isempty(r) || (i > r.len)
 else
-    start{T<:Ufixed}(r::StepRange{T}) = convert(typeof(asraw(r.start)+asraw(r.step)), asraw(r.start))
-    next{T<:Ufixed}(r::StepRange{T}, i::Integer) = (T(i,0), i+asraw(r.step))
-    done{T<:Ufixed}(r::StepRange{T}, i::Integer) = isempty(r) || (i > asraw(r.stop))
+    start{T<:Ufixed}(r::StepRange{T}) = convert(typeof(reinterpret(r.start)+reinterpret(r.step)), reinterpret(r.start))
+    next{T<:Ufixed}(r::StepRange{T}, i::Integer) = (T(i,0), i+reinterpret(r.step))
+    done{T<:Ufixed}(r::StepRange{T}, i::Integer) = isempty(r) || (i > reinterpret(r.stop))
 end
 
 # Promotions

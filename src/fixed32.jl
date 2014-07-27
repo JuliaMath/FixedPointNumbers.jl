@@ -11,6 +11,10 @@ end
 
 Fixed32(x::Real) = convert(Fixed32{16}, x)
 
+  rawtype(::Type{Fixed32}) = Int32
+  rawtype{f}(::Type{Fixed32{f}}) = Int32
+nbitsfrac{f}(::Type{Fixed32{f}}) = f
+
 # comparisons
 =={f}(x::Fixed32{f}, y::Fixed32{f}) = x.i == y.i
 < {f}(x::Fixed32{f}, y::Fixed32{f}) = x.i <  y.i

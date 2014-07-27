@@ -1,14 +1,10 @@
 using FixedPoint, Base.Test
 
-# This is useful for testing
-import FixedPoint: asraw
-asraw(x) = x
-
-@test asraw(0xa2uf8)  == 0xa2
-@test asraw(0xa2uf10) == 0xa2
-@test asraw(0xa2uf12) == 0xa2
-@test asraw(0xa2uf14) == 0xa2
-@test asraw(0xa2uf16) == 0xa2
+@test reinterpret(0xa2uf8)  == 0xa2
+@test reinterpret(0xa2uf10) == 0xa2
+@test reinterpret(0xa2uf12) == 0xa2
+@test reinterpret(0xa2uf14) == 0xa2
+@test reinterpret(0xa2uf16) == 0xa2
 
 for T in FixedPoint.UF
     @test zero(T) == 0
@@ -59,9 +55,9 @@ end
 
 function testtrunc{T}(inc::T)
     incf = float64(inc)
-    tm = asraw(typemax(T))/asraw(one(T))
+    tm = reinterpret(typemax(T))/reinterpret(one(T))
     x = zero(T)
-    for i = 0:asraw(typemax(T))-1
+    for i = 0:reinterpret(typemax(T))-1
         xf = incf*i
         try
             @test trunc(x) == trunc(xf)

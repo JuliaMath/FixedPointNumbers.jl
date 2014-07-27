@@ -84,3 +84,29 @@ end
 for T in FixedPoint.UF
     testtrunc(eps(T))
 end
+
+# scaledual
+function generic_scale!(C::AbstractArray, X::AbstractArray, s::Number)
+    length(C) == length(X) || error("C must be the same length as X")
+    for i = 1:length(X)
+        @inbounds C[i] = X[i]*s
+    end
+    C
+end
+
+a = rand(Uint8, 10)
+rfloat = similar(a, Float32)
+rfixed = similar(rfloat)
+af8 = reinterpret(Ufixed8, a)
+
+b = 0.5
+bd, eld = scaledual(b, af8[1])
+@assert b*a[1] == bd*eld
+
+b, ad = scaledual(0.5, a)
+@test b == 0.5
+@test ad == a
+b, ad = scaledual(0.5, ad)
+generic_scale!(rfloat, a, 0.5)
+generic_scale!(rfixed, ad, b)
+@test rfloat == rfixed

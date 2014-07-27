@@ -60,23 +60,28 @@ end
 function testtrunc{T}(inc::T)
     incf = float64(inc)
     tm = asraw(typemax(T))/asraw(one(T))
-    i = -1
-    for x in zero(T):inc:typemax(T)
-        i += 1
+    x = zero(T)
+    for i = 0:asraw(typemax(T))-1
         xf = incf*i
-        @test trunc(x) == trunc(xf)
-        @test round(x) == round(xf)
-        cxf = ceil(xf)
-        if cxf < tm
-            @test ceil(x) == ceil(xf)
+        try
+            @test trunc(x) == trunc(xf)
+            @test round(x) == round(xf)
+            cxf = ceil(xf)
+            if cxf < tm
+                @test ceil(x) == ceil(xf)
+            end
+            @test floor(x) == floor(xf)
+            @test itrunc(x) == itrunc(xf)
+            @test iround(x) == iround(xf)
+            @test ifloor(x) == ifloor(xf)
+            if cxf < tm
+                @test iceil(x) == iceil(xf)
+            end
+        catch err
+            println("Failed on x = ", x, ", xf = ", xf)
+            rethrow(err)
         end
-        @test floor(x) == floor(xf)
-        @test itrunc(x) == itrunc(xf)
-        @test iround(x) == iround(xf)
-        @test ifloor(x) == ifloor(xf)
-        if cxf < tm
-            @test iceil(x) == iceil(xf)
-        end
+        x += inc
     end
 end
 

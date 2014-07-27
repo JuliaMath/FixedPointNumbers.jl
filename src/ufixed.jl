@@ -107,12 +107,17 @@ function minmax{T<:Ufixed}(x::T, y::T)
 end
 
 # Iteration
-# The main issue here is that iterating over 0x00uf8:0xffuf8 will wrap around
+# The main subtlety here is that iterating over 0x00uf8:0xffuf8 will wrap around
 # unless we iterate using a wider type
-start{T<:Ufixed}(r::StepRange{T}) = convert(typeof(asraw(r.start)+asraw(r.step)), asraw(r.start))
-next{T<:Ufixed}(r::StepRange{T}, i::Integer) = (T(i,0), i+asraw(r.step))
-done{T<:Ufixed,S<:Ufixed}(r::StepRange{T,S}, i::Integer) = isempty(r) || (i > asraw(r.stop))
-
+if VERSION.minor < 3
+    start{T<:Ufixed}(r::Range{T}) = convert(typeof(asraw(r.start)+asraw(r.step)), asraw(r.start))
+    next{T<:Ufixed}(r::Range{T}, i::Integer) = (T(i,0), i+asraw(r.step))
+    done{T<:Ufixed}(r::Range{T}, i::Integer) = isempty(r) || (i > r.len)
+else
+    start{T<:Ufixed}(r::StepRange{T}) = convert(typeof(asraw(r.start)+asraw(r.step)), asraw(r.start))
+    next{T<:Ufixed}(r::StepRange{T}, i::Integer) = (T(i,0), i+asraw(r.step))
+    done{T<:Ufixed}(r::StepRange{T}, i::Integer) = isempty(r) || (i > asraw(r.stop))
+end
 
 # Promotions
 for T in UF

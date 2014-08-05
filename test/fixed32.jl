@@ -1,5 +1,5 @@
 using Base.Test
-using FixedPoint
+using FixedPointNumbers
 
 function test_fixed{T}(::Type{T}, f)
     values = [-10:0.01:10, -180:.01:-160, 160:.01:180]

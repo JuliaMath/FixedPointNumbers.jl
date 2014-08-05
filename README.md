@@ -1,4 +1,4 @@
-# FixedPoint
+# FixedPointNumbers
 
 This library exports fixed-point number types.
 A [fixed-point number][wikipedia] represents a fractional, or non-integral, number.

@@ -1,4 +1,4 @@
-using FixedPoint, Base.Test
+using FixedPointNumbers, Base.Test
 
 @test reinterpret(0xa2uf8)  == 0xa2
 @test reinterpret(0xa2uf10) == 0xa2
@@ -6,7 +6,7 @@ using FixedPoint, Base.Test
 @test reinterpret(0xa2uf14) == 0xa2
 @test reinterpret(0xa2uf16) == 0xa2
 
-for T in FixedPoint.UF
+for T in FixedPointNumbers.UF
     @test zero(T) == 0
     @test one(T) == 1
     @test typemin(T) == 0
@@ -34,7 +34,7 @@ end
 @test convert(Float64, eps(Ufixed8)) == 1/typemax(Uint8)
 @test convert(Float32, eps(Ufixed8)) == 1.0f0/typemax(Uint8)
 @test convert(BigFloat, eps(Ufixed8)) == BigFloat(1)/typemax(Uint8)
-for T in FixedPoint.UF
+for T in FixedPointNumbers.UF
     @test convert(Bool, zero(T)) == false
     @test convert(Bool, one(T))  == true
     @test convert(Bool, convert(T, 0.2)) == true
@@ -43,7 +43,7 @@ for T in FixedPoint.UF
 end
 @test convert(Rational, convert(Ufixed8, 0.5)) == 0x80//0xff
 
-for T in FixedPoint.UF
+for T in FixedPointNumbers.UF
     x = T(0x10,0)
     y = T(0x25,0)
     @test y > x
@@ -86,7 +86,7 @@ function testtrunc{T}(inc::T)
     end
 end
 
-for T in FixedPoint.UF
+for T in FixedPointNumbers.UF
     testtrunc(eps(T))
 end
 

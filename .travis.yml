@@ -13,5 +13,5 @@ before_install:
   - sudo apt-get update -qq -y
   - sudo apt-get install libpcre3-dev julia -y
 script:
-  - julia -e 'Pkg.init(); run(`ln -s $(pwd()) $(Pkg.dir("FixedPoint"))`); Pkg.pin("FixedPoint"); Pkg.resolve()'
+  - julia -e 'Pkg.init(); run(`ln -s $(pwd()) $(Pkg.dir("FixedPointNumbers"))`); Pkg.pin("FixedPointNumbers"); Pkg.resolve()'
   - julia test/runtests.jl

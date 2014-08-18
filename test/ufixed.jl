@@ -6,6 +6,12 @@ using FixedPointNumbers, Base.Test
 @test reinterpret(0xa2uf14) == 0xa2
 @test reinterpret(0xa2uf16) == 0xa2
 
+@test reinterpret(Ufixed8, 0xa2) == 0xa2uf8
+@test reinterpret(Ufixed10, 0x1fa2) == 0x1fa2uf10
+@test reinterpret(Ufixed12, 0x1fa2) == 0x1fa2uf12
+@test reinterpret(Ufixed14, 0x1fa2) == 0x1fa2uf14
+@test reinterpret(Ufixed16, 0x1fa2) == 0x1fa2uf16
+
 for T in FixedPointNumbers.UF
     @test zero(T) == 0
     @test one(T) == 1

@@ -19,6 +19,12 @@ const UF = (Ufixed8, Ufixed10, Ufixed12, Ufixed14, Ufixed16)
   rawtype{T,f}(::Type{UfixedBase{T,f}}) = T
 nbitsfrac{T,f}(::Type{UfixedBase{T,f}}) = f
 
+reinterpret(::Type{Ufixed8}, x::Uint8) = UfixedBase{Uint8,8}(x,0)
+for (T,f) in ((Ufixed10,10),(Ufixed12,12),(Ufixed14,14),(Ufixed16,16))
+    @eval reinterpret(::Type{$T}, x::Uint16) = UfixedBase{Uint16,$f}(x, 0)
+end
+
+
 # The next lines mimic the floating-point literal syntax "3.2f0"
 immutable UfixedConstructor{T,f} end
 *{T,f}(n::Integer, ::UfixedConstructor{T,f}) = UfixedBase{T,f}(n,0)

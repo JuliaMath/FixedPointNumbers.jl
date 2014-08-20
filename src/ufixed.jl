@@ -48,6 +48,19 @@ rawone(v) = reinterpret(one(v))
 # Conversions
 convert{T<:Ufixed}(::Type{T}, x::Real) = T(iround(rawtype(T), rawone(T)*x),0)
 
+ufixed8(x)  = convert(Ufixed8, x)
+ufixed10(x) = convert(Ufixed10, x)
+ufixed12(x) = convert(Ufixed12, x)
+ufixed14(x) = convert(Ufixed14, x)
+ufixed16(x) = convert(Ufixed16, x)
+
+@vectorize_1arg Real ufixed8
+@vectorize_1arg Real ufixed10
+@vectorize_1arg Real ufixed12
+@vectorize_1arg Real ufixed14
+@vectorize_1arg Real ufixed16
+
+
 convert(::Type{BigFloat}, x::Ufixed) = reinterpret(x)*(1/BigFloat(rawone(x)))
 convert{T<:FloatingPoint}(::Type{T}, x::Ufixed) = reinterpret(x)*(1/convert(T, rawone(x)))
 convert(::Type{Bool}, x::Ufixed) = x == zero(x) ? false : true

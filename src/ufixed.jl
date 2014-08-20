@@ -148,3 +148,5 @@ function show(io::IO, x::Ufixed)
     print(io, ")")
 end
 showcompact(io::IO, x::Ufixed) = show(io, round(convert(Float64,x), iceil(nbitsfrac(typeof(x))/_log2_10)))
+
+show{T<:Ufixed}(io::IO, ::Type{T}) = print(io, "Ufixed", nbitsfrac(T))

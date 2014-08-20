@@ -96,6 +96,17 @@ for T in FixedPointNumbers.UF
     testtrunc(eps(T))
 end
 
+# Show
+x = 0xaauf8
+iob = IOBuffer()
+show(iob, typeof(x))
+@test takebuf_string(iob) == "Ufixed8"
+
+show(iob, x)
+str = takebuf_string(iob)
+@test beginswith(str, "Ufixed8(")
+@test eval(parse(str)) == x
+
 # scaledual
 function generic_scale!(C::AbstractArray, X::AbstractArray, s::Number)
     length(C) == length(X) || error("C must be the same length as X")

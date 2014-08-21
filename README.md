@@ -34,7 +34,7 @@ The types `Ufixed10`, `Ufixed12`, `Ufixed14`, and `Ufixed16` are all based on `U
 and reach the value `1.0` at 10, 12, 14, and 16 bits, respectively (`0x03ff`, `0x0fff`,
 `0x3fff`, and `0xffff`).
 
-To construct such a number, use `convert(Ufixed12, 1.3)` or the literal syntax `0x14ccuf12`.
+To construct such a number, use `convert(Ufixed12, 1.3)`, `ufixed12(1.3)`, or the literal syntax `0x14ccuf12`.
 The latter syntax means to construct a `Ufixed12` (it ends in `uf12`) from the `Uint16` value
 `0x14cc`.
 

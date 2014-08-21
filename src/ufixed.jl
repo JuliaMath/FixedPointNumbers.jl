@@ -19,6 +19,12 @@ const UF = (Ufixed8, Ufixed10, Ufixed12, Ufixed14, Ufixed16)
   rawtype{T,f}(::Type{UfixedBase{T,f}}) = T
 nbitsfrac{T,f}(::Type{UfixedBase{T,f}}) = f
 
+reinterpret(::Type{Ufixed8}, x::Uint8) = UfixedBase{Uint8,8}(x,0)
+for (T,f) in ((Ufixed10,10),(Ufixed12,12),(Ufixed14,14),(Ufixed16,16))
+    @eval reinterpret(::Type{$T}, x::Uint16) = UfixedBase{Uint16,$f}(x, 0)
+end
+
+
 # The next lines mimic the floating-point literal syntax "3.2f0"
 immutable UfixedConstructor{T,f} end
 *{T,f}(n::Integer, ::UfixedConstructor{T,f}) = UfixedBase{T,f}(n,0)
@@ -41,6 +47,19 @@ rawone(v) = reinterpret(one(v))
 
 # Conversions
 convert{T<:Ufixed}(::Type{T}, x::Real) = T(iround(rawtype(T), rawone(T)*x),0)
+
+ufixed8(x)  = convert(Ufixed8, x)
+ufixed10(x) = convert(Ufixed10, x)
+ufixed12(x) = convert(Ufixed12, x)
+ufixed14(x) = convert(Ufixed14, x)
+ufixed16(x) = convert(Ufixed16, x)
+
+@vectorize_1arg Real ufixed8
+@vectorize_1arg Real ufixed10
+@vectorize_1arg Real ufixed12
+@vectorize_1arg Real ufixed14
+@vectorize_1arg Real ufixed16
+
 
 convert(::Type{BigFloat}, x::Ufixed) = reinterpret(x)*(1/BigFloat(rawone(x)))
 convert{T<:FloatingPoint}(::Type{T}, x::Ufixed) = reinterpret(x)*(1/convert(T, rawone(x)))
@@ -142,3 +161,5 @@ function show(io::IO, x::Ufixed)
     print(io, ")")
 end
 showcompact(io::IO, x::Ufixed) = show(io, round(convert(Float64,x), iceil(nbitsfrac(typeof(x))/_log2_10)))
+
+show{T<:Ufixed}(io::IO, ::Type{T}) = print(io, "Ufixed", nbitsfrac(T))

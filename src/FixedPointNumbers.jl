@@ -20,6 +20,12 @@ export
     Ufixed12,
     Ufixed14,
     Ufixed16,
+    # constructors
+    ufixed8,
+    ufixed10,
+    ufixed12,
+    ufixed14,
+    ufixed16,
     # literal constructor constants
     uf8,
     uf10,

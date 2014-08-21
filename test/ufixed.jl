@@ -6,6 +6,17 @@ using FixedPointNumbers, Base.Test
 @test reinterpret(0xa2uf14) == 0xa2
 @test reinterpret(0xa2uf16) == 0xa2
 
+@test reinterpret(Ufixed8, 0xa2) == 0xa2uf8
+@test reinterpret(Ufixed10, 0x1fa2) == 0x1fa2uf10
+@test reinterpret(Ufixed12, 0x1fa2) == 0x1fa2uf12
+@test reinterpret(Ufixed14, 0x1fa2) == 0x1fa2uf14
+@test reinterpret(Ufixed16, 0x1fa2) == 0x1fa2uf16
+
+@test ufixed8(1.0) == 0xffuf8
+@test ufixed8(0.5) == 0x80uf8
+@test ufixed14(1.0) == 0x3fffuf14
+@test ufixed12([2]) == Ufixed12[0x1ffeuf12]
+
 for T in FixedPointNumbers.UF
     @test zero(T) == 0
     @test one(T) == 1
@@ -89,6 +100,17 @@ end
 for T in FixedPointNumbers.UF
     testtrunc(eps(T))
 end
+
+# Show
+x = 0xaauf8
+iob = IOBuffer()
+show(iob, typeof(x))
+@test takebuf_string(iob) == "Ufixed8"
+
+show(iob, x)
+str = takebuf_string(iob)
+@test beginswith(str, "Ufixed8(")
+@test eval(parse(str)) == x
 
 # scaledual
 function generic_scale!(C::AbstractArray, X::AbstractArray, s::Number)

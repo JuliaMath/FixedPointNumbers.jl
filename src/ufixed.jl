@@ -154,12 +154,12 @@ for T in UF
 end
 
 # Show
-function show(io::IO, x::Ufixed)
-    print(io, "Ufixed", nbitsfrac(typeof(x)))
+function show{T,f}(io::IO, x::UfixedBase{T,f})
+    print(io, "Ufixed", f)
     print(io, "(")
     showcompact(io, x)
     print(io, ")")
 end
-showcompact(io::IO, x::Ufixed) = show(io, round(convert(Float64,x), iceil(nbitsfrac(typeof(x))/_log2_10)))
+showcompact{T,f}(io::IO, x::UfixedBase{T,f}) = show(io, round(convert(Float64,x), iceil(f/_log2_10)))
 
-show{T<:Ufixed}(io::IO, ::Type{T}) = print(io, "Ufixed", nbitsfrac(T))
+show{T,f}(io::IO, ::Type{UfixedBase{T,f}}) = print(io, "Ufixed", f)

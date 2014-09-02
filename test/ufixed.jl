@@ -104,9 +104,6 @@ end
 # Show
 x = 0xaauf8
 iob = IOBuffer()
-show(iob, typeof(x))
-@test takebuf_string(iob) == "Ufixed8"
-
 show(iob, x)
 str = takebuf_string(iob)
 @test beginswith(str, "Ufixed8(")

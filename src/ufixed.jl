@@ -161,6 +161,3 @@ function show{T,f}(io::IO, x::UfixedBase{T,f})
     print(io, ")")
 end
 showcompact{T,f}(io::IO, x::UfixedBase{T,f}) = show(io, round(convert(Float64,x), iceil(f/_log2_10)))
-
-show{T,f}(io::IO, ::Type{UfixedBase{T,f}}) = print(io, "Ufixed", f)
-showcompact{T,f}(io::IO, ::Type{UfixedBase{T,f}}) = print(io, "Ufixed", f)

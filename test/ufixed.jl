@@ -60,8 +60,8 @@ for T in FixedPointNumbers.UF
     @test y > x
     @test y != x
     @test x+y == T(0x35,0)
-    @test (x+y) - x == y
-    @test (x-y) + y == x
+    @test_approx_eq((x+y)-x, float32(y))
+    @test_approx_eq((x-y)+y, float32(x))
     @test x*y == float32(x)*float32(y)
     @test x/y == float32(x)/float32(y)
     @test x^2 == float32(x)^2
@@ -93,7 +93,7 @@ function testtrunc{T}(inc::T)
             println("Failed on x = ", x, ", xf = ", xf)
             rethrow(err)
         end
-        x += inc
+        x = convert(T, x+inc)
     end
 end
 

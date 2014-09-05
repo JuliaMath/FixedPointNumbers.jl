@@ -1,6 +1,7 @@
 module FixedPointNumbers
 
 import Base: convert, promote_rule, show, showcompact, isinteger, abs,
+             isnan, isinf, isfinite,
              zero, one, typemin, typemax, realmin, realmax, eps, sizeof, reinterpret,
              trunc, round, floor, ceil, itrunc, iround, ifloor, iceil, bswap,
              div, fld, rem, mod, mod1, rem1, fld1, min, max,

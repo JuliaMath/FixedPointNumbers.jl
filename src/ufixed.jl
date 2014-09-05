@@ -114,6 +114,10 @@ iround(x::Ufixed) = iround(Int, x)
 ifloor(x::Ufixed) = ifloor(Int, x)
  iceil(x::Ufixed) =  iceil(Int, x)
 
+isfinite(x::Ufixed) = true
+isnan(x::Ufixed) = false
+isinf(x::Ufixed) = false
+
 bswap{f}(x::UfixedBase{Uint8,f}) = x
 bswap(x::Ufixed)  = typeof(x)(bswap(reinterpret(x)),0)
 

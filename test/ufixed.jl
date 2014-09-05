@@ -34,6 +34,11 @@ end
 @test typemax(Ufixed12) == float64(typemax(Uint16))/(2^12-1)
 @test typemax(Ufixed14) == float64(typemax(Uint16))/(2^14-1)
 
+x = Ufixed8(0.5)
+@test isfinite(x) == true
+@test isnan(x) == false
+@test isinf(x) == false
+
 @test convert(Ufixed8,  1.1/typemax(Uint8)) == eps(Ufixed8)
 @test convert(Ufixed10, 1.1/typemax(Uint16)*64) == eps(Ufixed10)
 @test convert(Ufixed12, 1.1/typemax(Uint16)*16) == eps(Ufixed12)

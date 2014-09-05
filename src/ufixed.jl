@@ -78,9 +78,8 @@ eps{T<:Ufixed}(::T) = eps(T)
 sizeof{T<:Ufixed}(::Type{T}) = sizeof(rawtype(T))
 
 # Arithmetic
-# Ufixed types are closed under addition and subtraction
-+{T,f}(x::UfixedBase{T,f}, y::UfixedBase{T,f}) = UfixedBase{T,f}(convert(T, reinterpret(x)+reinterpret(y)),0)
--{T,f}(x::UfixedBase{T,f}, y::UfixedBase{T,f}) = UfixedBase{T,f}(convert(T, reinterpret(x)-reinterpret(y)),0)
++{T,f}(x::UfixedBase{T,f}, y::UfixedBase{T,f}) = float32(x)+float32(y) # UfixedBase{T,f}(convert(T, reinterpret(x)+reinterpret(y)),0)
+-{T,f}(x::UfixedBase{T,f}, y::UfixedBase{T,f}) = float32(x)-float32(y) # UfixedBase{T,f}(convert(T, reinterpret(x)-reinterpret(y)),0)
 *{T,f}(x::UfixedBase{T,f}, y::UfixedBase{T,f}) = float32(x)*float32(y)
 /(x::Ufixed, y::Ufixed) = float32(x)/float32(y)
 
@@ -98,8 +97,8 @@ for T in UF
     k = 8*sizeof(R)-f
     ceilmask  = (typemax(R)<<k)>>k
     @eval begin
-        round(x::$T) = (y = trunc(x); return reinterpret(x-y)&$roundmask>0 ? y+one($T) : y)
-         ceil(x::$T) = (y = trunc(x); return reinterpret(x-y)&$ceilmask >0 ? y+one($T) : y)
+        round(x::$T) = (y = trunc(x); return convert(rawtype($T), reinterpret(x)-reinterpret(y))&$roundmask>0 ? $T(y+one($T)) : y)
+         ceil(x::$T) = (y = trunc(x); return convert(rawtype($T), reinterpret(x)-reinterpret(y))&$ceilmask >0 ? $T(y+one($T)) : y)
     end
 end
 

@@ -14,6 +14,9 @@ function test_fixed{T}(::Type{T}, f)
 
         fxf = float64(fx)
 
+        rx = convert(Rational{BigInt},fx)
+        @assert isequal(fx,rx) == isequal(hash(fx),hash(rx))
+
         for y in values
             fy = convert(T,y)
             fyf = float64(fy)
@@ -35,6 +38,8 @@ function test_fixed{T}(::Type{T}, f)
             if fy != 0
                 @assert abs(float64(fx/fy)-(fxf/fyf)) <= tol
             end
+
+            @assert isequal(fx,fy) == isequal(hash(fx),hash(fy))
         end
     end
 end

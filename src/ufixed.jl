@@ -79,6 +79,7 @@ realmax{T<:Ufixed}(::Type{T}) = typemax(T)
 eps{T<:Ufixed}(::Type{T}) = T(one(rawtype(T)),0)
 eps{T<:Ufixed}(::T) = eps(T)
 sizeof{T<:Ufixed}(::Type{T}) = sizeof(rawtype(T))
+abs(x::Ufixed) = x
 
 # Arithmetic
 +{T,f}(x::UfixedBase{T,f}, y::UfixedBase{T,f}) = float32(x)+float32(y) # UfixedBase{T,f}(convert(T, reinterpret(x)+reinterpret(y)),0)
@@ -142,6 +143,11 @@ else
     start{T<:Ufixed}(r::StepRange{T}) = convert(typeof(reinterpret(r.start)+reinterpret(r.step)), reinterpret(r.start))
     next{T<:Ufixed}(r::StepRange{T}, i::Integer) = (T(i,0), i+reinterpret(r.step))
     done{T<:Ufixed}(r::StepRange{T}, i::Integer) = isempty(r) || (i > reinterpret(r.stop))
+end
+
+function decompose(x::Ufixed)
+    g = gcd(reinterpret(x), rawone(x))
+    div(reinterpret(x),g), 0, div(rawone(x),g)
 end
 
 # Promotions

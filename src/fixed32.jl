@@ -58,6 +58,7 @@ convert{T<:Rational, f}(::Type{T}, x::Fixed32{f}) =
 
 promote_rule{f,T<:Integer}(ft::Type{Fixed32{f}}, ::Type{T}) = ft
 promote_rule{f,T<:FloatingPoint}(::Type{Fixed32{f}}, ::Type{T}) = T
+promote_rule{f,T}(::Type{Fixed32{f}}, ::Type{Rational{T}}) = Rational{T}
 
 decompose{f}(x::Fixed32{f}) = x.i, -f, 1
 

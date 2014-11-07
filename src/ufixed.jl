@@ -47,7 +47,7 @@ rawone(v) = reinterpret(one(v))
 
 # Conversions
 convert{T<:Ufixed}(::Type{T}, x::T)    = x
-convert{T1<:Ufixed,T2<:Ufixed}(::Type{T1}, x::T2)  = reinterpret(T1, iround(rawtype(T1), (rawone(T1)/rawone(T2))*reinterpret(x)))
+convert{T1<:Ufixed,}(::Type{T1}, x::Ufixed)  = reinterpret(T1, iround(rawtype(T1), (rawone(T1)/rawone(T2))*reinterpret(x)))
 convert(::Type{Ufixed16}, x::Ufixed8)  = reinterpret(Ufixed16, convert(Uint16, 0x0101*reinterpret(x)))
 convert{T<:Ufixed}(::Type{T}, x::Real) = T(iround(rawtype(T), rawone(T)*x),0)
 

@@ -47,9 +47,9 @@ rawone(v) = reinterpret(one(v))
 
 # Conversions
 convert{T<:Ufixed}(::Type{T}, x::T)    = x
-convert{T1<:Ufixed,T2<:Ufixed}(::Type{T1}, x::T2)  = reinterpret(T1, iround(rawtype(T1), (rawone(T1)/rawone(T2))*reinterpret(x)))
+convert{T1<:Ufixed,T2<:Ufixed}(::Type{T1}, x::T2)  = reinterpret(T1, round(rawtype(T1), (rawone(T1)/rawone(T2))*reinterpret(x)))
 convert(::Type{Ufixed16}, x::Ufixed8)  = reinterpret(Ufixed16, convert(Uint16, 0x0101*reinterpret(x)))
-convert{T<:Ufixed}(::Type{T}, x::Real) = T(iround(rawtype(T), rawone(T)*x),0)
+convert{T<:Ufixed}(::Type{T}, x::Real) = T(round(rawtype(T), rawone(T)*x),0)
 
 ufixed8(x)  = convert(Ufixed8, x)
 ufixed10(x) = convert(Ufixed10, x)
@@ -105,14 +105,14 @@ for T in UF
     end
 end
 
-itrunc{T<:Integer}(::Type{T}, x::Ufixed) = convert(T, div(reinterpret(x), rawone(x)))
-iround{T<:Integer}(::Type{T}, x::Ufixed) = iround(T, reinterpret(x)/rawone(x))
-ifloor{T<:Integer}(::Type{T}, x::Ufixed) = itrunc(T, x)
- iceil{T<:Integer}(::Type{T}, x::Ufixed) =  iceil(T, reinterpret(x)/rawone(x))
-itrunc(x::Ufixed) = itrunc(Int, x)
-iround(x::Ufixed) = iround(Int, x)
-ifloor(x::Ufixed) = ifloor(Int, x)
- iceil(x::Ufixed) =  iceil(Int, x)
+trunc{T<:Integer}(::Type{T}, x::Ufixed) = convert(T, div(reinterpret(x), rawone(x)))
+round{T<:Integer}(::Type{T}, x::Ufixed) = round(T, reinterpret(x)/rawone(x))
+floor{T<:Integer}(::Type{T}, x::Ufixed) = trunc(T, x)
+ ceil{T<:Integer}(::Type{T}, x::Ufixed) =  ceil(T, reinterpret(x)/rawone(x))
+trunc(x::Ufixed) = trunc(Int, x)
+round(x::Ufixed) = round(Int, x)
+floor(x::Ufixed) = floor(Int, x)
+ ceil(x::Ufixed) =  ceil(Int, x)
 
 isfinite(x::Ufixed) = true
 isnan(x::Ufixed) = false
@@ -166,4 +166,4 @@ function show{T,f}(io::IO, x::UfixedBase{T,f})
     showcompact(io, x)
     print(io, ")")
 end
-showcompact{T,f}(io::IO, x::UfixedBase{T,f}) = show(io, round(convert(Float64,x), iceil(f/_log2_10)))
+showcompact{T,f}(io::IO, x::UfixedBase{T,f}) = show(io, round(convert(Float64,x), ceil(Int,f/_log2_10)))

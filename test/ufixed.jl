@@ -88,11 +88,11 @@ function testtrunc{T}(inc::T)
                 @test ceil(x) == ceil(xf)
             end
             @test floor(x) == floor(xf)
-            @test itrunc(x) == itrunc(xf)
-            @test iround(x) == iround(xf)
-            @test ifloor(x) == ifloor(xf)
+            @test trunc(Int,x) == trunc(Int,xf)
+            @test round(Int,x) == round(Int,xf)
+            @test floor(Int,x) == floor(Int,xf)
             if cxf < tm
-                @test iceil(x) == iceil(xf)
+                @test ceil(Int,x) == ceil(Int,xf)
             end
         catch err
             println("Failed on x = ", x, ", xf = ", xf)

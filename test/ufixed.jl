@@ -30,9 +30,9 @@ end
 @test typemax(Ufixed12) == typemax(Uint16)//(2^12-1)
 @test typemax(Ufixed14) == typemax(Uint16)//(2^14-1)
 @test typemax(Ufixed16) == 1
-@test typemax(Ufixed10) == float64(typemax(Uint16))/(2^10-1)
-@test typemax(Ufixed12) == float64(typemax(Uint16))/(2^12-1)
-@test typemax(Ufixed14) == float64(typemax(Uint16))/(2^14-1)
+@test typemax(Ufixed10) == typemax(Uint16) // (2^10-1)
+@test typemax(Ufixed12) == typemax(Uint16) // (2^12-1)
+@test typemax(Ufixed14) == typemax(Uint16) // (2^14-1)
 
 x = Ufixed8(0.5)
 @test isfinite(x) == true
@@ -64,14 +64,14 @@ for T in FixedPointNumbers.UF
     y = T(0x25,0)
     @test y > x
     @test y != x
-    @test x+y == T(0x35,0)
+    @test_approx_eq(x+y, T(0x35,0))
     @test_approx_eq((x+y)-x, float32(y))
     @test_approx_eq((x-y)+y, float32(x))
-    @test x*y == float32(x)*float32(y)
-    @test x/y == float32(x)/float32(y)
-    @test x^2 == float32(x)^2
-    @test x^2.1f0 == float32(x)^2.1f0
-    @test x^2.1 == float64(x)^2.1
+    @test_approx_eq(x*y, float32(x)*float32(y))
+    @test_approx_eq(x/y, float32(x)/float32(y))
+    @test_approx_eq(x^2, float32(x)^2)
+    @test_approx_eq(x^2.1f0, float32(x)^2.1f0)
+    @test_approx_eq(x^2.1, float64(x)^2.1)
 end
 
 function testtrunc{T}(inc::T)

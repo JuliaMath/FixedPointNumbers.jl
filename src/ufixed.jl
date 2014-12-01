@@ -47,7 +47,7 @@ rawone(v) = reinterpret(one(v))
 
 # Conversions
 convert{T<:Ufixed}(::Type{T}, x::T)    = x
-convert{T1<:Ufixed,T2<:Ufixed}(::Type{T1}, x::T2)  = reinterpret(T1, iround(rawtype(T1), (rawone(T1)/rawone(T2))*reinterpret(x)))
+convert{T1<:Ufixed,}(::Type{T1}, x::Ufixed)  = reinterpret(T1, iround(rawtype(T1), (rawone(T1)/rawone(T2))*reinterpret(x)))
 convert(::Type{Ufixed16}, x::Ufixed8)  = reinterpret(Ufixed16, convert(Uint16, 0x0101*reinterpret(x)))
 convert{T<:Ufixed}(::Type{T}, x::Real) = T(iround(rawtype(T), rawone(T)*x),0)
 
@@ -79,6 +79,7 @@ realmax{T<:Ufixed}(::Type{T}) = typemax(T)
 eps{T<:Ufixed}(::Type{T}) = T(one(rawtype(T)),0)
 eps{T<:Ufixed}(::T) = eps(T)
 sizeof{T<:Ufixed}(::Type{T}) = sizeof(rawtype(T))
+abs(x::Ufixed) = x
 
 # Arithmetic
 +{T,f}(x::UfixedBase{T,f}, y::UfixedBase{T,f}) = float32(x)+float32(y) # UfixedBase{T,f}(convert(T, reinterpret(x)+reinterpret(y)),0)
@@ -142,6 +143,11 @@ else
     start{T<:Ufixed}(r::StepRange{T}) = convert(typeof(reinterpret(r.start)+reinterpret(r.step)), reinterpret(r.start))
     next{T<:Ufixed}(r::StepRange{T}, i::Integer) = (T(i,0), i+reinterpret(r.step))
     done{T<:Ufixed}(r::StepRange{T}, i::Integer) = isempty(r) || (i > reinterpret(r.stop))
+end
+
+function decompose(x::Ufixed)
+    g = gcd(reinterpret(x), rawone(x))
+    div(reinterpret(x),g), 0, div(rawone(x),g)
 end
 
 # Promotions

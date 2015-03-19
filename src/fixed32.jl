@@ -33,9 +33,9 @@ abs{f}(x::Fixed32{f}) = Fixed32{f}(abs(x.i),0)
 # with truncation:
 #*{f}(x::Fixed32{f}, y::Fixed32{f}) = Fixed32{f}(Base.widemul(x.i,y.i)>>f,0)
 # with rounding up:
-*{f}(x::Fixed32{f}, y::Fixed32{f}) = Fixed32{f}((Base.widemul(x.i,y.i)+(int64(1)<<(f-1)))>>f,0)
+*{f}(x::Fixed32{f}, y::Fixed32{f}) = Fixed32{f}((Base.widemul(x.i,y.i)+(Int64(1)<<(f-1)))>>f,0)
 
-/{f}(x::Fixed32{f}, y::Fixed32{f}) = Fixed32{f}(div(int64(x.i)<<f, y.i),0)
+/{f}(x::Fixed32{f}, y::Fixed32{f}) = Fixed32{f}(div(Int64(x.i)<<f, y.i),0)
 
 # conversions and promotions
 convert{f}(::Type{Fixed32{f}}, x::Integer) = Fixed32{f}(x<<f,0)

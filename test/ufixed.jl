@@ -65,17 +65,17 @@ for T in FixedPointNumbers.UF
     @test y > x
     @test y != x
     @test_approx_eq(x+y, T(0x35,0))
-    @test_approx_eq((x+y)-x, float32(y))
-    @test_approx_eq((x-y)+y, float32(x))
-    @test_approx_eq(x*y, float32(x)*float32(y))
-    @test_approx_eq(x/y, float32(x)/float32(y))
-    @test_approx_eq(x^2, float32(x)^2)
-    @test_approx_eq(x^2.1f0, float32(x)^2.1f0)
-    @test_approx_eq(x^2.1, float64(x)^2.1)
+    @test_approx_eq((x+y)-x, Float32(y))
+    @test_approx_eq((x-y)+y, Float32(x))
+    @test_approx_eq(x*y, Float32(x)*Float32(y))
+    @test_approx_eq(x/y, Float32(x)/Float32(y))
+    @test_approx_eq(x^2, Float32(x)^2)
+    @test_approx_eq(x^2.1f0, Float32(x)^2.1f0)
+    @test_approx_eq(x^2.1, Float64(x)^2.1)
 end
 
 function testtrunc{T}(inc::T)
-    incf = float64(inc)
+    incf = Float64(inc)
     tm = reinterpret(typemax(T))/reinterpret(one(T))
     x = zero(T)
     for i = 0:reinterpret(typemax(T))-1

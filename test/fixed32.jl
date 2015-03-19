@@ -2,7 +2,7 @@ using Base.Test
 using FixedPointNumbers
 
 function test_fixed{T}(::Type{T}, f)
-    values = [-10:0.01:10, -180:.01:-160, 160:.01:180]
+    values = [-10:0.01:10; -180:.01:-160; 160:.01:180]
     tol = 2.0^-f
 
     for x in values

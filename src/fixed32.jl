@@ -39,7 +39,7 @@ abs{f}(x::Fixed32{f}) = Fixed32{f}(abs(x.i),0)
 
 # conversions and promotions
 convert{f}(::Type{Fixed32{f}}, x::Integer) = Fixed32{f}(x<<f,0)
-convert{f}(::Type{Fixed32{f}}, x::FloatingPoint) = Fixed32{f}(trunc(Int32,x)<<f + int32(rem(x,1)*(1<<f)),0)
+convert{f}(::Type{Fixed32{f}}, x::FloatingPoint) = Fixed32{f}(trunc(Int32,x)<<f + round(Int32, rem(x,1)*(1<<f)),0)
 convert{f}(::Type{Fixed32{f}}, x::Rational) = Fixed32{f}(x.num)/Fixed32{f}(x.den)
 
 convert{f}(::Type{BigFloat}, x::Fixed32{f}) =

@@ -111,7 +111,7 @@ x = 0xaauf8
 iob = IOBuffer()
 show(iob, x)
 str = takebuf_string(iob)
-@test beginswith(str, "Ufixed8(")
+@test startswith(str, "Ufixed8(")
 @test eval(parse(str)) == x
 
 # scaledual

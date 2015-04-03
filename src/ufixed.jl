@@ -82,10 +82,10 @@ sizeof{T<:Ufixed}(::Type{T}) = sizeof(rawtype(T))
 abs(x::Ufixed) = x
 
 # Arithmetic
-+{T,f}(x::UfixedBase{T,f}, y::UfixedBase{T,f}) = float32(x)+float32(y) # UfixedBase{T,f}(convert(T, reinterpret(x)+reinterpret(y)),0)
--{T,f}(x::UfixedBase{T,f}, y::UfixedBase{T,f}) = float32(x)-float32(y) # UfixedBase{T,f}(convert(T, reinterpret(x)-reinterpret(y)),0)
-*{T,f}(x::UfixedBase{T,f}, y::UfixedBase{T,f}) = float32(x)*float32(y)
-/(x::Ufixed, y::Ufixed) = float32(x)/float32(y)
++{T,f}(x::UfixedBase{T,f}, y::UfixedBase{T,f}) = convert(Float32, x)+convert(Float32, y) # UfixedBase{T,f}(convert(T, reinterpret(x)+reinterpret(y)),0)
+-{T,f}(x::UfixedBase{T,f}, y::UfixedBase{T,f}) = convert(Float32, x)-convert(Float32, y) # UfixedBase{T,f}(convert(T, reinterpret(x)-reinterpret(y)),0)
+*{T,f}(x::UfixedBase{T,f}, y::UfixedBase{T,f}) = convert(Float32, x)*convert(Float32, y)
+/(x::Ufixed, y::Ufixed) = convert(Float32, x)/convert(Float32, y)
 
 # Comparisons
 < {T<:Ufixed}(x::T, y::T) = reinterpret(x) <  reinterpret(y)
@@ -158,7 +158,7 @@ for T in UF
         promote_rule{TR<:Rational}(::Type{$T}, ::Type{TR}) = TR
     end
     for Ti in (Int8, Uint8, Int16, Uint16, Int32, Uint32, Int64, Uint64)
-        Tp = eps(float32(typemax(Ti))) > eps(T) ? Float64 : Float32
+        Tp = eps(convert(Float32, typemax(Ti))) > eps(T) ? Float64 : Float32
         @eval begin
             promote_rule(::Type{$T}, ::Type{$Ti}) = $Tp
         end

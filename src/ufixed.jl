@@ -88,7 +88,7 @@ abs(x::Ufixed) = x
 /(x::Ufixed, y::Ufixed) = convert(Float32, x)/convert(Float32, y)
 
 # Comparisons
-< {T<:Ufixed}(x::T, y::T) = reinterpret(x) <  reinterpret(y)
+ <{T<:Ufixed}(x::T, y::T) = reinterpret(x) <  reinterpret(y)
 <={T<:Ufixed}(x::T, y::T) = reinterpret(x) <  reinterpret(y)
 
 # Functions

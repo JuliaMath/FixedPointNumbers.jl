@@ -17,7 +17,7 @@ nbitsfrac{f}(::Type{Fixed32{f}}) = f
 
 # comparisons
 =={f}(x::Fixed32{f}, y::Fixed32{f}) = x.i == y.i
-< {f}(x::Fixed32{f}, y::Fixed32{f}) = x.i <  y.i
+ <{f}(x::Fixed32{f}, y::Fixed32{f}) = x.i <  y.i
 <={f}(x::Fixed32{f}, y::Fixed32{f}) = x.i <= y.i
 
 # predicates

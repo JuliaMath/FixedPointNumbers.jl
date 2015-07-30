@@ -2,7 +2,8 @@ module FixedPointNumbers
 
 using Compat
 
-import Base: convert, promote_rule, show, showcompact, isinteger, abs, decompose,
+import Base: ==, <, <=, -, +, *, /,
+             convert, promote_rule, show, showcompact, isinteger, abs, decompose,
              isnan, isinf, isfinite,
              zero, one, typemin, typemax, realmin, realmax, eps, sizeof, reinterpret,
              trunc, round, floor, ceil, bswap,

@@ -26,30 +26,30 @@ for T in FixedPointNumbers.UF
     @test sizeof(T) == 1 + (T != Ufixed8)
 end
 @test typemax(Ufixed8) == 1
-@test typemax(Ufixed10) == typemax(Uint16)//(2^10-1)
-@test typemax(Ufixed12) == typemax(Uint16)//(2^12-1)
-@test typemax(Ufixed14) == typemax(Uint16)//(2^14-1)
+@test typemax(Ufixed10) == typemax(UInt16)//(2^10-1)
+@test typemax(Ufixed12) == typemax(UInt16)//(2^12-1)
+@test typemax(Ufixed14) == typemax(UInt16)//(2^14-1)
 @test typemax(Ufixed16) == 1
-@test typemax(Ufixed10) == typemax(Uint16) // (2^10-1)
-@test typemax(Ufixed12) == typemax(Uint16) // (2^12-1)
-@test typemax(Ufixed14) == typemax(Uint16) // (2^14-1)
+@test typemax(Ufixed10) == typemax(UInt16) // (2^10-1)
+@test typemax(Ufixed12) == typemax(UInt16) // (2^12-1)
+@test typemax(Ufixed14) == typemax(UInt16) // (2^14-1)
 
 x = Ufixed8(0.5)
 @test isfinite(x) == true
 @test isnan(x) == false
 @test isinf(x) == false
 
-@test convert(Ufixed8,  1.1/typemax(Uint8)) == eps(Ufixed8)
-@test convert(Ufixed10, 1.1/typemax(Uint16)*64) == eps(Ufixed10)
-@test convert(Ufixed12, 1.1/typemax(Uint16)*16) == eps(Ufixed12)
-@test convert(Ufixed14, 1.1/typemax(Uint16)*4)  == eps(Ufixed14)
-@test convert(Ufixed16, 1.1/typemax(Uint16))    == eps(Ufixed16)
+@test convert(Ufixed8,  1.1/typemax(UInt8)) == eps(Ufixed8)
+@test convert(Ufixed10, 1.1/typemax(UInt16)*64) == eps(Ufixed10)
+@test convert(Ufixed12, 1.1/typemax(UInt16)*16) == eps(Ufixed12)
+@test convert(Ufixed14, 1.1/typemax(UInt16)*4)  == eps(Ufixed14)
+@test convert(Ufixed16, 1.1/typemax(UInt16))    == eps(Ufixed16)
 
-@test convert(Ufixed8,  1.1f0/typemax(Uint8)) == eps(Ufixed8)
+@test convert(Ufixed8,  1.1f0/typemax(UInt8)) == eps(Ufixed8)
 
-@test convert(Float64, eps(Ufixed8)) == 1/typemax(Uint8)
-@test convert(Float32, eps(Ufixed8)) == 1.0f0/typemax(Uint8)
-@test convert(BigFloat, eps(Ufixed8)) == BigFloat(1)/typemax(Uint8)
+@test convert(Float64, eps(Ufixed8)) == 1/typemax(UInt8)
+@test convert(Float32, eps(Ufixed8)) == 1.0f0/typemax(UInt8)
+@test convert(BigFloat, eps(Ufixed8)) == BigFloat(1)/typemax(UInt8)
 for T in FixedPointNumbers.UF
     @test convert(Bool, zero(T)) == false
     @test convert(Bool, one(T))  == true
@@ -123,7 +123,7 @@ function generic_scale!(C::AbstractArray, X::AbstractArray, s::Number)
     C
 end
 
-a = rand(Uint8, 10)
+a = rand(UInt8, 10)
 rfloat = similar(a, Float32)
 rfixed = similar(rfloat)
 af8 = reinterpret(Ufixed8, a)

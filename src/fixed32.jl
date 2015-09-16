@@ -39,12 +39,12 @@ abs{f}(x::Fixed32{f}) = Fixed32{f}(abs(x.i),0)
 
 # conversions and promotions
 convert{f}(::Type{Fixed32{f}}, x::Integer) = Fixed32{f}(x<<f,0)
-convert{f}(::Type{Fixed32{f}}, x::FloatingPoint) = Fixed32{f}(trunc(Int32,x)<<f + round(Int32, rem(x,1)*(1<<f)),0)
+convert{f}(::Type{Fixed32{f}}, x::AbstractFloat) = Fixed32{f}(trunc(Int32,x)<<f + round(Int32, rem(x,1)*(1<<f)),0)
 convert{f}(::Type{Fixed32{f}}, x::Rational) = Fixed32{f}(x.num)/Fixed32{f}(x.den)
 
 convert{f}(::Type{BigFloat}, x::Fixed32{f}) =
     convert(BigFloat,x.i>>f) + convert(BigFloat,x.i&(1<<f - 1))/convert(BigFloat,1<<f)
-convert{T<:FloatingPoint, f}(::Type{T}, x::Fixed32{f}) =
+convert{T<:AbstractFloat, f}(::Type{T}, x::Fixed32{f}) =
     convert(T,x.i>>f) + convert(T,x.i&(1<<f - 1))/convert(T,1<<f)
 
 convert(::Type{Bool}, x::Fixed32) = x.i!=0
@@ -57,7 +57,7 @@ convert{T<:Rational, f}(::Type{T}, x::Fixed32{f}) =
     convert(T, x.i>>f + (x.i&(1<<f-1))//(1<<f))
 
 promote_rule{f,T<:Integer}(ft::Type{Fixed32{f}}, ::Type{T}) = ft
-promote_rule{f,T<:FloatingPoint}(::Type{Fixed32{f}}, ::Type{T}) = T
+promote_rule{f,T<:AbstractFloat}(::Type{Fixed32{f}}, ::Type{T}) = T
 promote_rule{f,T}(::Type{Fixed32{f}}, ::Type{Rational{T}}) = Rational{T}
 
 decompose{f}(x::Fixed32{f}) = x.i, -f, 1

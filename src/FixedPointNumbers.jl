@@ -11,21 +11,20 @@ import Base: ==, <, <=, -, +, *, /, ~,
              trunc, round, floor, ceil, bswap,
              div, fld, rem, mod, mod1, rem1, fld1, min, max,
              start, next, done
-
-abstract FixedPoint <: Real
-abstract  Fixed <: FixedPoint
-abstract Ufixed <: FixedPoint  # unsigned variant
+# T => BaseType
+# f => Number of Bytes reserved for fractional part
+abstract FixedPoint{T <: Integer, f} <: Real
 
 export
     FixedPoint,
     Fixed,
-    Ufixed,
-    Fixed32,
-    Ufixed8,
-    Ufixed10,
-    Ufixed12,
-    Ufixed14,
-    Ufixed16,
+    UFixed,
+    Fixed16,
+    UFixed8,
+    UFixed10,
+    UFixed12,
+    UFixed14,
+    UFixed16,
     # constructors
     ufixed8,
     ufixed10,
@@ -43,10 +42,26 @@ export
 
 reinterpret(x::FixedPoint) = x.i
 
-include("fixed32.jl")
-include("ufixed.jl")
+# comparison
+=={T <: FixedPoint}(x::T, y::T) = x.i == y.i
+ <{T <: FixedPoint}(x::T, y::T) = x.i  < y.i
+<={T <: FixedPoint}(x::T, y::T) = x.i <= y.i
 
-for T in tuple(Fixed32, UF...)
+# predicates
+isinteger{T,f}(x::FixedPoint{T,f}) = (x.i&(1<<f-1)) == 0
+
+typemax{T<: FixedPoint}(::Type{T}) = T(typemax(rawtype(T)), 0)
+typemin{T<: FixedPoint}(::Type{T}) = T(typemin(rawtype(T)), 0)
+realmin{T<: FixedPoint}(::Type{T}) = typemin(T)
+realmax{T<: FixedPoint}(::Type{T}) = typemax(T)
+
+include("fixed.jl")
+include("ufixed.jl")
+include("deprecations.jl")
+
+
+# TODO: rewrite this by @generated
+for T in tuple(Fixed16, UF...)
     R = rawtype(T)
     @eval begin
         reinterpret(::Type{$R}, x::$T) = x.i

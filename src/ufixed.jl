@@ -1,61 +1,63 @@
-# UfixedBase{T,f} maps UInts from 0 to 2^f-1 to the range [0.0, 1.0]
-# For example, a Ufixed8 maps 0x00 to 0.0 and 0xff to 1.0
+# UFixed{T,f} maps UInts from 0 to 2^f-1 to the range [0.0, 1.0]
+# For example, a UFixed8 maps 0x00 to 0.0 and 0xff to 1.0
 
-immutable UfixedBase{T<:Unsigned,f} <: Ufixed
+immutable UFixed{T<:Unsigned,f} <: FixedPoint{T,f}
     i::T
 
-    UfixedBase(i::Integer,_) = new(i)   # for setting by raw representation
-    UfixedBase(x) = convert(UfixedBase{T,f}, x)
+    UFixed(i::Integer,_) = new(i%T)   # for setting by raw representation
+    UFixed(x) = convert(UFixed{T,f}, x)
 end
 
-typealias Ufixed8  UfixedBase{UInt8,8}
-typealias Ufixed10 UfixedBase{UInt16,10}
-typealias Ufixed12 UfixedBase{UInt16,12}
-typealias Ufixed14 UfixedBase{UInt16,14}
-typealias Ufixed16 UfixedBase{UInt16,16}
+  rawtype{T,f}(::Type{UFixed{T,f}}) = T
+nbitsfrac{T,f}(::Type{UFixed{T,f}}) = f
 
-const UF = (Ufixed8, Ufixed10, Ufixed12, Ufixed14, Ufixed16)
+typealias UFixed8  UFixed{UInt8,8}
+typealias UFixed10 UFixed{UInt16,10}
+typealias UFixed12 UFixed{UInt16,12}
+typealias UFixed14 UFixed{UInt16,14}
+typealias UFixed16 UFixed{UInt16,16}
 
-  rawtype{T,f}(::Type{UfixedBase{T,f}}) = T
-nbitsfrac{T,f}(::Type{UfixedBase{T,f}}) = f
+const UF = (UFixed8, UFixed10, UFixed12, UFixed14, UFixed16)
 
-reinterpret(::Type{Ufixed8}, x::UInt8) = UfixedBase{UInt8,8}(x,0)
-for (T,f) in ((Ufixed10,10),(Ufixed12,12),(Ufixed14,14),(Ufixed16,16))
-    @eval reinterpret(::Type{$T}, x::UInt16) = UfixedBase{UInt16,$f}(x, 0)
+for (uf) in UF
+    T = rawtype(uf)
+    f = nbitsfrac(uf)
+    @eval reinterpret(::Type{UFixed{$T,$f}}, x::$T) = UFixed{$T,$f}(x, 0)
 end
-
 
 # The next lines mimic the floating-point literal syntax "3.2f0"
-immutable UfixedConstructor{T,f} end
-*{T,f}(n::Integer, ::UfixedConstructor{T,f}) = UfixedBase{T,f}(n,0)
-const uf8  = UfixedConstructor{UInt8,8}()
-const uf10 = UfixedConstructor{UInt16,10}()
-const uf12 = UfixedConstructor{UInt16,12}()
-const uf14 = UfixedConstructor{UInt16,14}()
-const uf16 = UfixedConstructor{UInt16,16}()
+immutable UFixedConstructor{T,f} end
+*{T,f}(n::Integer, ::UFixedConstructor{T,f}) = UFixed{T,f}(n,0)
+const uf8  = UFixedConstructor{UInt8,8}()
+const uf10 = UFixedConstructor{UInt16,10}()
+const uf12 = UFixedConstructor{UInt16,12}()
+const uf14 = UFixedConstructor{UInt16,14}()
+const uf16 = UFixedConstructor{UInt16,16}()
 
-zero{T,f}(::Type{UfixedBase{T,f}}) = UfixedBase{T,f}(zero(T),0)
-for T in UF
-    f = nbitsfrac(T)
+zero{T,f}(::Type{UFixed{T,f}}) = UFixed{T,f}(zero(T),0)
+for uf in UF
+    TT = rawtype(uf)
+    f = nbitsfrac(uf)
+    T = UFixed{TT,f}
     @eval begin
-        one(::Type{$T}) = UfixedBase{$(rawtype(T)),$f}($(2^f-1),0)
+        one(::Type{$T}) = $T($(2^f-1),0)
     end
 end
-zero(x::Ufixed) = zero(typeof(x))
- one(x::Ufixed) =  one(typeof(x))
+zero(x::UFixed) = zero(typeof(x))
+ one(x::UFixed) =  one(typeof(x))
 rawone(v) = reinterpret(one(v))
 
 # Conversions
-convert{T<:Ufixed}(::Type{T}, x::T)    = x
-convert{T1<:Ufixed}(::Type{T1}, x::Ufixed)  = reinterpret(T1, round(rawtype(T1), (rawone(T1)/rawone(x))*reinterpret(x)))
-convert(::Type{Ufixed16}, x::Ufixed8)  = reinterpret(Ufixed16, convert(UInt16, 0x0101*reinterpret(x)))
-convert{T<:Ufixed}(::Type{T}, x::Real) = T(round(rawtype(T), rawone(T)*x),0)
+convert{T<:UFixed}(::Type{T}, x::T) = x
+convert{T1<:UFixed}(::Type{T1}, x::UFixed) = reinterpret(T1, round(rawtype(T1), (rawone(T1)/rawone(x))*reinterpret(x)))
+convert(::Type{UFixed16}, x::UFixed8) = reinterpret(UFixed16, convert(UInt16, 0x0101*reinterpret(x)))
+convert{T<:UFixed}(::Type{T}, x::Real) = T(round(rawtype(T), rawone(T)*x),0)
 
-ufixed8(x)  = convert(Ufixed8, x)
-ufixed10(x) = convert(Ufixed10, x)
-ufixed12(x) = convert(Ufixed12, x)
-ufixed14(x) = convert(Ufixed14, x)
-ufixed16(x) = convert(Ufixed16, x)
+ufixed8(x)  = convert(UFixed8, x)
+ufixed10(x) = convert(UFixed10, x)
+ufixed12(x) = convert(UFixed12, x)
+ufixed14(x) = convert(UFixed14, x)
+ufixed16(x) = convert(UFixed16, x)
 
 @vectorize_1arg Real ufixed8
 @vectorize_1arg Real ufixed10
@@ -64,39 +66,35 @@ ufixed16(x) = convert(Ufixed16, x)
 @vectorize_1arg Real ufixed16
 
 
-convert(::Type{BigFloat}, x::Ufixed) = reinterpret(x)*(1/BigFloat(rawone(x)))
-convert{T<:AbstractFloat}(::Type{T}, x::Ufixed) = reinterpret(x)*(1/convert(T, rawone(x)))
-convert(::Type{Bool}, x::Ufixed) = x == zero(x) ? false : true
-convert{T<:Integer}(::Type{T}, x::Ufixed) = convert(T, x*(1/one(T)))
-convert{Ti<:Integer}(::Type{Rational{Ti}}, x::Ufixed) = convert(Ti, reinterpret(x))//convert(Ti, rawone(x))
-convert(::Type{Rational}, x::Ufixed) = reinterpret(x)//rawone(x)
+convert(::Type{BigFloat}, x::UFixed) = reinterpret(x)*(1/BigFloat(rawone(x)))
+convert{T<:AbstractFloat}(::Type{T}, x::UFixed) = reinterpret(x)*(1/convert(T, rawone(x)))
+convert(::Type{Bool}, x::UFixed) = x == zero(x) ? false : true
+convert{T<:Integer}(::Type{T}, x::UFixed) = convert(T, x*(1/one(T)))
+convert{Ti<:Integer}(::Type{Rational{Ti}}, x::UFixed) = convert(Ti, reinterpret(x))//convert(Ti, rawone(x))
+convert(::Type{Rational}, x::UFixed) = reinterpret(x)//rawone(x)
 
 # Traits
-typemin{T<:Ufixed}(::Type{T}) = zero(T)
-typemax{T<:Ufixed}(::Type{T}) = T(typemax(rawtype(T)),0)
-realmin{T<:Ufixed}(::Type{T}) = typemin(T)
-realmax{T<:Ufixed}(::Type{T}) = typemax(T)
-eps{T<:Ufixed}(::Type{T}) = T(one(rawtype(T)),0)
-eps{T<:Ufixed}(::T) = eps(T)
-sizeof{T<:Ufixed}(::Type{T}) = sizeof(rawtype(T))
-abs(x::Ufixed) = x
+eps{T<:UFixed}(::Type{T}) = T(one(rawtype(T)),0)
+eps{T<:UFixed}(::T) = eps(T)
+sizeof{T<:UFixed}(::Type{T}) = sizeof(rawtype(T))
+abs(x::UFixed) = x
 
 # Arithmetic
-(-){T<:Ufixed}(x::T) = T(-reinterpret(x), 0)
-(~){T<:Ufixed}(x::T) = T(~reinterpret(x), 0)
+(-){T<:UFixed}(x::T) = T(-reinterpret(x), 0)
+(~){T<:UFixed}(x::T) = T(~reinterpret(x), 0)
 
-+{T,f}(x::UfixedBase{T,f}, y::UfixedBase{T,f}) = convert(Float32, x)+convert(Float32, y) # UfixedBase{T,f}(convert(T, reinterpret(x)+reinterpret(y)),0)
--{T,f}(x::UfixedBase{T,f}, y::UfixedBase{T,f}) = convert(Float32, x)-convert(Float32, y) # UfixedBase{T,f}(convert(T, reinterpret(x)-reinterpret(y)),0)
-*{T,f}(x::UfixedBase{T,f}, y::UfixedBase{T,f}) = convert(Float32, x)*convert(Float32, y)
-/(x::Ufixed, y::Ufixed) = convert(Float32, x)/convert(Float32, y)
++{T,f}(x::UFixed{T,f}, y::UFixed{T,f}) = UFixed{T,f}(convert(T, x.i+y.i),0)
+-{T,f}(x::UFixed{T,f}, y::UFixed{T,f}) = UFixed{T,f}(convert(T, x.i-y.i),0)
+*{T,f}(x::UFixed{T,f}, y::UFixed{T,f}) = UFixed{T,f}((Base.widemul(x.i,y.i) + (convert(widen(T), 1) << (f-1) ))>>f,0)
+/{T,f}(x::UFixed{T,f}, y::UFixed{T,f}) = UFixed{T,f}(div(convert(widen(T), x.i)<<f, y.i),0)
 
 # Comparisons
- <{T<:Ufixed}(x::T, y::T) = reinterpret(x) <  reinterpret(y)
-<={T<:Ufixed}(x::T, y::T) = reinterpret(x) <  reinterpret(y)
+ <{T<:UFixed}(x::T, y::T) = reinterpret(x) < reinterpret(y)
+<={T<:UFixed}(x::T, y::T) = reinterpret(x) < reinterpret(y)
 
 # Functions
-trunc{T<:Ufixed}(x::T) = T(div(reinterpret(x), rawone(T))*rawone(T),0)
-floor{T<:Ufixed}(x::T) = trunc(x)
+trunc{T<:UFixed}(x::T) = T(div(reinterpret(x), rawone(T))*rawone(T),0)
+floor{T<:UFixed}(x::T) = trunc(x)
 for T in UF
     f = nbitsfrac(T)
     R = rawtype(T)
@@ -109,28 +107,28 @@ for T in UF
     end
 end
 
-trunc{T<:Integer}(::Type{T}, x::Ufixed) = convert(T, div(reinterpret(x), rawone(x)))
-round{T<:Integer}(::Type{T}, x::Ufixed) = round(T, reinterpret(x)/rawone(x))
-floor{T<:Integer}(::Type{T}, x::Ufixed) = trunc(T, x)
- ceil{T<:Integer}(::Type{T}, x::Ufixed) =  ceil(T, reinterpret(x)/rawone(x))
-trunc(x::Ufixed) = trunc(Int, x)
-round(x::Ufixed) = round(Int, x)
-floor(x::Ufixed) = floor(Int, x)
- ceil(x::Ufixed) =  ceil(Int, x)
+trunc{T<:Integer}(::Type{T}, x::UFixed) = convert(T, div(reinterpret(x), rawone(x)))
+round{T<:Integer}(::Type{T}, x::UFixed) = round(T, reinterpret(x)/rawone(x))
+floor{T<:Integer}(::Type{T}, x::UFixed) = trunc(T, x)
+ ceil{T<:Integer}(::Type{T}, x::UFixed) =  ceil(T, reinterpret(x)/rawone(x))
+trunc(x::UFixed) = trunc(Int, x)
+round(x::UFixed) = round(Int, x)
+floor(x::UFixed) = floor(Int, x)
+ ceil(x::UFixed) =  ceil(Int, x)
 
-isfinite(x::Ufixed) = true
-isnan(x::Ufixed) = false
-isinf(x::Ufixed) = false
+isfinite(x::UFixed) = true
+isnan(x::UFixed) = false
+isinf(x::UFixed) = false
 
-bswap{f}(x::UfixedBase{UInt8,f}) = x
-bswap(x::Ufixed)  = typeof(x)(bswap(reinterpret(x)),0)
+bswap{f}(x::UFixed{UInt8,f}) = x
+bswap(x::UFixed)  = typeof(x)(bswap(reinterpret(x)),0)
 
 for f in (:div, :fld, :rem, :mod, :mod1, :rem1, :fld1, :min, :max)
     @eval begin
-        $f{T<:Ufixed}(x::T, y::T) = T($f(reinterpret(x),reinterpret(y)),0)
+        $f{T<:UFixed}(x::T, y::T) = T($f(reinterpret(x),reinterpret(y)),0)
     end
 end
-function minmax{T<:Ufixed}(x::T, y::T)
+function minmax{T<:UFixed}(x::T, y::T)
     a, b = minmax(reinterpret(x), reinterpret(y))
     T(a,0), T(b,0)
 end
@@ -139,16 +137,16 @@ end
 # The main subtlety here is that iterating over 0x00uf8:0xffuf8 will wrap around
 # unless we iterate using a wider type
 if VERSION < v"0.3-"
-    start{T<:Ufixed}(r::Range{T}) = convert(typeof(reinterpret(r.start)+reinterpret(r.step)), reinterpret(r.start))
-    next{T<:Ufixed}(r::Range{T}, i::Integer) = (T(i,0), i+reinterpret(r.step))
-    done{T<:Ufixed}(r::Range{T}, i::Integer) = isempty(r) || (i > r.len)
+    start{T<:UFixed}(r::Range{T}) = convert(typeof(reinterpret(r.start)+reinterpret(r.step)), reinterpret(r.start))
+    next{T<:UFixed}(r::Range{T}, i::Integer) = (T(i,0), i+reinterpret(r.step))
+    done{T<:UFixed}(r::Range{T}, i::Integer) = isempty(r) || (i > r.len)
 else
-    start{T<:Ufixed}(r::StepRange{T}) = convert(typeof(reinterpret(r.start)+reinterpret(r.step)), reinterpret(r.start))
-    next{T<:Ufixed}(r::StepRange{T}, i::Integer) = (T(i,0), i+reinterpret(r.step))
-    done{T<:Ufixed}(r::StepRange{T}, i::Integer) = isempty(r) || (i > reinterpret(r.stop))
+    start{T<:UFixed}(r::StepRange{T}) = convert(typeof(reinterpret(r.start)+reinterpret(r.step)), reinterpret(r.start))
+    next{T<:UFixed}(r::StepRange{T}, i::Integer) = (T(i,0), i+reinterpret(r.step))
+    done{T<:UFixed}(r::StepRange{T}, i::Integer) = isempty(r) || (i > reinterpret(r.stop))
 end
 
-function decompose(x::Ufixed)
+function decompose(x::UFixed)
     g = gcd(reinterpret(x), rawone(x))
     div(reinterpret(x),g), 0, div(rawone(x),g)
 end
@@ -169,10 +167,10 @@ for T in UF
 end
 
 # Show
-function show{T,f}(io::IO, x::UfixedBase{T,f})
-    print(io, "Ufixed", f)
+function show{T,f}(io::IO, x::UFixed{T,f})
+    print(io, "UFixed", f)
     print(io, "(")
     showcompact(io, x)
     print(io, ")")
 end
-showcompact{T,f}(io::IO, x::UfixedBase{T,f}) = show(io, round(convert(Float64,x), ceil(Int,f/_log2_10)))
+showcompact{T,f}(io::IO, x::UFixed{T,f}) = show(io, round(convert(Float64,x), ceil(Int,f/_log2_10)))

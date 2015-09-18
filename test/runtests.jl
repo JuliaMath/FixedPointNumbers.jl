@@ -1,4 +1,4 @@
-for f in ["ufixed.jl", "fixed32.jl"]
+for f in ["fixed.jl", "ufixed.jl"]
     println("Testing $f")
     include(f)
 end

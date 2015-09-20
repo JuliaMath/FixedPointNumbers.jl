@@ -6,7 +6,7 @@ function test_fixed{T}(::Type{T}, f)
     tol = 2.0^-f
 
     for x in values
-        #isinteger(x) && @show x
+        isinteger(x) && @show x
         fx = convert(T,x)
         @test convert(T,convert(Float64, fx)) == fx
         @test convert(T,convert(Float64, -fx)) == -fx
@@ -45,5 +45,7 @@ function test_fixed{T}(::Type{T}, f)
 end
 
 for f in [8, 10, 16]
-    test_fixed(Fixed32{f}, f)
+    T = Fixed32{f}
+    println("  Testing $T")
+    test_fixed(T, f)
 end

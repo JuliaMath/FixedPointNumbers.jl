@@ -57,9 +57,9 @@ end
 # Particularly useful for arrays.
 scaledual(Tdual::Type, x) = one(Tdual), x
 scaledual{Tdual<:Number}(b::Tdual, x) = b, x
-scaledual{T<:FixedPoint}(Tdual::Type, x::Union(T, AbstractArray{T})) =
+@compat scaledual{T<:FixedPoint}(Tdual::Type, x::Union{T,AbstractArray{T}}) =
     convert(Tdual, 1/one(T)), reinterpret(rawtype(T), x)
-scaledual{Tdual<:Number, T<:FixedPoint}(b::Tdual, x::Union(T, AbstractArray{T})) =
+@compat scaledual{Tdual<:Number, T<:FixedPoint}(b::Tdual, x::Union{T,AbstractArray{T}}) =
     convert(Tdual, b/one(T)), reinterpret(rawtype(T), x)
 
 end # module

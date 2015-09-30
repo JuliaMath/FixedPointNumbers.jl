@@ -4,7 +4,7 @@ module FixedPointNumbers
 
 using Compat
 
-import Base: ==, <, <=, -, +, *, /,
+import Base: ==, <, <=, -, +, *, /, ~,
              convert, promote_rule, show, showcompact, isinteger, abs, decompose,
              isnan, isinf, isfinite,
              zero, one, typemin, typemax, realmin, realmax, eps, sizeof, reinterpret,

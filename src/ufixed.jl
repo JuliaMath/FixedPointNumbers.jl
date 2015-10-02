@@ -82,6 +82,9 @@ sizeof{T<:Ufixed}(::Type{T}) = sizeof(rawtype(T))
 abs(x::Ufixed) = x
 
 # Arithmetic
+(-){T<:Ufixed}(x::T) = T(-reinterpret(x), 0)
+(~){T<:Ufixed}(x::T) = T(~reinterpret(x), 0)
+
 +{T,f}(x::UfixedBase{T,f}, y::UfixedBase{T,f}) = convert(Float32, x)+convert(Float32, y) # UfixedBase{T,f}(convert(T, reinterpret(x)+reinterpret(y)),0)
 -{T,f}(x::UfixedBase{T,f}, y::UfixedBase{T,f}) = convert(Float32, x)-convert(Float32, y) # UfixedBase{T,f}(convert(T, reinterpret(x)-reinterpret(y)),0)
 *{T,f}(x::UfixedBase{T,f}, y::UfixedBase{T,f}) = convert(Float32, x)*convert(Float32, y)

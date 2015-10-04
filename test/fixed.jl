@@ -48,7 +48,7 @@ function test_fixed{T}(::Type{T}, f)
     end
 end
 
-for (TI, f) in [(Int8, 8), (Int16, 8),(Int16, 10), (Int32, 8), (Int32, 10), (Int32, 16)]
+for (TI, f) in [(Int8, 8), (Int16, 8), (Int16, 10), (Int32, 16)]
     T = Fixed{TI,f}
     println("  Testing $T")
     test_fixed(T, f)

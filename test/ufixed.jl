@@ -59,8 +59,8 @@ for T in FixedPointNumbers.UF
 end
 @test convert(Rational, convert(UFixed8, 0.5)) == 0x80//0xff
 
-x = Ufixed8(0b01010001, 0)
-@test ~x == Ufixed8(0b10101110, 0)
+x = UFixed8(0b01010001, 0)
+@test ~x == UFixed8(0b10101110, 0)
 @test -x == 0xafuf8
 
 for T in FixedPointNumbers.UF

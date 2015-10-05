@@ -14,28 +14,23 @@ This library exports two categories of fixed-point types. Fixed-point types are
 used like any other number: they can be added, multiplied, raised to a power,
 etc. In many cases these operations result in conversion to floating-point types.
 
-## Fixed32 (signed fixed-point numbers)
+# Type hierarchy
+This library defines an abstract type `FixedPoint{T <: Integer, f}` as a subtype of `Real`. The parameter `T` is the underlying representation and `f` is the number of fraction bits.
 
-For signed integers, there is a 32-bit fixed-point type `Fixed32{f}`.
-The parameter `f` is the number of fraction bits. There is also an abstract subtype of
-`Real` called `Fixed`.
+For signed integers, there is a fixed-point type `Fixed{T, f}` and for unsigned integers, there is the `UFixed{T, f}` type.
 
-To use it, convert numbers to a `Fixed32` type, or call `Fixed32(x)`, which will default
-to constructing a `Fixed32{16}`.
-
-## Ufixed (unsigned fixed-point numbers)
-
-For unsigned integers, there is a family of subtypes of the abstract `Ufixed` type.
 These types, built with `f` fraction bits, map the closed interval [0.0,1.0]
 to the span of numbers with `f` bits.
-For example, the `Ufixed8` type is represented internally by a `Uint8`, and makes
+For example, the `UFixed8` type is represented internally by a `UInt8`, and makes
 `0x00` equivalent to `0.0` and `0xff` to `1.0`.
-The types `Ufixed10`, `Ufixed12`, `Ufixed14`, and `Ufixed16` are all based on `Uint16`
+The types `UFixed10`, `UFixed12`, `UFixed14`, and `UFixed16` are all based on `UInt16`
 and reach the value `1.0` at 10, 12, 14, and 16 bits, respectively (`0x03ff`, `0x0fff`,
 `0x3fff`, and `0xffff`).
 
-To construct such a number, use `convert(Ufixed12, 1.3)`, `ufixed12(1.3)`, or the literal syntax `0x14ccuf12`.
-The latter syntax means to construct a `Ufixed12` (it ends in `uf12`) from the `Uint16` value
+To construct such a number, use `convert(UFixed12, 1.3)`, `ufixed12(1.3)`, or the literal syntax `0x14ccuf12`.
+The latter syntax means to construct a `UFixed12` (it ends in `uf12`) from the `UInt16` value
 `0x14cc`.
+
+There currently is no literal syntax for signed `Fixed` numbers. 
 
 [wikipedia]: http://en.wikipedia.org/wiki/Fixed-point_arithmetic

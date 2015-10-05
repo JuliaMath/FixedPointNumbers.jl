@@ -6,16 +6,16 @@ using FixedPointNumbers, Compat, Base.Test
 @test reinterpret(0xa2uf14) == 0xa2
 @test reinterpret(0xa2uf16) == 0xa2
 
-@test reinterpret(Ufixed8, 0xa2) == 0xa2uf8
-@test reinterpret(Ufixed10, 0x1fa2) == 0x1fa2uf10
-@test reinterpret(Ufixed12, 0x1fa2) == 0x1fa2uf12
-@test reinterpret(Ufixed14, 0x1fa2) == 0x1fa2uf14
-@test reinterpret(Ufixed16, 0x1fa2) == 0x1fa2uf16
+@test reinterpret(UFixed8, 0xa2) == 0xa2uf8
+@test reinterpret(UFixed10, 0x1fa2) == 0x1fa2uf10
+@test reinterpret(UFixed12, 0x1fa2) == 0x1fa2uf12
+@test reinterpret(UFixed14, 0x1fa2) == 0x1fa2uf14
+@test reinterpret(UFixed16, 0x1fa2) == 0x1fa2uf16
 
 @test ufixed8(1.0) == 0xffuf8
 @test ufixed8(0.5) == 0x80uf8
 @test ufixed14(1.0) == 0x3fffuf14
-@test ufixed12([2]) == Ufixed12[0x1ffeuf12]
+@test ufixed12([2]) == UFixed12[0x1ffeuf12]
 
 for T in FixedPointNumbers.UF
     @test zero(T) == 0
@@ -23,33 +23,33 @@ for T in FixedPointNumbers.UF
     @test typemin(T) == 0
     @test realmin(T) == 0
     @test eps(zero(T)) == eps(typemax(T))
-    @test sizeof(T) == 1 + (T != Ufixed8)
+    @test sizeof(T) == 1 + (T != UFixed8)
 end
-@test typemax(Ufixed8) == 1
-@test typemax(Ufixed10) == typemax(UInt16)//(2^10-1)
-@test typemax(Ufixed12) == typemax(UInt16)//(2^12-1)
-@test typemax(Ufixed14) == typemax(UInt16)//(2^14-1)
-@test typemax(Ufixed16) == 1
-@test typemax(Ufixed10) == typemax(UInt16) // (2^10-1)
-@test typemax(Ufixed12) == typemax(UInt16) // (2^12-1)
-@test typemax(Ufixed14) == typemax(UInt16) // (2^14-1)
+@test typemax(UFixed8) == 1
+@test typemax(UFixed10) == typemax(UInt16)//(2^10-1)
+@test typemax(UFixed12) == typemax(UInt16)//(2^12-1)
+@test typemax(UFixed14) == typemax(UInt16)//(2^14-1)
+@test typemax(UFixed16) == 1
+@test typemax(UFixed10) == typemax(UInt16) // (2^10-1)
+@test typemax(UFixed12) == typemax(UInt16) // (2^12-1)
+@test typemax(UFixed14) == typemax(UInt16) // (2^14-1)
 
-x = Ufixed8(0.5)
+x = UFixed8(0.5)
 @test isfinite(x) == true
 @test isnan(x) == false
 @test isinf(x) == false
 
-@test convert(Ufixed8,  1.1/typemax(UInt8)) == eps(Ufixed8)
-@test convert(Ufixed10, 1.1/typemax(UInt16)*64) == eps(Ufixed10)
-@test convert(Ufixed12, 1.1/typemax(UInt16)*16) == eps(Ufixed12)
-@test convert(Ufixed14, 1.1/typemax(UInt16)*4)  == eps(Ufixed14)
-@test convert(Ufixed16, 1.1/typemax(UInt16))    == eps(Ufixed16)
+@test convert(UFixed8,  1.1/typemax(UInt8)) == eps(UFixed8)
+@test convert(UFixed10, 1.1/typemax(UInt16)*64) == eps(UFixed10)
+@test convert(UFixed12, 1.1/typemax(UInt16)*16) == eps(UFixed12)
+@test convert(UFixed14, 1.1/typemax(UInt16)*4)  == eps(UFixed14)
+@test convert(UFixed16, 1.1/typemax(UInt16))    == eps(UFixed16)
 
-@test convert(Ufixed8,  1.1f0/typemax(UInt8)) == eps(Ufixed8)
+@test convert(UFixed8,  1.1f0/typemax(UInt8)) == eps(UFixed8)
 
-@test convert(Float64, eps(Ufixed8)) == 1/typemax(UInt8)
-@test convert(Float32, eps(Ufixed8)) == 1.0f0/typemax(UInt8)
-@test convert(BigFloat, eps(Ufixed8)) == BigFloat(1)/typemax(UInt8)
+@test convert(Float64, eps(UFixed8)) == 1/typemax(UInt8)
+@test convert(Float32, eps(UFixed8)) == 1.0f0/typemax(UInt8)
+@test convert(BigFloat, eps(UFixed8)) == BigFloat(1)/typemax(UInt8)
 for T in FixedPointNumbers.UF
     @test convert(Bool, zero(T)) == false
     @test convert(Bool, one(T))  == true
@@ -57,24 +57,34 @@ for T in FixedPointNumbers.UF
     @test convert(Int, one(T)) == 1
     @test convert(Rational, one(T)) == 1
 end
-@test convert(Rational, convert(Ufixed8, 0.5)) == 0x80//0xff
+@test convert(Rational, convert(UFixed8, 0.5)) == 0x80//0xff
 
-x = Ufixed8(0b01010001, 0)
-@test ~x == Ufixed8(0b10101110, 0)
+x = UFixed8(0b01010001, 0)
+@test ~x == UFixed8(0b10101110, 0)
 @test -x == 0xafuf8
 
 for T in FixedPointNumbers.UF
     x = T(0x10,0)
     y = T(0x25,0)
+    fx = convert(Float32, x)
+    fy = convert(Float32, y)
     @test y > x
     @test y != x
+    @test typeof(x+y) == T
+    @test typeof((x+y)-y) == T
+    @test typeof(x*y) == T
+    @test typeof(x/y) == T
     @test_approx_eq(x+y, T(0x35,0))
-    @test_approx_eq((x+y)-x, convert(Float32, y))
-    @test_approx_eq((x-y)+y, convert(Float32, x))
-    @test_approx_eq(x*y, convert(Float32, x)*convert(Float32, y))
-    @test_approx_eq(x/y, convert(Float32, x)/convert(Float32, y))
-    @test_approx_eq(x^2, convert(Float32, x)^2)
-    @test_approx_eq(x^2.1f0, convert(Float32, x)^2.1f0)
+    @test_approx_eq((x+y)-x, fy)
+    @test_approx_eq((x-y)+y, fx)
+    @test_approx_eq(x*y, convert(T, fx*fy))
+    if T == UFixed14
+        @test convert(T, fx/fy) - x/y == eps(T)
+    else
+        @test_approx_eq(x/y, convert(T, fx/fy))
+    end
+    @test_approx_eq(x^2, convert(T, fx^2))
+    @test_approx_eq(x^2.1f0, fx^2.1f0)
     @test_approx_eq(x^2.1, convert(Float64, x)^2.1)
 end
 
@@ -115,7 +125,7 @@ x = 0xaauf8
 iob = IOBuffer()
 show(iob, x)
 str = takebuf_string(iob)
-@test startswith(str, "Ufixed8(")
+@test startswith(str, "UFixed8(")
 @test eval(parse(str)) == x
 
 # scaledual
@@ -130,7 +140,7 @@ end
 a = rand(UInt8, 10)
 rfloat = similar(a, Float32)
 rfixed = similar(rfloat)
-af8 = reinterpret(Ufixed8, a)
+af8 = reinterpret(UFixed8, a)
 
 b = 0.5
 bd, eld = scaledual(b, af8[1])

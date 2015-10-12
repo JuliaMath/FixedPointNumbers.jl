@@ -60,6 +60,11 @@ include("ufixed.jl")
 include("deprecations.jl")
 
 
+# Promotions for reductions
+for F in (Base.AddFun, Base.MulFun)
+    @eval Base.r_promote{T}(::$F, x::FixedPoint{T}) = Float64(x)
+end
+
 # TODO: rewrite this by @generated
 for T in tuple(Fixed16, UF...)
     R = rawtype(T)

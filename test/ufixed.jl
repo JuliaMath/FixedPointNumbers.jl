@@ -153,3 +153,6 @@ b, ad = scaledual(0.5, ad)
 generic_scale!(rfloat, a, 0.5)
 generic_scale!(rfixed, ad, b)
 @test rfloat == rfixed
+
+a = UFixed8[0xffuf8, 0xffuf8]
+@test sum(a) == 2.0

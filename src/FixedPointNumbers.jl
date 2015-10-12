@@ -4,13 +4,15 @@ module FixedPointNumbers
 
 using Compat
 
+using Base: IdFun, AddFun, MulFun, reducedim_initarray
+
 import Base: ==, <, <=, -, +, *, /, ~,
              convert, promote_rule, show, showcompact, isinteger, abs, decompose,
              isnan, isinf, isfinite,
              zero, one, typemin, typemax, realmin, realmax, eps, sizeof, reinterpret,
              trunc, round, floor, ceil, bswap,
              div, fld, rem, mod, mod1, rem1, fld1, min, max,
-             start, next, done
+             start, next, done, r_promote, reducedim_init
 # T => BaseType
 # f => Number of Bytes reserved for fractional part
 abstract FixedPoint{T <: Integer, f} <: Real
@@ -61,9 +63,17 @@ include("deprecations.jl")
 
 
 # Promotions for reductions
-for F in (Base.AddFun, Base.MulFun)
-    @eval Base.r_promote{T}(::$F, x::FixedPoint{T}) = Float64(x)
+const Treduce = Float64
+for F in (AddFun, MulFun)
+    @eval r_promote{T}(::$F, x::FixedPoint{T}) = Treduce(x)
 end
+
+reducedim_init{T<:FixedPoint}(f::IdFun, op::AddFun,
+                              A::AbstractArray{T}, region) =
+    reducedim_initarray(A, region, zero(Treduce))
+reducedim_init{T<:FixedPoint}(f::IdFun, op::MulFun,
+                              A::AbstractArray{T}, region) =
+    reducedim_initarray(A, region, one(Treduce))
 
 # TODO: rewrite this by @generated
 for T in tuple(Fixed16, UF...)

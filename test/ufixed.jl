@@ -153,3 +153,13 @@ b, ad = scaledual(0.5, ad)
 generic_scale!(rfloat, a, 0.5)
 generic_scale!(rfixed, ad, b)
 @test rfloat == rfixed
+
+# reductions
+a = UFixed8[0xffuf8, 0xffuf8]
+@test sum(a) == 2.0
+@test sum(a, 1) == [2.0]
+
+a = UFixed14[3.2, 2.4]
+acmp = Float64(a[1])*Float64(a[2])
+@test prod(a) == acmp
+@test prod(a, 1) == [acmp]

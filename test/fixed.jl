@@ -53,3 +53,16 @@ for (TI, f) in [(Int8, 8), (Int16, 8), (Int16, 10), (Int32, 16)]
     println("  Testing $T")
     test_fixed(T, f)
 end
+
+# reductions
+F8 = Fixed{Int8,8}
+a = F8[0.498, 0.1]
+acmp = Float64(a[1]) + Float64(a[2])
+@test sum(a) == acmp
+@test sum(a, 1) == [acmp]
+
+F6 = Fixed{Int8,6}
+a = F6[1.2, 1.4]
+acmp = Float64(a[1])*Float64(a[2])
+@test prod(a) == acmp
+@test prod(a, 1) == [acmp]

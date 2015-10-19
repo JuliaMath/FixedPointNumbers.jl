@@ -1,4 +1,4 @@
-VERSION >= v"0.4.0-dev+6521" && __precompile__()
+# ERSION >= v"0.4.0-dev+6521" && __precompile__()
 
 module FixedPointNumbers
 
@@ -94,10 +94,13 @@ eps{T<:FixedPoint}(::T) = eps(T)
 sizeof{T<:FixedPoint}(::Type{T}) = sizeof(rawtype(T))
 
 zero{T <: FixedPoint}(::Type{T}) = T(zero(rawtype(T)),0)
- one{T <: FixedPoint}(::Type{T}) = T(2^nbitsfrac(T)-1,0)
-zero(x::FixedPoint) = zero(typeof(x))
- one(x::FixedPoint) =  one(typeof(x))
-
+function one{T,f}(::Type{FixedPoint{T, f}})
+    if T <: Unsigned || sizeof(T) * 8 > f
+        return T(2^nbitsfrac(T)-1,0)
+    else
+        throw(DomainError())
+    end
+end
 
 # basic operators & arithmetics
 (-){T<:FixedPoint}(x::T) = T(-reinterpret(x), 0)
@@ -131,13 +134,15 @@ convert{T,f}(::Type{Fixed{T,f}}, x::Rational) =
     FixedPoint{T,f}(x.num)/FixedPoint{T,f}(x.den)
 
 # Conversions from FixedPoint
-convert{T,f}(::Type{BigFloat}, x::FixedPoint{T,f}) =
+convert{T <: Signed,f}(::Type{BigFloat}, x::FixedPoint{T,f}) =
     convert(BigFloat,x.i>>f) + convert(BigFloat,x.i&(1<<f - 1))/convert(BigFloat,1<<f)
-# convert(::Type{BigFloat}, x::UFixed) = reinterpret(x)*(1/BigFloat(rawone(x)))
+convert{T <: Unsigned, f}(::Type{BigFloat}, x::FixedPoint{T, f}) =
+    reinterpret(x)*(1/BigFloat(rawone(x)))
 
-convert{TF<:AbstractFloat,T,f}(::Type{TF}, x::FixedPoint{T,f}) =
+convert{TF<:AbstractFloat,T <: Signed,f}(::Type{TF}, x::FixedPoint{T,f}) =
     convert(TF,x.i>>f) + convert(TF,x.i&(1<<f - 1))/convert(TF,1<<f)
-# convert{T<:AbstractFloat}(::Type{T}, x::FixedPoint) = reinterpret(x)*(1/convert(T, rawone(x)))
+convert{TF<:AbstractFloat,T <: Unsigned,f}(::Type{TF}, x::FixedPoint{T,f}) =
+    reinterpret(x)*(1/convert(T, rawone(x)))
 
 convert{T,f}(::Type{Bool}, x::FixedPoint{T,f}) = reinterpret(x) != zero(x)
 
@@ -145,7 +150,6 @@ function convert{TI<:Integer, T,f}(::Type{TI}, x::FixedPoint{T,f})
     isinteger(x) || throw(InexactError())
     convert(TI, x.i>>f)
 end
-# convert{T<:Integer}(::Type{T}, x::UFixed) = convert(T, x*(1/one(T)))
 
 convert{TR<:Rational,T,f}(::Type{TR}, x::FixedPoint{T,f}) =
     convert(TR, x.i>>f + (x.i&(1<<f-1))//(1<<f))

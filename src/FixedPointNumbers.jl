@@ -152,10 +152,10 @@ function convert{TI<:Integer, T,f}(::Type{TI}, x::FixedPoint{T,f})
     convert(TI, x[]>>f)
 end
 
-convert{TR<:Rational,T,f}(::Type{TR}, x::FixedPoint{T,f}) =
-    convert(TR, x[]>>f + (x[]&(1<<f-1))//(1<<f))
-# convert{Ti<:Integer}(::Type{Rational{Ti}}, x::UFixed) = convert(Ti, x[])//convert(Ti, rawone(x))
-# convert(::Type{Rational}, x::UFixed) = x[]//rawone(x)
+convert{TR<:Rational,T <: Signed,f}(::Type{TR}, x::FixedPoint{T,f}) =
+    convert(TR, x[] >> f + (x[] & (1 << f - 1)) // (1 << f))
+convert{Ti<:Integer}(::Type{Rational{Ti}}, x::UFixed) = convert(Ti, x[])//convert(Ti, rawone(x))
+convert(::Type{Rational}, x::UFixed) = x[]//rawone(x)
 
 # Special conversions for constructors
 convert{T<:FixedPoint}(::Type{T}, x::T) = x
@@ -193,17 +193,27 @@ promote_rule{T <: FixedPoint,TR <: Rational}(::Type{T}, ::Type{TR}) = TR
 # end
 
 # Math functions
-trunc{T<:FixedPoint}(x::T) = T(div(x[], rawone(T))*rawone(T),0)
+# Round towards negative infinity
+trunc{T<:FixedPoint}(x::T) = T(x[] & ~(1 << nbitsfrac(T) - 1), 0)
+# Round towards negative infinity
 floor{T<:FixedPoint}(x::T) = trunc(x)
+# Round towards positive infinity
+ceil{T<:FixedPoint}(x::T) = trunc(T(x[] + 1 << (nbitsfrac(T)-1), 0))
+# Round towards even
+function round{T<:FixedPoint}(x::T)
+    even = x[] & (1 << nbitsfrac(T)) == 0
+    if even
+        return floor(x)
+    else
+        return ceil(x)
+    end
+end
 
-trunc{T<:Integer}(::Type{T}, x::FixedPoint) = convert(T, div(x[], rawone(x)))
-round{T<:Integer}(::Type{T}, x::FixedPoint) = round(T, x[]/rawone(x))
+trunc{TI<:Integer, T <: FixedPoint}(::Type{TI}, x::T) =
+    convert(TI, x[] >> nbitsfrac(T))
 floor{T<:Integer}(::Type{T}, x::FixedPoint) = trunc(T, x)
- ceil{T<:Integer}(::Type{T}, x::FixedPoint) =  ceil(T, x[]/rawone(x))
-trunc(x::FixedPoint) = trunc(Int, x) # Already defined?
-round(x::FixedPoint) = round(Int, x)
-floor(x::FixedPoint) = floor(Int, x) # Already defined?
- ceil(x::FixedPoint) =  ceil(Int, x)
+ceil{T<:Integer}(::Type{T}, x::FixedPoint) = trunc(T, ceil(x))
+round{T<:Integer}(::Type{T}, x::FixedPoint) = trunc(T, round(x))
 
 # for T in UF
 #  f = nbitsfrac(T)

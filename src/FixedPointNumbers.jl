@@ -9,7 +9,7 @@ using Base: IdFun, AddFun, MulFun, reducedim_initarray
 import Base: ==, <, <=, -, +, *, /, ~,
              convert, promote_rule, show, showcompact, isinteger, abs, decompose,
              isnan, isinf, isfinite,
-             zero, one, typemin, typemax, realmin, realmax, eps, sizeof, reinterpret,
+             zero, one, typemin, typemax, realmin, realmax, eps, sizeof, reinterpret, getindex,
              trunc, round, floor, ceil, bswap,
              div, fld, rem, mod, mod1, rem1, fld1, min, max,
              start, next, done, r_promote, reducedim_init
@@ -65,21 +65,21 @@ typealias UFixed12 UFixed{UInt16,12}
 typealias UFixed14 UFixed{UInt16,14}
 typealias UFixed16 UFixed{UInt16,16}
 
-reinterpret(x::FixedPoint) = x.i
-reinterpret{T,f}(::Type{T}, x::FixedPoint{T,f}) = x.i
+getindex(x::FixedPoint) = x.i
+reinterpret{T,f}(::Type{T}, x::FixedPoint{T,f}) = x[]
 reinterpret{T <: Integer,f}(::Type{FixedPoint{T,f}}, x::T) = FixedPoint{T,f}(x, 0)
 
 rawtype{T,f}(::Type{FixedPoint{T,f}}) = T
 nbitsfrac{T,f}(::Type{FixedPoint{T,f}}) = f
-rawone(v) = reinterpret(one(v))
+rawone(v) = one(v)[]
 
 # comparisons
-=={T <: FixedPoint}(x::T, y::T) = reinterpret(x) == reinterpret(y)
- <{T <: FixedPoint}(x::T, y::T) = reinterpret(x)  < reinterpret(y)
-<={T <: FixedPoint}(x::T, y::T) = reinterpret(x) <= reinterpret(y)
+=={T <: FixedPoint}(x::T, y::T) = x[] == y[]
+ <{T <: FixedPoint}(x::T, y::T) = x[]  < y[]
+<={T <: FixedPoint}(x::T, y::T) = x[] <= y[]
 
 # predicates
-isinteger{T,f}(x::FixedPoint{T,f}) = (x.i&(1<<f-1)) == 0
+isinteger{T,f}(x::FixedPoint{T,f}) = (x[] & (1<<f-1)) == 0
 isfinite(x::FixedPoint) = true
 isnan(x::FixedPoint) = false
 isinf(x::FixedPoint) = false
@@ -94,35 +94,36 @@ eps{T<:FixedPoint}(::T) = eps(T)
 sizeof{T<:FixedPoint}(::Type{T}) = sizeof(rawtype(T))
 
 zero{T <: FixedPoint}(::Type{T}) = T(zero(rawtype(T)),0)
-function one{T,f}(::Type{FixedPoint{T, f}})
-    if T <: Unsigned || sizeof(T) * 8 > f
-        return T(2^nbitsfrac(T)-1,0)
+one{T <: Unsigned, f}(::Type{FixedPoint{T, f}}) = FixedPoint{T, f}(2^f-1,0)
+function one{T <: Signed,f}(::Type{FixedPoint{T, f}})
+    if sizeof(T) * 8 > f
+        return FixedPoint{T, f}(2^f-1,0)
     else
         throw(DomainError())
     end
 end
 
 # basic operators & arithmetics
-(-){T<:FixedPoint}(x::T) = T(-reinterpret(x), 0)
-(~){T<:FixedPoint}(x::T) = T(~reinterpret(x), 0)
-abs{T<:FixedPoint}(x::T) = T(abs(reinterpret(x)),0)
+(-){T<:FixedPoint}(x::T) = T(-x[], 0)
+(~){T<:FixedPoint}(x::T) = T(~x[], 0)
+abs{T<:FixedPoint}(x::T) = T(abs(x[]),0)
 
-+{T<:FixedPoint}(x::T, y::T) = T(reinterpret(x) + reinterpret(y),0)
--{T<:FixedPoint}(x::T, y::T) = T(reinterpret(x) - reinterpret(y),0)
++{T<:FixedPoint}(x::T, y::T) = T(x[] + y[],0)
+-{T<:FixedPoint}(x::T, y::T) = T(x[] - y[],0)
 
 # with truncation:
 # *{T<:FixedPoint}(x::T, y::T) =
-#         T(Base.widemul(reinterpret(x),reinterpret(y)) >> nbitsfrac(T),0)
+#         T(Base.widemul(x[],y[]) >> nbitsfrac(T),0)
 # with rounding up:
 function *{T<:FixedPoint}(x::T, y::T)
     f = nbitsfrac(T)
-    i = Base.widemul(reinterpret(x),reinterpret(y))
+    i = Base.widemul(x[],y[])
     T((i + convert(widen(rawtype(T)), 1) << (f-1) )>>f,0)
 end
 
 function /{T<:FixedPoint}(x::T, y::T)
     f = nbitsfrac(T)
-    T(div(convert(widen(rawtype(T)), x.i) << f, y.i), 0)
+    T(div(convert(widen(rawtype(T)), x[]) << f, y.i), 0)
 end
 
 # Conversions to FixedPoint
@@ -135,31 +136,31 @@ convert{T,f}(::Type{Fixed{T,f}}, x::Rational) =
 
 # Conversions from FixedPoint
 convert{T <: Signed,f}(::Type{BigFloat}, x::FixedPoint{T,f}) =
-    convert(BigFloat,x.i>>f) + convert(BigFloat,x.i&(1<<f - 1))/convert(BigFloat,1<<f)
+    convert(BigFloat,x[]>>f) + convert(BigFloat,x[]&(1<<f - 1))/convert(BigFloat,1<<f)
 convert{T <: Unsigned, f}(::Type{BigFloat}, x::FixedPoint{T, f}) =
-    reinterpret(x)*(1/BigFloat(rawone(x)))
+    x[]*(1/BigFloat(rawone(x)))
 
 convert{TF<:AbstractFloat,T <: Signed,f}(::Type{TF}, x::FixedPoint{T,f}) =
-    convert(TF,x.i>>f) + convert(TF,x.i&(1<<f - 1))/convert(TF,1<<f)
+    convert(TF,x[]>>f) + convert(TF,x[]&(1<<f - 1))/convert(TF,1<<f)
 convert{TF<:AbstractFloat,T <: Unsigned,f}(::Type{TF}, x::FixedPoint{T,f}) =
-    reinterpret(x)*(1/convert(T, rawone(x)))
+    x[]*(1/convert(T, rawone(x)))
 
-convert{T,f}(::Type{Bool}, x::FixedPoint{T,f}) = reinterpret(x) != zero(x)
+convert{T,f}(::Type{Bool}, x::FixedPoint{T,f}) = x[] != zero(x)
 
 function convert{TI<:Integer, T,f}(::Type{TI}, x::FixedPoint{T,f})
     isinteger(x) || throw(InexactError())
-    convert(TI, x.i>>f)
+    convert(TI, x[]>>f)
 end
 
 convert{TR<:Rational,T,f}(::Type{TR}, x::FixedPoint{T,f}) =
-    convert(TR, x.i>>f + (x.i&(1<<f-1))//(1<<f))
-# convert{Ti<:Integer}(::Type{Rational{Ti}}, x::UFixed) = convert(Ti, reinterpret(x))//convert(Ti, rawone(x))
-# convert(::Type{Rational}, x::UFixed) = reinterpret(x)//rawone(x)
+    convert(TR, x[]>>f + (x[]&(1<<f-1))//(1<<f))
+# convert{Ti<:Integer}(::Type{Rational{Ti}}, x::UFixed) = convert(Ti, x[])//convert(Ti, rawone(x))
+# convert(::Type{Rational}, x::UFixed) = x[]//rawone(x)
 
 # Special conversions for constructors
 convert{T<:FixedPoint}(::Type{T}, x::T) = x
-convert{T1<:FixedPoint}(::Type{T1}, x::FixedPoint) = reinterpret(T1, round(rawtype(T1), (rawone(T1)/rawone(x))*reinterpret(x)))
-convert(::Type{UFixed16}, x::UFixed8) = reinterpret(UFixed16, convert(UInt16, 0x0101*reinterpret(x)))
+convert{T1<:FixedPoint}(::Type{T1}, x::FixedPoint) = reinterpret(T1, round(rawtype(T1), (rawone(T1)/rawone(x))*x[]))
+convert(::Type{UFixed16}, x::UFixed8) = reinterpret(UFixed16, convert(UInt16, 0x0101*x[]))
 convert{T<:FixedPoint}(::Type{T}, x::Real) = T(round(rawtype(T), rawone(T)*x),0)
 
 # Constructors
@@ -192,13 +193,13 @@ promote_rule{T <: FixedPoint,TR <: Rational}(::Type{T}, ::Type{TR}) = TR
 # end
 
 # Math functions
-trunc{T<:FixedPoint}(x::T) = T(div(reinterpret(x), rawone(T))*rawone(T),0)
+trunc{T<:FixedPoint}(x::T) = T(div(x[], rawone(T))*rawone(T),0)
 floor{T<:FixedPoint}(x::T) = trunc(x)
 
-trunc{T<:Integer}(::Type{T}, x::FixedPoint) = convert(T, div(reinterpret(x), rawone(x)))
-round{T<:Integer}(::Type{T}, x::FixedPoint) = round(T, reinterpret(x)/rawone(x))
+trunc{T<:Integer}(::Type{T}, x::FixedPoint) = convert(T, div(x[], rawone(x)))
+round{T<:Integer}(::Type{T}, x::FixedPoint) = round(T, x[]/rawone(x))
 floor{T<:Integer}(::Type{T}, x::FixedPoint) = trunc(T, x)
- ceil{T<:Integer}(::Type{T}, x::FixedPoint) =  ceil(T, reinterpret(x)/rawone(x))
+ ceil{T<:Integer}(::Type{T}, x::FixedPoint) =  ceil(T, x[]/rawone(x))
 trunc(x::FixedPoint) = trunc(Int, x) # Already defined?
 round(x::FixedPoint) = round(Int, x)
 floor(x::FixedPoint) = floor(Int, x) # Already defined?
@@ -211,31 +212,31 @@ floor(x::FixedPoint) = floor(Int, x) # Already defined?
 #  k = 8*sizeof(R)-f
 #  ceilmask  = (typemax(R)<<k)>>k
 #  @eval begin
-#      round(x::$T) = (y = trunc(x); return convert(rawtype($T), reinterpret(x)-reinterpret(y))&$roundmask>0 ? $T(y+one($T)) : y)
-#       ceil(x::$T) = (y = trunc(x); return convert(rawtype($T), reinterpret(x)-reinterpret(y))&$ceilmask >0 ? $T(y+one($T)) : y)
+#      round(x::$T) = (y = trunc(x); return convert(rawtype($T), x[]-y[])&$roundmask>0 ? $T(y+one($T)) : y)
+#       ceil(x::$T) = (y = trunc(x); return convert(rawtype($T), x[]-y[])&$ceilmask >0 ? $T(y+one($T)) : y)
 #  end
 # end
 
 for f in (:div, :fld, :rem, :mod, :mod1, :rem1, :fld1, :min, :max)
  @eval begin
-     $f{T<:FixedPoint}(x::T, y::T) = T($f(reinterpret(x),reinterpret(y)),0)
+     $f{T<:FixedPoint}(x::T, y::T) = T($f(x[],y[]),0)
  end
 end
 
 function minmax{T<:UFixed}(x::T, y::T)
- a, b = minmax(reinterpret(x), reinterpret(y))
+ a, b = minmax(x[], y[])
  T(a,0), T(b,0)
 end
 
 # Special function
-decompose{T,f}(x::FixedPoint{T,f}) = reinterpret(x), -f, 1
+decompose{T,f}(x::FixedPoint{T,f}) = x[], -f, 1
 # function decompose(x::UFixed)
-#     g = gcd(reinterpret(x), rawone(x))
-#     div(reinterpret(x),g), 0, div(rawone(x),g)
+#     g = gcd(x[], rawone(x))
+#     div(x[],g), 0, div(rawone(x),g)
 # end
 
 bswap{T <: Union{UInt8, Int8}, f}(x::FixedPoint{T,f}) = x
-bswap{T <: FixedPoint}(x::T)  = T(bswap(reinterpret(x)),0)
+bswap{T <: FixedPoint}(x::T)  = T(bswap(x[]),0)
 
 # Promotions for reductions
 const Treduce = Float64
@@ -273,9 +274,9 @@ showcompact{T,f}(io::IO, x::FixedPoint{T,f}) = show(io, round(convert(Float64,x)
 # Iteration
 # The main subtlety here is that iterating over 0x00uf8:0xffuf8 will wrap around
 # unless we iterate using a wider type
-start{T<:FixedPoint}(r::StepRange{T}) = convert(typeof(reinterpret(r.start)+reinterpret(r.step)), reinterpret(r.start))
-next{T<:FixedPoint}(r::StepRange{T}, i::Integer) = (T(i,0), i+reinterpret(r.step))
-done{T<:FixedPoint}(r::StepRange{T}, i::Integer) = isempty(r) || (i > reinterpret(r.stop))
+start{T<:FixedPoint}(r::StepRange{T}) = convert(typeof(r.start[] + r.step[]), r.start[])
+next{T<:FixedPoint}(r::StepRange{T}, i::Integer) = (T(i,0), i+r.step[])
+done{T<:FixedPoint}(r::StepRange{T}, i::Integer) = isempty(r) || (i > r.stop[])
 
 immutable UFixedConstructor{T,f} end
 *{T,f}(n::Integer, ::UFixedConstructor{T,f}) = UFixed{T,f}(n,0)

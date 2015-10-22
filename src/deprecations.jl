@@ -10,3 +10,5 @@ import Base.@deprecate_binding
 @deprecate_binding Ufixed16 UFixed16
 
 @deprecate_binding Fixed32 Fixed16
+
+@deprecate reinterpret(x::FixedPoint) getindex(x)

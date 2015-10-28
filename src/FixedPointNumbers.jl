@@ -1,8 +1,6 @@
-VERSION >= v"0.4.0-dev+6521" && __precompile__()
+__precompile__()
 
 module FixedPointNumbers
-
-using Compat
 
 using Base: IdFun, AddFun, MulFun, reducedim_initarray
 
@@ -87,9 +85,9 @@ end
 # Particularly useful for arrays.
 scaledual(Tdual::Type, x) = one(Tdual), x
 scaledual{Tdual<:Number}(b::Tdual, x) = b, x
-@compat scaledual{T<:FixedPoint}(Tdual::Type, x::Union{T,AbstractArray{T}}) =
+scaledual{T<:FixedPoint}(Tdual::Type, x::Union{T,AbstractArray{T}}) =
     convert(Tdual, 1/one(T)), reinterpret(rawtype(T), x)
-@compat scaledual{Tdual<:Number, T<:FixedPoint}(b::Tdual, x::Union{T,AbstractArray{T}}) =
+scaledual{Tdual<:Number, T<:FixedPoint}(b::Tdual, x::Union{T,AbstractArray{T}}) =
     convert(Tdual, b/one(T)), reinterpret(rawtype(T), x)
 
 end # module

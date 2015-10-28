@@ -1,4 +1,4 @@
-using FixedPointNumbers, Compat, Base.Test
+using FixedPointNumbers, Base.Test
 
 @test reinterpret(0xa2uf8)  == 0xa2
 @test reinterpret(0xa2uf10) == 0xa2

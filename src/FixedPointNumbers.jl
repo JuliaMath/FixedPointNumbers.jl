@@ -7,7 +7,7 @@ using Base: IdFun, AddFun, MulFun, reducedim_initarray
 import Base: ==, <, <=, -, +, *, /, ~,
              convert, promote_rule, show, showcompact, isinteger, abs, decompose,
              isnan, isinf, isfinite,
-             zero, one, typemin, typemax, realmin, realmax, eps, sizeof, reinterpret,
+             zero, one, typemin, typemax, realmin, realmax, eps, sizeof, reinterpret, getindex,
              trunc, round, floor, ceil, bswap,
              div, fld, rem, mod, mod1, rem1, fld1, min, max,
              start, next, done, r_promote, reducedim_init
@@ -40,15 +40,15 @@ export
     # Functions
     scaledual
 
-reinterpret(x::FixedPoint) = x.i
+getindex(x::FixedPoint) = x.i
 
 # comparison
-=={T <: FixedPoint}(x::T, y::T) = x.i == y.i
- <{T <: FixedPoint}(x::T, y::T) = x.i  < y.i
-<={T <: FixedPoint}(x::T, y::T) = x.i <= y.i
+=={T <: FixedPoint}(x::T, y::T) = x[] == y[]
+ <{T <: FixedPoint}(x::T, y::T) = x[]  < y[]
+<={T <: FixedPoint}(x::T, y::T) = x[] <= y[]
 
 # predicates
-isinteger{T,f}(x::FixedPoint{T,f}) = (x.i&(1<<f-1)) == 0
+isinteger{T,f}(x::FixedPoint{T,f}) = (x[]&(1<<f-1)) == 0
 
 typemax{T<: FixedPoint}(::Type{T}) = T(typemax(rawtype(T)), 0)
 typemin{T<: FixedPoint}(::Type{T}) = T(typemin(rawtype(T)), 0)
@@ -77,7 +77,7 @@ reducedim_init{T<:FixedPoint}(f::IdFun, op::MulFun,
 for T in tuple(Fixed16, UF...)
     R = rawtype(T)
     @eval begin
-        reinterpret(::Type{$R}, x::$T) = x.i
+        reinterpret(::Type{$R}, x::$T) = x[]
     end
 end
 

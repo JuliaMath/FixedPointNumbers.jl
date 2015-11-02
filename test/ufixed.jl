@@ -1,10 +1,10 @@
 using FixedPointNumbers, Base.Test
 
-@test reinterpret(0xa2uf8)  == 0xa2
-@test reinterpret(0xa2uf10) == 0xa2
-@test reinterpret(0xa2uf12) == 0xa2
-@test reinterpret(0xa2uf14) == 0xa2
-@test reinterpret(0xa2uf16) == 0xa2
+@test (0xa2uf8)[] == 0xa2
+@test (0xa2uf10)[] == 0xa2
+@test (0xa2uf12)[] == 0xa2
+@test (0xa2uf14)[] == 0xa2
+@test (0xa2uf16)[] == 0xa2
 
 @test reinterpret(UFixed8, 0xa2) == 0xa2uf8
 @test reinterpret(UFixed10, 0x1fa2) == 0x1fa2uf10
@@ -90,9 +90,9 @@ end
 
 function testtrunc{T}(inc::T)
     incf = convert(Float64, inc)
-    tm = reinterpret(typemax(T))/reinterpret(one(T))
+    tm = typemax(T)[] / one(T)[]
     x = zero(T)
-    for i = 0:reinterpret(typemax(T))-1
+    for i = 0:typemax(T)[]-1
         xf = incf*i
         try
             @test trunc(x) == trunc(xf)

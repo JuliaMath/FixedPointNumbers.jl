@@ -20,6 +20,7 @@ using FixedPointNumbers, Base.Test
 for T in FixedPointNumbers.UF
     @test zero(T) == 0
     @test one(T) == 1
+    @test one(T) * one(T) == one(T)
     @test typemin(T) == 0
     @test realmin(T) == 0
     @test eps(zero(T)) == eps(typemax(T))
@@ -78,11 +79,7 @@ for T in FixedPointNumbers.UF
     @test_approx_eq((x+y)-x, fy)
     @test_approx_eq((x-y)+y, fx)
     @test_approx_eq(x*y, convert(T, fx*fy))
-    if T == UFixed14
-        @test convert(T, fx/fy) - x/y == eps(T)
-    else
-        @test_approx_eq(x/y, convert(T, fx/fy))
-    end
+    @test_approx_eq(x/y, convert(T, fx/fy))
     @test_approx_eq(x^2, convert(T, fx^2))
     @test_approx_eq(x^2.1f0, fx^2.1f0)
     @test_approx_eq(x^2.1, convert(Float64, x)^2.1)

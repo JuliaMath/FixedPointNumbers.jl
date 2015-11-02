@@ -80,8 +80,8 @@ sizeof{T<:UFixed}(::Type{T}) = sizeof(rawtype(T))
 abs(x::UFixed) = x
 
 # Arithmetic
-*{T,f}(x::UFixed{T,f}, y::UFixed{T,f}) = UFixed{T,f}((Base.widemul(x[],y[]) + (convert(widen(T), 1) << (f-1) ))>>f,0)
-/{T,f}(x::UFixed{T,f}, y::UFixed{T,f}) = UFixed{T,f}(div(convert(widen(T), x[])<<f, y[]),0)
+*{T<:UFixed}(x::T, y::T) = convert(T,convert(Float32, x)*convert(Float32, y))
+/{T<:UFixed}(x::T, y::T) = convert(T,convert(Float32, x)/convert(Float32, y))
 
 # Functions
 trunc{T<:UFixed}(x::T) = T(div(x[], rawone(T))*rawone(T),0)

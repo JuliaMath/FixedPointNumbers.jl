@@ -1,9 +1,19 @@
-# 32-bit fixed point; parameter `f` is the number of fraction bits
-immutable Fixed{T <: Signed,f} <: FixedPoint{T,  f}
+###
+# Fixed implements a general purpose FixedPoint number.
+# The underlying storage type is given by the parameter `T`,
+# and the number of fractional bits is given by `f`
+# The dot is just before the fractional part so in order to represent one,
+# `f` needs to be atleast smaller by 1 in the unsigned case and smaller by two
+# in the signed case, then the number of bits in `T`.
+#
+# In a further iteration of the design `Fixed` should be renamed to `FixedPoint` and the aliase `typealias Fixed{T <: Signed, f} FixedPoint{T, f}` and `typealias UFixed{T <: Unsigned, f} FixedPoint{T, f}` introduced.
+###
+immutable Fixed{T,f} <: FixedPoint{T,  f}
     i::T
 
     # constructor for manipulating the representation;
     # selected by passing an extra dummy argument
+    Fixed(i::T, _) = new(i)
     Fixed(i::Integer,_) = new(i % T)
 
     Fixed(x) = convert(Fixed{T,f}, x)
@@ -14,22 +24,73 @@ typealias Fixed16 Fixed{Int32, 16}
   rawtype{T,f}(::Type{Fixed{T,f}}) = T
 nbitsfrac{T,f}(::Type{Fixed{T,f}}) = f
 
-# basic operators
--{T,f}(x::Fixed{T,f}) = Fixed{T,f}(-x[],0)
-abs{T,f}(x::Fixed{T,f}) = Fixed{T,f}(abs(x[]),0)
+reinterpret{T <: Integer,f}(::Type{Fixed{T,f}}, x::T) = Fixed{T,f}(x, 0)
 
-+{T,f}(x::Fixed{T,f}, y::Fixed{T,f}) = Fixed{T,f}(x[]+y[],0)
--{T,f}(x::Fixed{T,f}, y::Fixed{T,f}) = Fixed{T,f}(x[]-y[],0)
+## predicates
+isinteger{T,f}(x::Fixed{T,f}) = (x[]&(1<<f-1)) == 0
+
+function one{T, f}(::Type{Fixed{T, f}})
+    if T <: Unsigned && sizeof(T) * 8 > f ||
+       T <: Signed   && sizeof(T) * 8 > (f+1)
+        return Fixed{T, f}(2^f-1,0)
+    else
+        throw(DomainError())
+    end
+end
+
+## basic operators & arithmetics
 
 # with truncation:
-#*{f}(x::Fixed32{f}, y::Fixed32{f}) = Fixed32{f}(Base.widemul(x[],y[])>>f,0)
+# *{T<:Fixed}(x::T, y::T) =
+#         T(Base.widemul(x[],y[]) >> nbitsfrac(T),0)
 # with rounding up:
-*{T,f}(x::Fixed{T,f}, y::Fixed{T,f}) = Fixed{T,f}((Base.widemul(x[],y[]) + (convert(widen(T), 1) << (f-1) ))>>f,0)
+function *{T<:Fixed}(x::T, y::T)
+    f = nbitsfrac(T)
+    i = Base.widemul(x[],y[])
+    T((i + convert(widen(rawtype(T)), 1) << (f-1) )>>f,0)
+end
 
-/{T,f}(x::Fixed{T,f}, y::Fixed{T,f}) = Fixed{T,f}(div(convert(widen(T), x[]) << f, y[]), 0)
+function /{T<:Fixed}(x::T, y::T)
+    f = nbitsfrac(T)
+    T(div(convert(widen(rawtype(T)), x[]) << f, y.i), 0)
+end
+
+## rounding
+# Round towards negative infinity
+trunc{T<:Fixed}(x::T) = T(x[] & ~(1 << nbitsfrac(T) - 1), 0)
+# Round towards negative infinity
+floor{T<:Fixed}(x::T) = trunc(x)
+# Round towards positive infinity
+ceil{T<:Fixed}(x::T) = trunc(T(x[] + 1 << (nbitsfrac(T)-1), 0))
+# Round towards even
+function round{T<:Fixed}(x::T)
+    even = x[] & (1 << nbitsfrac(T)) == 0
+    if even
+        return floor(x)
+    else
+        return ceil(x)
+    end
+end
+# Round towards positive infinity
+ceil{T<:Fixed}(x::T) = trunc(T(x[] + 1 << (nbitsfrac(T)-1), 0))
+# Round towards even
+function round{T<:Fixed}(x::T)
+    even = x[] & (1 << nbitsfrac(T)) == 0
+    if even
+        return floor(x)
+    else
+        return ceil(x)
+    end
+end
+
+trunc{TI<:Integer, T <: Fixed}(::Type{TI}, x::T) =
+    convert(TI, x[] >> nbitsfrac(T))
+floor{T<:Integer}(::Type{T}, x::Fixed) = trunc(T, x)
+ceil{T<:Integer}(::Type{T}, x::Fixed) = trunc(T, ceil(x))
+round{T<:Integer}(::Type{T}, x::Fixed) = trunc(T, round(x))
 
 
-# # conversions and promotions
+## conversions and promotions
 convert{T,f}(::Type{Fixed{T,f}}, x::Integer) = Fixed{T,f}(convert(T,x)<<f,0)
 convert{T,f}(::Type{Fixed{T,f}}, x::AbstractFloat) = Fixed{T,f}(trunc(T,x)<<f + round(T, rem(x,1)*(1<<f)),0)
 convert{T,f}(::Type{Fixed{T,f}}, x::Rational) = Fixed{T,f}(x.num)/Fixed{T,f}(x.den)
@@ -52,7 +113,6 @@ promote_rule{T,f,TI<:Integer}(ft::Type{Fixed{T,f}}, ::Type{TI}) = Fixed{T,f}
 promote_rule{T,f,TF<:AbstractFloat}(::Type{Fixed{T,f}}, ::Type{TF}) = TF
 promote_rule{T,f,TR}(::Type{Fixed{T,f}}, ::Type{Rational{TR}}) = Rational{TR}
 
-# TODO: Document and check that it still does the right thing.
 decompose{T,f}(x::Fixed{T,f}) = x[], -f, 1
 
 # printing

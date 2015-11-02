@@ -1,10 +1,13 @@
 # UFixed{T,f} maps UInts from 0 to 2^f-1 to the range [0.0, 1.0]
 # For example, a UFixed8 maps 0x00 to 0.0 and 0xff to 1.0
-
 immutable UFixed{T<:Unsigned,f} <: FixedPoint{T,f}
     i::T
 
-    UFixed(i::Integer,_) = new(i%T)   # for setting by raw representation
+    # constructor for manipulating the representation;
+    # selected by passing an extra dummy argument
+    UFixed(i::T, _) = new(i)
+    UFixed(i::Integer,_) = new(i % T)
+
     UFixed(x) = convert(UFixed{T,f}, x)
 end
 
@@ -34,7 +37,6 @@ const uf12 = UFixedConstructor{UInt16,12}()
 const uf14 = UFixedConstructor{UInt16,14}()
 const uf16 = UFixedConstructor{UInt16,16}()
 
-zero{T,f}(::Type{UFixed{T,f}}) = UFixed{T,f}(zero(T),0)
 for uf in UF
     TT = rawtype(uf)
     f = nbitsfrac(uf)
@@ -43,8 +45,6 @@ for uf in UF
         one(::Type{$T}) = $T($(2^f-1),0)
     end
 end
-zero(x::UFixed) = zero(typeof(x))
- one(x::UFixed) =  one(typeof(x))
 rawone(v) = one(v)[]
 
 # Conversions
@@ -80,17 +80,8 @@ sizeof{T<:UFixed}(::Type{T}) = sizeof(rawtype(T))
 abs(x::UFixed) = x
 
 # Arithmetic
-(-){T<:UFixed}(x::T) = T(-x[], 0)
-(~){T<:UFixed}(x::T) = T(~x[], 0)
-
-+{T,f}(x::UFixed{T,f}, y::UFixed{T,f}) = UFixed{T,f}(convert(T, x[]+y[]),0)
--{T,f}(x::UFixed{T,f}, y::UFixed{T,f}) = UFixed{T,f}(convert(T, x[]-y[]),0)
 *{T,f}(x::UFixed{T,f}, y::UFixed{T,f}) = UFixed{T,f}((Base.widemul(x[],y[]) + (convert(widen(T), 1) << (f-1) ))>>f,0)
 /{T,f}(x::UFixed{T,f}, y::UFixed{T,f}) = UFixed{T,f}(div(convert(widen(T), x[])<<f, y[]),0)
-
-# Comparisons
- <{T<:UFixed}(x::T, y::T) = x[] < y[]
-<={T<:UFixed}(x::T, y::T) = x[] < y[]
 
 # Functions
 trunc{T<:UFixed}(x::T) = T(div(x[], rawone(T))*rawone(T),0)
@@ -115,36 +106,6 @@ trunc(x::UFixed) = trunc(Int, x)
 round(x::UFixed) = round(Int, x)
 floor(x::UFixed) = floor(Int, x)
  ceil(x::UFixed) =  ceil(Int, x)
-
-isfinite(x::UFixed) = true
-isnan(x::UFixed) = false
-isinf(x::UFixed) = false
-
-bswap{f}(x::UFixed{UInt8,f}) = x
-bswap(x::UFixed)  = typeof(x)(bswap(x[]),0)
-
-for f in (:div, :fld, :rem, :mod, :mod1, :rem1, :fld1, :min, :max)
-    @eval begin
-        $f{T<:UFixed}(x::T, y::T) = T($f(x[],y[]),0)
-    end
-end
-function minmax{T<:UFixed}(x::T, y::T)
-    a, b = minmax(x[], y[])
-    T(a,0), T(b,0)
-end
-
-# Iteration
-# The main subtlety here is that iterating over 0x00uf8:0xffuf8 will wrap around
-# unless we iterate using a wider type
-if VERSION < v"0.3-"
-    start{T<:UFixed}(r::Range{T}) = convert(typeof(r.start[] + r.step[]), r.start[])
-    next{T<:UFixed}(r::Range{T}, i::Integer) = (T(i,0), i + r.step[])
-    done{T<:UFixed}(r::Range{T}, i::Integer) = isempty(r) || (i > r.len)
-else
-    start{T<:UFixed}(r::StepRange{T}) = convert(typeof(r.start[] + r.step[]), r.start[])
-    next{T<:UFixed}(r::StepRange{T}, i::Integer) = (T(i,0), i + r.step[])
-    done{T<:UFixed}(r::StepRange{T}, i::Integer) = isempty(r) || (i > r.stop[])
-end
 
 function decompose(x::UFixed)
     g = gcd(x[], rawone(x))

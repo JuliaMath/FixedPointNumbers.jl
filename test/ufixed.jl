@@ -1,10 +1,10 @@
 using FixedPointNumbers, Base.Test
 
-@test reinterpret(0xa2uf8)  == 0xa2
-@test reinterpret(0xa2uf10) == 0xa2
-@test reinterpret(0xa2uf12) == 0xa2
-@test reinterpret(0xa2uf14) == 0xa2
-@test reinterpret(0xa2uf16) == 0xa2
+@test (0xa2uf8)[] == 0xa2
+@test (0xa2uf10)[] == 0xa2
+@test (0xa2uf12)[] == 0xa2
+@test (0xa2uf14)[] == 0xa2
+@test (0xa2uf16)[] == 0xa2
 
 @test reinterpret(UFixed8, 0xa2) == 0xa2uf8
 @test reinterpret(UFixed10, 0x1fa2) == 0x1fa2uf10
@@ -20,6 +20,7 @@ using FixedPointNumbers, Base.Test
 for T in FixedPointNumbers.UF
     @test zero(T) == 0
     @test one(T) == 1
+    @test one(T) * one(T) == one(T)
     @test typemin(T) == 0
     @test realmin(T) == 0
     @test eps(zero(T)) == eps(typemax(T))
@@ -77,12 +78,8 @@ for T in FixedPointNumbers.UF
     @test_approx_eq(x+y, T(0x35,0))
     @test_approx_eq((x+y)-x, fy)
     @test_approx_eq((x-y)+y, fx)
-    @test_approx_eq(x*y, convert(T, fx*fy))
-    if T == UFixed14
-        @test convert(T, fx/fy) - x/y == eps(T)
-    else
-        @test_approx_eq(x/y, convert(T, fx/fy))
-    end
+    @test_approx_eq_eps(convert(T, fx*fy), x*y, eps(T))
+    @test_approx_eq_eps(convert(T, fx/fy), x/y, eps(T))
     @test_approx_eq(x^2, convert(T, fx^2))
     @test_approx_eq(x^2.1f0, fx^2.1f0)
     @test_approx_eq(x^2.1, convert(Float64, x)^2.1)
@@ -90,9 +87,9 @@ end
 
 function testtrunc{T}(inc::T)
     incf = convert(Float64, inc)
-    tm = reinterpret(typemax(T))/reinterpret(one(T))
+    tm = typemax(T)[] / one(T)[]
     x = zero(T)
-    for i = 0:reinterpret(typemax(T))-1
+    for i = 0:typemax(T)[]-1
         xf = incf*i
         try
             @test trunc(x) == trunc(xf)

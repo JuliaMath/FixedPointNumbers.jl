@@ -85,8 +85,8 @@ abs(x::UFixed) = x
 
 +{T,f}(x::UFixed{T,f}, y::UFixed{T,f}) = UFixed{T,f}(convert(T, x.i+y.i),0)
 -{T,f}(x::UFixed{T,f}, y::UFixed{T,f}) = UFixed{T,f}(convert(T, x.i-y.i),0)
-*{T,f}(x::UFixed{T,f}, y::UFixed{T,f}) = UFixed{T,f}((Base.widemul(x.i,y.i) + (convert(widen(T), 1) << (f-1) ))>>f,0)
-/{T,f}(x::UFixed{T,f}, y::UFixed{T,f}) = UFixed{T,f}(div(convert(widen(T), x.i)<<f, y.i),0)
+*{T<:UFixed}(x::T, y::T) = convert(T,convert(Float32, x)*convert(Float32, y))
+/{T<:UFixed}(x::T, y::T) = convert(T,convert(Float32, x)/convert(Float32, y))
 
 # Comparisons
  <{T<:UFixed}(x::T, y::T) = reinterpret(x) < reinterpret(y)

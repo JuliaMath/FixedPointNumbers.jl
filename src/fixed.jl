@@ -8,7 +8,7 @@
 #
 # In a further iteration of the design `Fixed` should be renamed to `FixedPoint` and the aliase `typealias Fixed{T <: Signed, f} FixedPoint{T, f}` and `typealias UFixed{T <: Unsigned, f} FixedPoint{T, f}` introduced.
 ###
-immutable Fixed{T,f} <: FixedPoint{T,  f}
+immutable Fixed{T,f} <: AbstractFixedPoint{T,  f}
     i::T
 
     # constructor for manipulating the representation;

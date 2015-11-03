@@ -1,6 +1,6 @@
 # UFixed{T,f} maps UInts from 0 to 2^f-1 to the range [0.0, 1.0]
 # For example, a UFixed8 maps 0x00 to 0.0 and 0xff to 1.0
-immutable UFixed{T<:Unsigned,f} <: FixedPoint{T,f}
+immutable UFixed{T<:Unsigned,f} <: AbstractFixedPoint{T,f}
     i::T
 
     # constructor for manipulating the representation;

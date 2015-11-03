@@ -17,7 +17,7 @@ abstract AbstractFixedPoint{T <: Integer, f} <: Real
 
 export
     AbstractFixedPoint,
-    # FixedPoint,
+    FixedPoint,
     Fixed,
     UFixed,
     Fixed16,
@@ -91,7 +91,7 @@ end
 bswap{T <: Union{UInt8, Int8}, f}(x::AbstractFixedPoint{T,f}) = x
 bswap{T <: AbstractFixedPoint}(x::T)  = T(bswap(x[]),0)
 
-include("fixed.jl")
+include("fixedpoint.jl")
 include("ufixed.jl")
 include("deprecations.jl")
 

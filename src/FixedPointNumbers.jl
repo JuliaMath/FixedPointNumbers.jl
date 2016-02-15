@@ -9,7 +9,7 @@ import Base: ==, <, <=, -, +, *, /, ~,
              isnan, isinf, isfinite,
              zero, one, typemin, typemax, realmin, realmax, eps, sizeof, reinterpret,
              trunc, round, floor, ceil, bswap,
-             div, fld, rem, mod, mod1, rem1, fld1, min, max,
+             div, fld, rem, mod, mod1, rem1, fld1, min, max, minmax,
              start, next, done, r_promote, reducedim_init
 # T => BaseType
 # f => Number of Bytes reserved for fractional part

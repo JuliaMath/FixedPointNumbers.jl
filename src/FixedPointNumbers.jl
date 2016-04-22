@@ -2,7 +2,7 @@ __precompile__()
 
 module FixedPointNumbers
 
-using Base: IdFun, AddFun, MulFun, reducedim_initarray
+using Base: reducedim_initarray
 
 import Base: ==, <, <=, -, +, *, /, ~,
              convert, promote_rule, show, showcompact, isinteger, abs, decompose,
@@ -11,6 +11,9 @@ import Base: ==, <, <=, -, +, *, /, ~,
              trunc, round, floor, ceil, bswap,
              div, fld, rem, mod, mod1, rem1, fld1, min, max, minmax,
              start, next, done, r_promote, reducedim_init
+
+using Compat
+
 # T => BaseType
 # f => Number of Bytes reserved for fractional part
 abstract FixedPoint{T <: Integer, f} <: Real
@@ -62,14 +65,15 @@ include("deprecations.jl")
 
 # Promotions for reductions
 const Treduce = Float64
-for F in (AddFun, MulFun)
-    @eval r_promote{T}(::$F, x::FixedPoint{T}) = Treduce(x)
-end
+r_promote{T}(::typeof(@functorize(+)), x::FixedPoint{T}) = Treduce(x)
+r_promote{T}(::typeof(@functorize(*)), x::FixedPoint{T}) = Treduce(x)
 
-reducedim_init{T<:FixedPoint}(f::IdFun, op::AddFun,
+reducedim_init{T<:FixedPoint}(f::typeof(@functorize(identity)),
+                              op::typeof(@functorize(+)),
                               A::AbstractArray{T}, region) =
     reducedim_initarray(A, region, zero(Treduce))
-reducedim_init{T<:FixedPoint}(f::IdFun, op::MulFun,
+reducedim_init{T<:FixedPoint}(f::typeof(@functorize(identity)),
+                              op::typeof(@functorize(*)),
                               A::AbstractArray{T}, region) =
     reducedim_initarray(A, region, one(Treduce))
 

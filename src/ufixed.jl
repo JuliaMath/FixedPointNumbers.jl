@@ -67,7 +67,10 @@ ufixed16(x) = convert(UFixed16, x)
 
 
 convert(::Type{BigFloat}, x::UFixed) = reinterpret(x)*(1/BigFloat(rawone(x)))
-convert{T<:AbstractFloat}(::Type{T}, x::UFixed) = reinterpret(x)*(1/convert(T, rawone(x)))
+function convert{T<:AbstractFloat}(::Type{T}, x::UFixed)
+    y = reinterpret(x)*(1/convert(T, rawone(x)))
+    convert(T, y)  # needed for types like Float16 which promote arithmetic to Float32
+end
 convert(::Type{Bool}, x::UFixed) = x == zero(x) ? false : true
 convert{T<:Integer}(::Type{T}, x::UFixed) = convert(T, x*(1/one(T)))
 convert{Ti<:Integer}(::Type{Rational{Ti}}, x::UFixed) = convert(Ti, reinterpret(x))//convert(Ti, rawone(x))

@@ -1,6 +1,13 @@
 using Base.Test
 using FixedPointNumbers
 
+function test_op{F,T}(fun::F, ::Type{T}, fx, fy, fxf, fyf, tol)
+    # Make sure that the result is representable
+    (typemin(T) <= fun(fxf, fyf) <= typemax(T)) || return nothing
+    @assert abs(fun(fx, fy) - convert(T, fun(fxf, fyf))) <= tol
+    @assert abs(convert(Float64, fun(fx, fy)) - fun(fxf, fyf)) <= tol
+end
+
 function test_fixed{T}(::Type{T}, f)
     values = [-10:0.01:10; -180:.01:-160; 160:.01:180]
     tol = 2.0^-f
@@ -29,21 +36,16 @@ function test_fixed{T}(::Type{T}, f)
             fy = convert(T,y)
             fyf = convert(Float64, fy)
 
-            @test fx==fy || x!=y
-            @test fx<fy  || x>=y
-            @test fx<=fy || x>y
+            @assert fx==fy || x!=y
+            @assert fx<fy  || x>=y
+            @assert fx<=fy || x>y
 
-            for fun in [+, -, *, /]
-                # Make sure that the result is representable
-                if !(typemin(T) <= fun(fxf, fyf) <= typemax(T))
-                    continue
-                elseif (fun == /) && fy != 0
-                    @test abs(fun(fx, fy) - convert(T, fun(fxf, fyf))) <= tol
-                    @test abs(convert(Float64, fun(fx, fy)) - fun(fxf, fyf)) <= tol
-                end
-            end
+            test_op(+, T, fx, fy, fxf, fyf, tol)
+            test_op(-, T, fx, fy, fxf, fyf, tol)
+            test_op(*, T, fx, fy, fxf, fyf, tol)
+            fy != 0 && test_op(/, T, fx, fy, fxf, fyf, tol)
 
-            @test isequal(fx,fy) == isequal(hash(fx),hash(fy))
+            @assert isequal(fx,fy) == isequal(hash(fx),hash(fy))
         end
     end
 end
@@ -66,3 +68,9 @@ a = F6[1.2, 1.4]
 acmp = Float64(a[1])*Float64(a[2])
 @test prod(a) == acmp
 @test prod(a, 1) == [acmp]
+
+x = Fixed{Int8,8}(0.3)
+for T in (Float16, Float32, Float64, BigFloat)
+    y = convert(T, x)
+    @test isa(y, T)
+end

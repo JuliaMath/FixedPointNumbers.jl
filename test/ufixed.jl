@@ -160,3 +160,9 @@ a = UFixed14[3.2, 2.4]
 acmp = Float64(a[1])*Float64(a[2])
 @test prod(a) == acmp
 @test prod(a, 1) == [acmp]
+
+x = UFixed8(0.3)
+for T in (Float16, Float32, Float64, BigFloat)
+    y = convert(T, x)
+    @test isa(y, T)
+end

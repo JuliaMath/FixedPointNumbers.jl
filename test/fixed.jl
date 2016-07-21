@@ -33,7 +33,7 @@ function test_fixed{T}(::Type{T}, f)
             @test fx<fy  || x>=y
             @test fx<=fy || x>y
 
-            for fun in [+, -, *, /]
+            for fun in (+, -, *, /)
                 # Make sure that the result is representable
                 if !(typemin(T) <= fun(fxf, fyf) <= typemax(T))
                     continue

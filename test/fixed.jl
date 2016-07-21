@@ -4,8 +4,8 @@ using FixedPointNumbers
 function test_op{F,T}(fun::F, ::Type{T}, fx, fy, fxf, fyf, tol)
     # Make sure that the result is representable
     (typemin(T) <= fun(fxf, fyf) <= typemax(T)) || return nothing
-    @test abs(fun(fx, fy) - convert(T, fun(fxf, fyf))) <= tol
-    @test abs(convert(Float64, fun(fx, fy)) - fun(fxf, fyf)) <= tol
+    @assert abs(fun(fx, fy) - convert(T, fun(fxf, fyf))) <= tol
+    @assert abs(convert(Float64, fun(fx, fy)) - fun(fxf, fyf)) <= tol
 end
 
 function test_fixed{T}(::Type{T}, f)
@@ -36,16 +36,16 @@ function test_fixed{T}(::Type{T}, f)
             fy = convert(T,y)
             fyf = convert(Float64, fy)
 
-            @test fx==fy || x!=y
-            @test fx<fy  || x>=y
-            @test fx<=fy || x>y
+            @assert fx==fy || x!=y
+            @assert fx<fy  || x>=y
+            @assert fx<=fy || x>y
 
             test_op(+, T, fx, fy, fxf, fyf, tol)
             test_op(-, T, fx, fy, fxf, fyf, tol)
             test_op(*, T, fx, fy, fxf, fyf, tol)
             fy != 0 && test_op(/, T, fx, fy, fxf, fyf, tol)
 
-            @test isequal(fx,fy) == isequal(hash(fx),hash(fy))
+            @assert isequal(fx,fy) == isequal(hash(fx),hash(fy))
         end
     end
 end

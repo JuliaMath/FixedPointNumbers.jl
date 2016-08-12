@@ -17,14 +17,14 @@ using FixedPointNumbers, Base.Test
 @test ufixed14(1.0) == 0x3fffuf14
 @test ufixed12([2]) == UFixed12[0x1ffeuf12]
 
-for T in FixedPointNumbers.UF
+for T in (FixedPointNumbers.UF..., UFixed{UInt32,16})
     @test zero(T) == 0
     @test one(T) == 1
     @test one(T) * one(T) == one(T)
     @test typemin(T) == 0
     @test realmin(T) == 0
     @test eps(zero(T)) == eps(typemax(T))
-    @test sizeof(T) == 1 + (T != UFixed8)
+    @test sizeof(T) == sizeof(FixedPointNumbers.rawtype(T))
 end
 @test typemax(UFixed8) == 1
 @test typemax(UFixed10) == typemax(UInt16)//(2^10-1)
@@ -51,7 +51,7 @@ x = UFixed8(0.5)
 @test convert(Float64, eps(UFixed8)) == 1/typemax(UInt8)
 @test convert(Float32, eps(UFixed8)) == 1.0f0/typemax(UInt8)
 @test convert(BigFloat, eps(UFixed8)) == BigFloat(1)/typemax(UInt8)
-for T in FixedPointNumbers.UF
+for T in (FixedPointNumbers.UF..., UFixed{UInt32,16})
     @test convert(Bool, zero(T)) == false
     @test convert(Bool, one(T))  == true
     @test convert(Bool, convert(T, 0.2)) == true
@@ -64,7 +64,7 @@ x = UFixed8(0b01010001, 0)
 @test ~x == UFixed8(0b10101110, 0)
 @test -x == 0xafuf8
 
-for T in FixedPointNumbers.UF
+for T in (FixedPointNumbers.UF..., UFixed{UInt32,16})
     x = T(0x10,0)
     y = T(0x25,0)
     fx = convert(Float32, x)
@@ -113,7 +113,7 @@ function testtrunc{T}(inc::T)
     end
 end
 
-for T in FixedPointNumbers.UF
+for T in (FixedPointNumbers.UF..., UFixed{UInt32,16})
     testtrunc(eps(T))
 end
 

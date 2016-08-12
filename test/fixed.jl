@@ -74,3 +74,11 @@ for T in (Float16, Float32, Float64, BigFloat)
     y = convert(T, x)
     @test isa(y, T)
 end
+
+# Show
+x = Fixed{Int32,3}(0.25)
+iob = IOBuffer()
+show(iob, x)
+str = takebuf_string(iob)
+@test startswith(str, "Fixed{Int32,3}(")
+@test eval(parse(str)) == x

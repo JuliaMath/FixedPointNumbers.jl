@@ -15,21 +15,29 @@ used like any other number: they can be added, multiplied, raised to a power,
 etc. In many cases these operations result in conversion to floating-point types.
 
 # Type hierarchy
-This library defines an abstract type `FixedPoint{T <: Integer, f}` as a subtype of `Real`. The parameter `T` is the underlying representation and `f` is the number of fraction bits.
+This library defines an abstract type `FixedPoint{T <: Integer, f}` as a
+subtype of `Real`. The parameter `T` is the underlying representation and `f`
+is the number of fraction bits.
 
-For signed integers, there is a fixed-point type `Fixed{T, f}` and for unsigned integers, there is the `UFixed{T, f}` type.
+For signed integers, there is a fixed-point type `Fixed{T, f}` and for unsigned
+integers, there is the `UFixed{T, f}` type.
 
-These types, built with `f` fraction bits, map the closed interval [0.0,1.0]
-to the span of numbers with `f` bits.
-For example, the `UFixed8` type is represented internally by a `UInt8`, and makes
-`0x00` equivalent to `0.0` and `0xff` to `1.0`.
-The types `UFixed10`, `UFixed12`, `UFixed14`, and `UFixed16` are all based on `UInt16`
-and reach the value `1.0` at 10, 12, 14, and 16 bits, respectively (`0x03ff`, `0x0fff`,
-`0x3fff`, and `0xffff`).
+These types, built with `f` fraction bits, map the closed interval [0.0,1.0] to
+the span of numbers with `f` bits.  For example, the `UFixed8` type (aliased to
+UFixed{UInt8,8}) is represented internally by a `UInt8`, and makes `0x00`
+equivalent to `0.0` and `0xff` to `1.0`.  The type aliases `UFixed10`, `UFixed12`,
+`UFixed14`, and `UFixed16` are all based on `UInt16` and reach the value `1.0`
+at 10, 12, 14, and 16 bits, respectively (`0x03ff`, `0x0fff`, `0x3fff`, and
+`0xffff`).
 
-To construct such a number, use `convert(UFixed12, 1.3)`, `ufixed12(1.3)`, or the literal syntax `0x14ccuf12`.
-The latter syntax means to construct a `UFixed12` (it ends in `uf12`) from the `UInt16` value
-`0x14cc`.
+To construct such a number, use `convert(UFixed12, 1.3)`, `ufixed12(1.3)` (a
+convenience function), `UFixed{UInt16,12}(1.3)`, or the literal syntax
+`0x14ccuf12`.  The latter syntax means to construct a `UFixed12` (it ends in
+`uf12`) from the `UInt16` value `0x14cc`.
+
+More generally, an arbitrary number of bits from any of the standard unsigned
+integer widths can be used for the fractional part.  For example:
+`UFixed{UInt32,16}`, `UFixed{UInt64,3}`, `UFixed{UInt128,7}`.
 
 There currently is no literal syntax for signed `Fixed` numbers. 
 

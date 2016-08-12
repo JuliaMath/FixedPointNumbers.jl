@@ -113,7 +113,7 @@ function testtrunc{T}(inc::T)
     end
 end
 
-for T in (FixedPointNumbers.UF..., UFixed{UInt32,16})
+for T in FixedPointNumbers.UF
     testtrunc(eps(T))
 end
 

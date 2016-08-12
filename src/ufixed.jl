@@ -19,11 +19,7 @@ typealias UFixed16 UFixed{UInt16,16}
 
 const UF = (UFixed8, UFixed10, UFixed12, UFixed14, UFixed16)
 
-for (uf) in UF
-    T = rawtype(uf)
-    f = nbitsfrac(uf)
-    @eval reinterpret(::Type{UFixed{$T,$f}}, x::$T) = UFixed{$T,$f}(x, 0)
-end
+reinterpret{T<:Unsigned,f}(::Type{UFixed{T,f}}, x::T) = UFixed{T,f}(x, 0)
 
 # The next lines mimic the floating-point literal syntax "3.2f0"
 immutable UFixedConstructor{T,f} end
@@ -35,14 +31,8 @@ const uf14 = UFixedConstructor{UInt16,14}()
 const uf16 = UFixedConstructor{UInt16,16}()
 
 zero{T,f}(::Type{UFixed{T,f}}) = UFixed{T,f}(zero(T),0)
-for uf in UF
-    TT = rawtype(uf)
-    f = nbitsfrac(uf)
-    T = UFixed{TT,f}
-    @eval begin
-        one(::Type{$T}) = $T($(2^f-1),0)
-    end
-end
+one{T, f}(::Type{UFixed{T,f}}) = UFixed{T,f}(2^f-1,0)
+
 zero(x::UFixed) = zero(typeof(x))
  one(x::UFixed) =  one(typeof(x))
 rawone(v) = reinterpret(one(v))
@@ -98,16 +88,20 @@ abs(x::UFixed) = x
 # Functions
 trunc{T<:UFixed}(x::T) = T(div(reinterpret(x), rawone(T))*rawone(T),0)
 floor{T<:UFixed}(x::T) = trunc(x)
-for T in UF
-    f = nbitsfrac(T)
-    R = rawtype(T)
-    roundmask = convert(R, 1<<(f-1))
-    k = 8*sizeof(R)-f
-    ceilmask  = (typemax(R)<<k)>>k
-    @eval begin
-        round(x::$T) = (y = trunc(x); return convert(rawtype($T), reinterpret(x)-reinterpret(y))&$roundmask>0 ? $T(y+one($T)) : y)
-         ceil(x::$T) = (y = trunc(x); return convert(rawtype($T), reinterpret(x)-reinterpret(y))&$ceilmask >0 ? $T(y+one($T)) : y)
-    end
+
+roundmask{T,f}(::Type{UFixed{T,f}}) = convert(T, 1<<(f-1))
+function ceilmask{T,f}(::Type{UFixed{T,f}})
+    k = 8*sizeof(T)-f
+    return (typemax(T)<<k)>>k
+end
+
+function round{T<:UFixed}(x::T)
+    y = trunc(x)
+    return convert(rawtype(T), reinterpret(x)-reinterpret(y))&roundmask(T)>0 ? T(y+one(T)) : y
+end
+function ceil{T<:UFixed}(x::T)
+    y = trunc(x)
+    return convert(rawtype(T), reinterpret(x)-reinterpret(y))&ceilmask(T)>0 ? T(y+one(T)) : y
 end
 
 trunc{T<:Integer}(::Type{T}, x::UFixed) = convert(T, div(reinterpret(x), rawone(x)))
@@ -155,17 +149,14 @@ function decompose(x::UFixed)
 end
 
 # Promotions
-for T in UF
+promote_rule{T<:UFixed}(::Type{T}, ::Type{Float32}) = Float32
+promote_rule{T<:UFixed}(::Type{T}, ::Type{Float64}) = Float64
+promote_rule{T<:UFixed, TR<:Rational}(::Type{T}, ::Type{TR}) = TR
+
+for Ti in (Int8, UInt8, Int16, UInt16, Int32, UInt32, Int64, UInt64)
+    Tp = eps(convert(Float32, typemax(Ti)))
     @eval begin
-        promote_rule(::Type{$T}, ::Type{Float32}) = Float32
-        promote_rule(::Type{$T}, ::Type{Float64}) = Float64
-        promote_rule{TR<:Rational}(::Type{$T}, ::Type{TR}) = TR
-    end
-    for Ti in (Int8, UInt8, Int16, UInt16, Int32, UInt32, Int64, UInt64)
-        Tp = eps(convert(Float32, typemax(Ti))) > eps(T) ? Float64 : Float32
-        @eval begin
-            promote_rule(::Type{$T}, ::Type{$Ti}) = $Tp
-        end
+      promote_rule{T<:UFixed}(::Type{T}, ::Type{$Ti}) = $Tp > eps(T) ? Float64 : Float32
     end
 end
 

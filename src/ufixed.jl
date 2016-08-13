@@ -108,10 +108,6 @@ trunc{T<:Integer}(::Type{T}, x::UFixed) = convert(T, div(reinterpret(x), rawone(
 round{T<:Integer}(::Type{T}, x::UFixed) = round(T, reinterpret(x)/rawone(x))
 floor{T<:Integer}(::Type{T}, x::UFixed) = trunc(T, x)
  ceil{T<:Integer}(::Type{T}, x::UFixed) =  ceil(T, reinterpret(x)/rawone(x))
-trunc(x::UFixed) = trunc(Int, x)
-round(x::UFixed) = round(Int, x)
-floor(x::UFixed) = floor(Int, x)
- ceil(x::UFixed) =  ceil(Int, x)
 
 isfinite(x::UFixed) = true
 isnan(x::UFixed) = false

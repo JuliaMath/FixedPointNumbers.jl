@@ -100,12 +100,16 @@ function testtrunc{T}(inc::T)
     for i = 0 : min(1e6, reinterpret(typemax(T))-1)
         xf = incf*i
         try
+            @test typeof(trunc(x)) == T
             @test trunc(x) == trunc(xf)
+            @test typeof(round(x)) == T
             @test round(x) == round(xf)
             cxf = ceil(xf)
             if cxf < tm
+                @test typeof(ceil(x)) == T
                 @test ceil(x) == ceil(xf)
             end
+            @test typeof(floor(x)) == T
             @test floor(x) == floor(xf)
             @test trunc(Int,x) == trunc(Int,xf)
             @test round(Int,x) == round(Int,xf)

@@ -17,14 +17,16 @@ using FixedPointNumbers, Base.Test
 @test ufixed14(1.0) == 0x3fffuf14
 @test ufixed12([2]) == UFixed12[0x1ffeuf12]
 
-for T in FixedPointNumbers.UF
+UF2 = (UFixed{UInt32,16}, UFixed{UInt64,3}, UFixed{UInt128,7})
+
+for T in (FixedPointNumbers.UF..., UF2...)
     @test zero(T) == 0
     @test one(T) == 1
     @test one(T) * one(T) == one(T)
     @test typemin(T) == 0
     @test realmin(T) == 0
     @test eps(zero(T)) == eps(typemax(T))
-    @test sizeof(T) == 1 + (T != UFixed8)
+    @test sizeof(T) == sizeof(FixedPointNumbers.rawtype(T))
 end
 @test typemax(UFixed8) == 1
 @test typemax(UFixed10) == typemax(UInt16)//(2^10-1)
@@ -34,6 +36,9 @@ end
 @test typemax(UFixed10) == typemax(UInt16) // (2^10-1)
 @test typemax(UFixed12) == typemax(UInt16) // (2^12-1)
 @test typemax(UFixed14) == typemax(UInt16) // (2^14-1)
+@test typemax(UFixed{UInt32,16}) == typemax(UInt32) // (2^16-1)
+@test typemax(UFixed{UInt64,3}) == typemax(UInt64) // (2^3-1)
+@test typemax(UFixed{UInt128,7}) == typemax(UInt128) // (2^7-1)
 
 x = UFixed8(0.5)
 @test isfinite(x) == true
@@ -45,13 +50,16 @@ x = UFixed8(0.5)
 @test convert(UFixed12, 1.1/typemax(UInt16)*16) == eps(UFixed12)
 @test convert(UFixed14, 1.1/typemax(UInt16)*4)  == eps(UFixed14)
 @test convert(UFixed16, 1.1/typemax(UInt16))    == eps(UFixed16)
+@test convert(UFixed{UInt32,16}, 1.1/typemax(UInt32)*2^16) == eps(UFixed{UInt32,16})
+@test convert(UFixed{UInt64,3},  1.1/typemax(UInt64)*2^61)  == eps(UFixed{UInt64,3})
+@test convert(UFixed{UInt128,7}, 1.1/typemax(UInt128)*UInt128(2)^121) == eps(UFixed{UInt128,7})
 
 @test convert(UFixed8,  1.1f0/typemax(UInt8)) == eps(UFixed8)
 
 @test convert(Float64, eps(UFixed8)) == 1/typemax(UInt8)
 @test convert(Float32, eps(UFixed8)) == 1.0f0/typemax(UInt8)
 @test convert(BigFloat, eps(UFixed8)) == BigFloat(1)/typemax(UInt8)
-for T in FixedPointNumbers.UF
+for T in (FixedPointNumbers.UF..., UF2...)
     @test convert(Bool, zero(T)) == false
     @test convert(Bool, one(T))  == true
     @test convert(Bool, convert(T, 0.2)) == true
@@ -64,7 +72,7 @@ x = UFixed8(0b01010001, 0)
 @test ~x == UFixed8(0b10101110, 0)
 @test -x == 0xafuf8
 
-for T in FixedPointNumbers.UF
+for T in (FixedPointNumbers.UF..., UF2...)
     x = T(0x10,0)
     y = T(0x25,0)
     fx = convert(Float32, x)
@@ -89,15 +97,19 @@ function testtrunc{T}(inc::T)
     incf = convert(Float64, inc)
     tm = reinterpret(typemax(T))/reinterpret(one(T))
     x = zero(T)
-    for i = 0:reinterpret(typemax(T))-1
+    for i = 0 : min(1e6, reinterpret(typemax(T))-1)
         xf = incf*i
         try
+            @test typeof(trunc(x)) == T
             @test trunc(x) == trunc(xf)
+            @test typeof(round(x)) == T
             @test round(x) == round(xf)
             cxf = ceil(xf)
             if cxf < tm
+                @test typeof(ceil(x)) == T
                 @test ceil(x) == ceil(xf)
             end
+            @test typeof(floor(x)) == T
             @test floor(x) == floor(xf)
             @test trunc(Int,x) == trunc(Int,xf)
             @test round(Int,x) == round(Int,xf)
@@ -113,7 +125,7 @@ function testtrunc{T}(inc::T)
     end
 end
 
-for T in FixedPointNumbers.UF
+for T in (FixedPointNumbers.UF..., UF2...)
     testtrunc(eps(T))
 end
 
@@ -122,7 +134,7 @@ x = 0xaauf8
 iob = IOBuffer()
 show(iob, x)
 str = takebuf_string(iob)
-@test startswith(str, "UFixed8(")
+@test startswith(str, "UFixed{UInt8,8}(")
 @test eval(parse(str)) == x
 
 # scaledual

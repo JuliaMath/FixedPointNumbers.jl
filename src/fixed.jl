@@ -54,13 +54,3 @@ promote_rule{T,f,TR}(::Type{Fixed{T,f}}, ::Type{Rational{TR}}) = Rational{TR}
 
 # TODO: Document and check that it still does the right thing.
 decompose{T,f}(x::Fixed{T,f}) = x.i, -f, 1
-
-# printing
-function show(io::IO, x::Fixed)
-    print(io, typeof(x))
-    print(io, "(")
-    showcompact(io, x)
-    print(io, ")")
-end
-const _log2_10 = 3.321928094887362
-showcompact{T,f}(io::IO, x::Fixed{T,f}) = show(io, round(convert(Float64,x), ceil(Int,f/_log2_10)))

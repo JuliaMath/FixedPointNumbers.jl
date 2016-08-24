@@ -19,11 +19,7 @@ typealias UFixed16 UFixed{UInt16,16}
 
 const UF = (UFixed8, UFixed10, UFixed12, UFixed14, UFixed16)
 
-for (uf) in UF
-    T = rawtype(uf)
-    f = nbitsfrac(uf)
-    @eval reinterpret(::Type{UFixed{$T,$f}}, x::$T) = UFixed{$T,$f}(x, 0)
-end
+reinterpret{T<:Unsigned, f}(::Type{UFixed{T,f}}, x::T) = UFixed{T,f}(x, 0)
 
 # The next lines mimic the floating-point literal syntax "3.2f0"
 immutable UFixedConstructor{T,f} end
@@ -35,13 +31,9 @@ const uf14 = UFixedConstructor{UInt16,14}()
 const uf16 = UFixedConstructor{UInt16,16}()
 
 zero{T,f}(::Type{UFixed{T,f}}) = UFixed{T,f}(zero(T),0)
-for uf in UF
-    TT = rawtype(uf)
-    f = nbitsfrac(uf)
-    T = UFixed{TT,f}
-    @eval begin
-        one(::Type{$T}) = $T($(2^f-1),0)
-    end
+@generated function one{T<:UFixed}(::Type{T})
+    f = 2^nbitsfrac(T)-1
+    :( T($f,0) )
 end
 zero(x::UFixed) = zero(typeof(x))
  one(x::UFixed) =  one(typeof(x))
@@ -98,26 +90,24 @@ abs(x::UFixed) = x
 # Functions
 trunc{T<:UFixed}(x::T) = T(div(reinterpret(x), rawone(T))*rawone(T),0)
 floor{T<:UFixed}(x::T) = trunc(x)
-for T in UF
-    f = nbitsfrac(T)
-    R = rawtype(T)
-    roundmask = convert(R, 1<<(f-1))
-    k = 8*sizeof(R)-f
-    ceilmask  = (typemax(R)<<k)>>k
-    @eval begin
-        round(x::$T) = (y = trunc(x); return convert(rawtype($T), reinterpret(x)-reinterpret(y))&$roundmask>0 ? $T(y+one($T)) : y)
-         ceil(x::$T) = (y = trunc(x); return convert(rawtype($T), reinterpret(x)-reinterpret(y))&$ceilmask >0 ? $T(y+one($T)) : y)
-    end
+function round{T,f}(x::UFixed{T,f})
+    mask = convert(T, 1<<(f-1))
+    y = trunc(x)
+    return convert(T, reinterpret(x)-reinterpret(y)) & mask>0 ?
+            UFixed{T,f}(y+one(UFixed{T,f})) : y
+end
+function ceil{T,f}(x::UFixed{T,f})
+    k = 8*sizeof(T)-f
+    mask = (typemax(T)<<k)>>k
+    y = trunc(x)
+    return convert(T, reinterpret(x)-reinterpret(y)) & (mask)>0 ?
+            UFixed{T,f}(y+one(UFixed{T,f})) : y
 end
 
 trunc{T<:Integer}(::Type{T}, x::UFixed) = convert(T, div(reinterpret(x), rawone(x)))
 round{T<:Integer}(::Type{T}, x::UFixed) = round(T, reinterpret(x)/rawone(x))
 floor{T<:Integer}(::Type{T}, x::UFixed) = trunc(T, x)
  ceil{T<:Integer}(::Type{T}, x::UFixed) =  ceil(T, reinterpret(x)/rawone(x))
-trunc(x::UFixed) = trunc(Int, x)
-round(x::UFixed) = round(Int, x)
-floor(x::UFixed) = floor(Int, x)
- ceil(x::UFixed) =  ceil(Int, x)
 
 isfinite(x::UFixed) = true
 isnan(x::UFixed) = false
@@ -155,25 +145,10 @@ function decompose(x::UFixed)
 end
 
 # Promotions
-for T in UF
-    @eval begin
-        promote_rule(::Type{$T}, ::Type{Float32}) = Float32
-        promote_rule(::Type{$T}, ::Type{Float64}) = Float64
-        promote_rule{TR<:Rational}(::Type{$T}, ::Type{TR}) = TR
-    end
-    for Ti in (Int8, UInt8, Int16, UInt16, Int32, UInt32, Int64, UInt64)
-        Tp = eps(convert(Float32, typemax(Ti))) > eps(T) ? Float64 : Float32
-        @eval begin
-            promote_rule(::Type{$T}, ::Type{$Ti}) = $Tp
-        end
-    end
+promote_rule{T<:UFixed}(::Type{T}, ::Type{Float32}) = Float32
+promote_rule{T<:UFixed}(::Type{T}, ::Type{Float64}) = Float64
+promote_rule{T<:UFixed, R<:Rational}(::Type{T}, ::Type{R}) = R
+@generated function promote_rule{T<:UFixed, Ti<:Union{Signed,Unsigned}}(::Type{T}, ::Type{Ti})
+    Tp = eps(convert(Float32, typemax(Ti))) > eps(T) ? Float64 : Float32
+    :( $Tp )
 end
-
-# Show
-function show{T,f}(io::IO, x::UFixed{T,f})
-    print(io, "UFixed", f)
-    print(io, "(")
-    showcompact(io, x)
-    print(io, ")")
-end
-showcompact{T,f}(io::IO, x::UFixed{T,f}) = show(io, round(convert(Float64,x), ceil(Int,f/_log2_10)))

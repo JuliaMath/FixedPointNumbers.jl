@@ -94,4 +94,15 @@ scaledual{T<:FixedPoint}(Tdual::Type, x::Union{T,AbstractArray{T}}) =
 scaledual{Tdual<:Number, T<:FixedPoint}(b::Tdual, x::Union{T,AbstractArray{T}}) =
     convert(Tdual, b/one(T)), reinterpret(rawtype(T), x)
 
+# printing
+function show{T,f}(io::IO, x::FixedPoint{T,f})
+    shorttype = typeof(x)<:UFixed ? "UFixed" : "Fixed"
+    print(io, shorttype, "{", T, ",", f, "}")
+    print(io, "(")
+    showcompact(io, x)
+    print(io, ")")
+end
+const _log2_10 = 3.321928094887362
+showcompact{T,f}(io::IO, x::FixedPoint{T,f}) = show(io, round(convert(Float64,x), ceil(Int,f/_log2_10)))
+
 end # module

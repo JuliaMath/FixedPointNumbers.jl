@@ -51,11 +51,11 @@ ufixed12(x) = convert(UFixed12, x)
 ufixed14(x) = convert(UFixed14, x)
 ufixed16(x) = convert(UFixed16, x)
 
-@vectorize_1arg Real ufixed8
-@vectorize_1arg Real ufixed10
-@vectorize_1arg Real ufixed12
-@vectorize_1arg Real ufixed14
-@vectorize_1arg Real ufixed16
+Compat.@dep_vectorize_1arg Real ufixed8
+Compat.@dep_vectorize_1arg Real ufixed10
+Compat.@dep_vectorize_1arg Real ufixed12
+Compat.@dep_vectorize_1arg Real ufixed14
+Compat.@dep_vectorize_1arg Real ufixed16
 
 
 convert(::Type{BigFloat}, x::UFixed) = reinterpret(x)*(1/BigFloat(rawone(x)))

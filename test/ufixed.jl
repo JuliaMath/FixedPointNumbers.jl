@@ -1,4 +1,6 @@
-using FixedPointNumbers, Base.Test
+using FixedPointNumbers
+using Base.Test
+using Compat
 
 @test reinterpret(0xa2uf8)  == 0xa2
 @test reinterpret(0xa2uf10) == 0xa2
@@ -15,7 +17,9 @@ using FixedPointNumbers, Base.Test
 @test ufixed8(1.0) == 0xffuf8
 @test ufixed8(0.5) == 0x80uf8
 @test ufixed14(1.0) == 0x3fffuf14
-@test ufixed12([2]) == UFixed12[0x1ffeuf12]
+v = @compat ufixed12.([2])
+@test v == UFixed12[0x1ffeuf12]
+@test isa(v, Vector{UFixed12})
 
 UF2 = (UFixed{UInt32,16}, UFixed{UInt64,3}, UFixed{UInt128,7})
 

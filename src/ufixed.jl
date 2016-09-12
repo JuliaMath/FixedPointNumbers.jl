@@ -116,7 +116,12 @@ isinf(x::UFixed) = false
 bswap{f}(x::UFixed{UInt8,f}) = x
 bswap(x::UFixed)  = typeof(x)(bswap(reinterpret(x)),0)
 
-for f in (:div, :fld, :rem, :mod, :mod1, :rem1, :fld1, :min, :max)
+for f in (:div, :fld, :fld1)
+    @eval begin
+        $f{T<:UFixed}(x::T, y::T) = $f(reinterpret(x),reinterpret(y))
+    end
+end
+for f in (:rem, :mod, :mod1, :rem1, :min, :max)
     @eval begin
         $f{T<:UFixed}(x::T, y::T) = T($f(reinterpret(x),reinterpret(y)),0)
     end

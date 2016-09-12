@@ -133,6 +133,18 @@ for T in (FixedPointNumbers.UF..., UF2...)
     testtrunc(eps(T))
 end
 
+@test div(0x10uf8, 0x02uf8) == fld(0x10uf8, 0x02uf8) == 8
+@test div(0x0fuf8, 0x02uf8) == fld(0x0fuf8, 0x02uf8) == 7
+@test Base.fld1(0x10uf8, 0x02uf8) == 8
+@test Base.fld1(0x0fuf8, 0x02uf8) == 8
+@test mod(0x10uf8, 0x02uf8) == rem(0x10uf8, 0x02uf8) == 0
+@test mod(0x0fuf8, 0x02uf8) == rem(0x0fuf8, 0x02uf8) == 0x01uf8
+@test mod1(0x10uf8, 0x02uf8) == 0x02uf8
+@test mod1(0x0fuf8, 0x02uf8) == 0x01uf8
+
+r = 1uf8:1uf8:48uf8
+@test length(r) == 48
+
 # Show
 x = 0xaauf8
 iob = IOBuffer()

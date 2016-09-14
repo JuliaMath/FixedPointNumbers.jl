@@ -50,6 +50,14 @@ function test_fixed{T}(::Type{T}, f)
     end
 end
 
+@test_approx_eq_eps convert(Fixed{Int8,7}, 0.8) 0.797 0.001
+@test_approx_eq_eps convert(Fixed{Int8,7}, 0.9) 0.898 0.001
+@test_throws InexactError convert(Fixed{Int8, 7}, 0.999)
+@test_throws InexactError convert(Fixed{Int8, 7}, 1.0)
+@test_throws InexactError convert(Fixed{Int8, 7}, 1)
+@test_throws InexactError convert(Fixed{Int8, 7}, 2)
+@test_throws InexactError convert(Fixed{Int8, 7}, 128)
+
 for (TI, f) in [(Int8, 8), (Int16, 8), (Int16, 10), (Int32, 16)]
     T = Fixed{TI,f}
     println("  Testing $T")

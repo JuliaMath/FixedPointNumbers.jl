@@ -52,6 +52,16 @@ typemin{T<: FixedPoint}(::Type{T}) = T(typemin(rawtype(T)), 0)
 realmin{T<: FixedPoint}(::Type{T}) = typemin(T)
 realmax{T<: FixedPoint}(::Type{T}) = typemax(T)
 
+widen1(::Type{Int8})   = Int16
+widen1(::Type{UInt8})  = UInt16
+widen1(::Type{Int16})  = Int32
+widen1(::Type{UInt16}) = UInt32
+widen1(::Type{Int32})  = Int64
+widen1(::Type{UInt32}) = UInt64
+widen1(::Type{Int64})  = Int128
+widen1(::Type{UInt64}) = UInt128
+widen1(x::Integer) = x % widen1(typeof(x))
+
 include("fixed.jl")
 include("ufixed.jl")
 include("deprecations.jl")

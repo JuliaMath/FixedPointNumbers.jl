@@ -30,8 +30,8 @@ abs{T,f}(x::Fixed{T,f}) = Fixed{T,f}(abs(x.i),0)
 
 
 # # conversions and promotions
-convert{T,f}(::Type{Fixed{T,f}}, x::Integer) = Fixed{T,f}(convert(T,x)<<f,0)
-convert{T,f}(::Type{Fixed{T,f}}, x::AbstractFloat) = Fixed{T,f}(trunc(T,x)<<f + round(T, rem(x,1)*(1<<f)),0)
+convert{T,f}(::Type{Fixed{T,f}}, x::Integer) = Fixed{T,f}(round(T, convert(widen1(T),x)<<f),0)
+convert{T,f}(::Type{Fixed{T,f}}, x::AbstractFloat) = Fixed{T,f}(round(T, trunc(widen1(T),x)<<f + rem(x,1)*(1<<f)),0)
 convert{T,f}(::Type{Fixed{T,f}}, x::Rational) = Fixed{T,f}(x.num)/Fixed{T,f}(x.den)
 
 convert{T,f}(::Type{BigFloat}, x::Fixed{T,f}) =

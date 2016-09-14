@@ -28,12 +28,6 @@ export
     UFixed12,
     UFixed14,
     UFixed16,
-    # constructors
-    ufixed8,
-    ufixed10,
-    ufixed12,
-    ufixed14,
-    ufixed16,
     # literal constructor constants
     uf8,
     uf10,

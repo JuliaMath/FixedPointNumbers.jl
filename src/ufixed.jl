@@ -45,18 +45,6 @@ convert{T1<:UFixed}(::Type{T1}, x::UFixed) = reinterpret(T1, round(rawtype(T1), 
 convert(::Type{UFixed16}, x::UFixed8) = reinterpret(UFixed16, convert(UInt16, 0x0101*reinterpret(x)))
 convert{T<:UFixed}(::Type{T}, x::Real) = T(round(rawtype(T), rawone(T)*x),0)
 
-ufixed8(x)  = convert(UFixed8, x)
-ufixed10(x) = convert(UFixed10, x)
-ufixed12(x) = convert(UFixed12, x)
-ufixed14(x) = convert(UFixed14, x)
-ufixed16(x) = convert(UFixed16, x)
-
-Compat.@dep_vectorize_1arg Real ufixed8
-Compat.@dep_vectorize_1arg Real ufixed10
-Compat.@dep_vectorize_1arg Real ufixed12
-Compat.@dep_vectorize_1arg Real ufixed14
-Compat.@dep_vectorize_1arg Real ufixed16
-
 
 convert(::Type{BigFloat}, x::UFixed) = reinterpret(x)*(1/BigFloat(rawone(x)))
 function convert{T<:AbstractFloat}(::Type{T}, x::UFixed)

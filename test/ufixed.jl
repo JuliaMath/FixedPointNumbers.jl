@@ -14,10 +14,10 @@ using Compat
 @test reinterpret(UFixed14, 0x1fa2) == 0x1fa2uf14
 @test reinterpret(UFixed16, 0x1fa2) == 0x1fa2uf16
 
-@test ufixed8(1.0) == 0xffuf8
-@test ufixed8(0.5) == 0x80uf8
-@test ufixed14(1.0) == 0x3fffuf14
-v = @compat ufixed12.([2])
+@test UFixed8(1.0) == 0xffuf8
+@test UFixed8(0.5) == 0x80uf8
+@test UFixed14(1.0) == 0x3fffuf14
+v = @compat UFixed12.([2])
 @test v == UFixed12[0x1ffeuf12]
 @test isa(v, Vector{UFixed12})
 

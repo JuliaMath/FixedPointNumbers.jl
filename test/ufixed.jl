@@ -14,10 +14,10 @@ using Compat
 @test reinterpret(UFixed14, 0x1fa2) == 0x1fa2uf14
 @test reinterpret(UFixed16, 0x1fa2) == 0x1fa2uf16
 
-@test ufixed8(1.0) == 0xffuf8
-@test ufixed8(0.5) == 0x80uf8
-@test ufixed14(1.0) == 0x3fffuf14
-v = @compat ufixed12.([2])
+@test UFixed8(1.0) == 0xffuf8
+@test UFixed8(0.5) == 0x80uf8
+@test UFixed14(1.0) == 0x3fffuf14
+v = @compat UFixed12.([2])
 @test v == UFixed12[0x1ffeuf12]
 @test isa(v, Vector{UFixed12})
 
@@ -43,6 +43,15 @@ end
 @test typemax(UFixed{UInt32,16}) == typemax(UInt32) // (2^16-1)
 @test typemax(UFixed{UInt64,3}) == typemax(UInt64) // (2^3-1)
 @test typemax(UFixed{UInt128,7}) == typemax(UInt128) // (2^7-1)
+
+@test_throws InexactError UFixed8(2)
+@test_throws InexactError UFixed8(255)
+@test_throws InexactError UFixed8(0xff)
+@test_throws InexactError UFixed16(2)
+@test_throws InexactError UFixed16(0xff)
+@test_throws InexactError UFixed16(0xffff)
+@test_throws InexactError convert(UFixed8,  typemax(UFixed10))
+@test_throws InexactError convert(UFixed16, typemax(UFixed10))
 
 x = UFixed8(0.5)
 @test isfinite(x) == true

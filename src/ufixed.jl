@@ -47,6 +47,9 @@ convert{U<:UFixed}(::Type{U}, x::Real) = _convert(U, rawtype(U), x)
 _convert{U<:UFixed,T}(::Type{U}, ::Type{T}, x)       = U(round(T, widen1(rawone(U))*x), 0)
 _convert{U<:UFixed  }(::Type{U}, ::Type{UInt128}, x) = U(round(UInt128, rawone(U)*x), 0)
 
+rem{T<:UFixed}(x::T, ::Type{T}) = x
+rem{T<:UFixed}(x::UFixed, ::Type{T}) = reinterpret(T, rem(unsafe_trunc(UInt, round((rawone(T)/rawone(x))*reinterpret(x))), rawtype(T)))
+rem{T<:UFixed}(x::Real, ::Type{T}) = reinterpret(T, rem(unsafe_trunc(Int, round(rawone(T)*x)), rawtype(T)))
 
 convert(::Type{BigFloat}, x::UFixed) = reinterpret(x)*(1/BigFloat(rawone(x)))
 function convert{T<:AbstractFloat}(::Type{T}, x::UFixed)

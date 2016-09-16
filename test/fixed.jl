@@ -64,6 +64,20 @@ for (TI, f) in [(Int8, 8), (Int16, 8), (Int16, 10), (Int32, 16)]
     test_fixed(T, f)
 end
 
+T = Fixed{Int8,7}
+for i = -1.0:0.1:typemax(T)
+    @test i % T === T(i)
+end
+@test ( 1.5 % T).i == round(Int,  1.5*128) % Int8
+@test (-0.3 % T).i == round(Int, -0.3*128) % Int8
+
+T = Fixed{Int16,9}
+for i = -64.0:0.1:typemax(T)
+    @test i % T === T(i)
+end
+@test ( 65.2 % T).i == round(Int,  65.2*512) % Int16
+@test (-67.2 % T).i == round(Int, -67.2*512) % Int16
+
 # reductions
 F8 = Fixed{Int8,8}
 a = F8[0.498, 0.1]

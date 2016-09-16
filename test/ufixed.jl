@@ -81,6 +81,18 @@ for T in (FixedPointNumbers.UF..., UF2...)
 end
 @test convert(Rational, convert(UFixed8, 0.5)) == 0x80//0xff
 
+for i = 0.0:0.1:1.0
+    @test i % UFixed8 === UFixed8(i)
+end
+@test ( 1.5 % UFixed8).i == round(Int,  1.5*255) % UInt8
+@test (-0.3 % UFixed8).i == round(Int, -0.3*255) % UInt8
+
+for i = 0.0:0.1:64.0
+    @test i % UFixed10 === UFixed10(i)
+end
+@test (65.2 % UFixed10).i == round(Int, 65.2*1023) % UInt16
+@test (-0.3 % UFixed10).i == round(Int, -0.3*1023) % UInt16
+
 x = UFixed8(0b01010001, 0)
 @test ~x == UFixed8(0b10101110, 0)
 @test -x == 0xafuf8

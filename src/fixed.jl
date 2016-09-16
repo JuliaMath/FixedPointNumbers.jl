@@ -34,6 +34,9 @@ convert{T,f}(::Type{Fixed{T,f}}, x::Integer) = Fixed{T,f}(round(T, convert(widen
 convert{T,f}(::Type{Fixed{T,f}}, x::AbstractFloat) = Fixed{T,f}(round(T, trunc(widen1(T),x)<<f + rem(x,1)*(1<<f)),0)
 convert{T,f}(::Type{Fixed{T,f}}, x::Rational) = Fixed{T,f}(x.num)/Fixed{T,f}(x.den)
 
+rem{T,f}(x::Integer, ::Type{Fixed{T,f}}) = Fixed{T,f}(rem(x,T)<<f,0)
+rem{T,f}(x::Real,    ::Type{Fixed{T,f}}) = Fixed{T,f}(rem(Integer(trunc(x)),T)<<f + rem(Integer(round(rem(x,1)*(1<<f))),T),0)
+
 convert{T,f}(::Type{BigFloat}, x::Fixed{T,f}) =
     convert(BigFloat,x.i>>f) + convert(BigFloat,x.i&(1<<f - 1))/convert(BigFloat,1<<f)
 convert{TF<:AbstractFloat,T,f}(::Type{TF}, x::Fixed{T,f}) =

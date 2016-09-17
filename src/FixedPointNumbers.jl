@@ -26,26 +26,49 @@ using Compat
 # f => Number of Bytes reserved for fractional part
 abstract FixedPoint{T <: Integer, f} <: Real
 
+
+# Printing. These are used to generate type-symbols, so we need them early.
+function showtype{X<:FixedPoint}(io::IO, ::Type{X})
+    print(io, typechar(X))
+    f = nbitsfrac(X)
+    m = sizeof(X)*8-f-signbits(X)
+    print(io, m, 'f', f)
+    io
+end
+function show{T,f}(io::IO, x::FixedPoint{T,f})
+    showcompact(io, x)
+    showtype(io, typeof(x))
+end
+const _log2_10 = 3.321928094887362
+showcompact{T,f}(io::IO, x::FixedPoint{T,f}) = show(io, round(convert(Float64,x), ceil(Int,f/_log2_10)))
+
 export
     FixedPoint,
     Fixed,
     UFixed,
+# "special" typealiases
     Fixed16,
     UFixed8,
+    U8,
     UFixed10,
     UFixed12,
     UFixed14,
     UFixed16,
-    # literal constructor constants
+    U16,
+    # Q and U typealiases are exported in separate source files
+# literal constructor constants
     uf8,
     uf10,
     uf12,
     uf14,
     uf16,
-    # Functions
+# Functions
     scaledual
 
 reinterpret(x::FixedPoint) = x.i
+
+# construction using the (approximate) intended value, i.e., N0f8
+*{X<:FixedPoint}(x::Real, ::Type{X}) = X(x)
 
 # comparison
 =={T <: FixedPoint}(x::T, y::T) = x.i == y.i
@@ -90,6 +113,8 @@ floattype{T<:ShortInts,f}(::Type{FixedPoint{T,f}}) = Float32
 floattype{T,f}(::Type{FixedPoint{T,f}}) = Float64
 floattype(x::FixedPoint) = floattype(supertype(typeof(x)))
 
+# This IOBuffer is used during module definition to generate typealias names
+_iotypealias = IOBuffer()
 
 include("fixed.jl")
 include("ufixed.jl")
@@ -140,17 +165,6 @@ scaledual{T<:FixedPoint}(Tdual::Type, x::Union{T,AbstractArray{T}}) =
     convert(Tdual, 1/one(T)), reinterpret(rawtype(T), x)
 scaledual{Tdual<:Number, T<:FixedPoint}(b::Tdual, x::Union{T,AbstractArray{T}}) =
     convert(Tdual, b/one(T)), reinterpret(rawtype(T), x)
-
-# printing
-function show{T,f}(io::IO, x::FixedPoint{T,f})
-    shorttype = typeof(x)<:UFixed ? "UFixed" : "Fixed"
-    print(io, shorttype, "{", T, ",", f, "}")
-    print(io, "(")
-    showcompact(io, x)
-    print(io, ")")
-end
-const _log2_10 = 3.321928094887362
-showcompact{T,f}(io::IO, x::FixedPoint{T,f}) = show(io, round(Float64(x), ceil(Int,f/_log2_10)))
 
 @noinline function throw_converterror{T<:FixedPoint}(::Type{T}, x)
     n = 2^(8*sizeof(T))

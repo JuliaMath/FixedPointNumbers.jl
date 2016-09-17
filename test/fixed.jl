@@ -107,11 +107,11 @@ end
 @test isa(float(one(Fixed{Int32,25})), Float64)
 
 # Show
-x = Fixed{Int32,3}(0.25)
+x = Fixed{Int32,5}(0.25)
 iob = IOBuffer()
 show(iob, x)
 str = takebuf_string(iob)
-@test startswith(str, "Fixed{Int32,3}(")
+@test str == "0.25Q26f5"
 @test eval(parse(str)) == x
 
 for T in (Fixed{Int8,8}, Fixed{Int16,8}, Fixed{Int16,10}, Fixed{Int32,16})

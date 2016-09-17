@@ -13,6 +13,11 @@ using Compat
 @test reinterpret(UFixed12, 0x1fa2) == 0x1fa2uf12
 @test reinterpret(UFixed14, 0x1fa2) == 0x1fa2uf14
 @test reinterpret(UFixed16, 0x1fa2) == 0x1fa2uf16
+@test 0.635N0f8   == UFixed8(0.635)
+@test 0.635N6f10 == UFixed10(0.635)
+@test 0.635N4f12 == UFixed12(0.635)
+@test 0.635N2f14 == UFixed14(0.635)
+@test 0.635N0f16 == UFixed16(0.635)
 
 @test UFixed8(1.0) == 0xffuf8
 @test UFixed8(0.5) == 0x80uf8
@@ -234,7 +239,8 @@ x = 0xaauf8
 iob = IOBuffer()
 show(iob, x)
 str = takebuf_string(iob)
-@test str == "UFixed{UInt8,8}(0.667)"
+@test str == "0.667N0f8"
+@test eval(parse(str)) == x
 
 # scaledual
 function generic_scale!(C::AbstractArray, X::AbstractArray, s::Number)

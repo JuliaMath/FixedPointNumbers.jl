@@ -12,18 +12,34 @@ end
   rawtype(x::Number) = rawtype(typeof(x))
 nbitsfrac{T,f}(::Type{UFixed{T,f}}) = f
 floattype{T<:UFixed}(::Type{T}) = floattype(supertype(T))
+typechar{X<:UFixed}(::Type{X}) = 'N'
+signbits{X<:UFixed}(::Type{X}) = 0
 
+for T in (UInt8, UInt16, UInt32, UInt64)
+    for f in 0:sizeof(T)*8
+        sym = Symbol(takebuf_string(showtype(_iotypealias, UFixed{T,f})))
+        @eval begin
+            typealias $sym UFixed{$T,$f}
+            export $sym
+        end
+    end
+end
+
+# ASCII typealiases
+typealias U8       UFixed{UInt8,8}
 typealias UFixed8  UFixed{UInt8,8}
 typealias UFixed10 UFixed{UInt16,10}
 typealias UFixed12 UFixed{UInt16,12}
 typealias UFixed14 UFixed{UInt16,14}
 typealias UFixed16 UFixed{UInt16,16}
+typealias U16      UFixed{UInt16,16}
 
 const UF = (UFixed8, UFixed10, UFixed12, UFixed14, UFixed16)
 
 reinterpret{T<:Unsigned, f}(::Type{UFixed{T,f}}, x::T) = UFixed{T,f}(x, 0)
 
-# The next lines mimic the floating-point literal syntax "3.2f0"
+## The next lines mimic the floating-point literal syntax "3.2f0"
+# construction using a UInt, i.e., 0xccuf8
 immutable UFixedConstructor{T,f} end
 *{T,f}(n::Integer, ::UFixedConstructor{T,f}) = UFixed{T,f}(n,0)
 const uf8  = UFixedConstructor{UInt8,8}()

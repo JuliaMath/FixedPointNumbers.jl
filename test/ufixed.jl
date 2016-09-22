@@ -169,6 +169,14 @@ end
 r = 1uf8:1uf8:48uf8
 @test length(r) == 48
 
+# Promotion within UFixed
+@test @inferred(promote(UFixed8(0.2), UFixed8(0.8))) ===
+    (UFixed8(0.2), UFixed8(0.8))
+@test @inferred(promote(UFixed{UInt16,3}(0.2), UFixed{UInt8,3}(0.86))) ===
+    (UFixed{UInt16,3}(0.2), UFixed{UInt16,3}(0.86))
+@test @inferred(promote(UFixed{UInt8,7}(0.197), UFixed{UInt8,4}(0.8))) ===
+    (UFixed{UInt16,7}(0.197), UFixed{UInt16,7}(0.8))
+
 # Show
 x = 0xaauf8
 iob = IOBuffer()

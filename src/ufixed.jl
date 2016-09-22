@@ -151,3 +151,15 @@ promote_rule{T<:UFixed, R<:Rational}(::Type{T}, ::Type{R}) = R
     Tp = eps(convert(Float32, typemax(Ti))) > eps(T) ? Float64 : Float32
     :( $Tp )
 end
+@generated function promote_rule{T1,T2,f1,f2}(::Type{UFixed{T1,f1}}, ::Type{UFixed{T2,f2}})
+    f = max(f1, f2)  # ensure we have enough precision
+    T = promote_type(T1, T2)
+    # make sure we have enough integer bits
+    i1, i2 = 8*sizeof(T1)-f1, 8*sizeof(T2)-f2  # number of integer bits for each
+    i = 8*sizeof(T)-f
+    while i < max(i1, i2)
+        T = widen1(T)
+        i = 8*sizeof(T)-f
+    end
+    :(UFixed{$T,$f})
+end

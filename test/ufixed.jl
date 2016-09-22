@@ -93,6 +93,9 @@ end
 @test (65.2 % UFixed10).i == round(Int, 65.2*1023) % UInt16
 @test (-0.3 % UFixed10).i == round(Int, -0.3*1023) % UInt16
 
+@test 1 % UFixed8 == 1
+@test 2 % UFixed8 == UFixed8(0.996)
+
 x = UFixed8(0b01010001, 0)
 @test ~x == UFixed8(0b10101110, 0)
 @test -x == 0xafuf8

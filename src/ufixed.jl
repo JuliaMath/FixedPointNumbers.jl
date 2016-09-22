@@ -50,6 +50,7 @@ _convert{U<:UFixed  }(::Type{U}, ::Type{UInt128}, x) = U(round(UInt128, rawone(U
 rem{T<:UFixed}(x::T, ::Type{T}) = x
 rem{T<:UFixed}(x::UFixed, ::Type{T}) = reinterpret(T, unsafe_trunc(rawtype(T), round((rawone(T)/rawone(x))*reinterpret(x))))
 rem{T<:UFixed}(x::Real, ::Type{T}) = reinterpret(T, unsafe_trunc(rawtype(T), round(rawone(T)*x)))
+rem{T<:UFixed}(x::Integer, ::Type{T}) = reinterpret(T, (rawone(T)*x) % rawtype(T))  # can be deleted once unsafe_trunc supports integer types (julia #18629)
 
 convert(::Type{BigFloat}, x::UFixed) = reinterpret(x)*(1/BigFloat(rawone(x)))
 function convert{T<:AbstractFloat}(::Type{T}, x::UFixed)

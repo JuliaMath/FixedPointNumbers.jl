@@ -41,16 +41,27 @@ rawone(v) = reinterpret(one(v))
 
 # Conversions
 convert{T<:UFixed}(::Type{T}, x::T) = x
-convert{T1<:UFixed}(::Type{T1}, x::UFixed) = reinterpret(T1, round(rawtype(T1), (rawone(T1)/rawone(x))*reinterpret(x)))
+function convert{T<:UFixed}(::Type{T}, x::UFixed)
+    y = round((rawone(T)/rawone(x))*reinterpret(x))
+    (0 <= y) & (y <= typemax(rawtype(T))) || throw_converterror(T, x)
+    reinterpret(T, _unsafe_trunc(rawtype(T), y))
+end
 convert(::Type{UFixed16}, x::UFixed8) = reinterpret(UFixed16, convert(UInt16, 0x0101*reinterpret(x)))
 convert{U<:UFixed}(::Type{U}, x::Real) = _convert(U, rawtype(U), x)
-_convert{U<:UFixed,T}(::Type{U}, ::Type{T}, x)       = U(round(T, widen1(rawone(U))*x), 0)
-_convert{U<:UFixed  }(::Type{U}, ::Type{UInt128}, x) = U(round(UInt128, rawone(U)*x), 0)
+function _convert{U<:UFixed,T}(::Type{U}, ::Type{T}, x)
+    y = round(widen1(rawone(U))*x)
+    (0 <= y) & (y <= typemax(T)) || throw_converterror(U, x)
+    U(_unsafe_trunc(T, y), 0)
+end
+function _convert{U<:UFixed}(::Type{U}, ::Type{UInt128}, x)
+    y = round(rawone(U)*x)   # for UInt128, we can't widen
+    (0 <= y) & (y <= typemax(UInt128)) & (x <= Float64(typemax(U))) || throw_converterror(U, x)
+    U(_unsafe_trunc(UInt128, y), 0)
+end
 
 rem{T<:UFixed}(x::T, ::Type{T}) = x
-rem{T<:UFixed}(x::UFixed, ::Type{T}) = reinterpret(T, unsafe_trunc(rawtype(T), round((rawone(T)/rawone(x))*reinterpret(x))))
-rem{T<:UFixed}(x::Real, ::Type{T}) = reinterpret(T, unsafe_trunc(rawtype(T), round(rawone(T)*x)))
-rem{T<:UFixed}(x::Integer, ::Type{T}) = reinterpret(T, (rawone(T)*x) % rawtype(T))  # can be deleted once unsafe_trunc supports integer types (julia #18629)
+rem{T<:UFixed}(x::UFixed, ::Type{T}) = reinterpret(T, _unsafe_trunc(rawtype(T), round((rawone(T)/rawone(x))*reinterpret(x))))
+rem{T<:UFixed}(x::Real, ::Type{T}) = reinterpret(T, _unsafe_trunc(rawtype(T), round(rawone(T)*x)))
 
 convert(::Type{BigFloat}, x::UFixed) = reinterpret(x)*(1/BigFloat(rawone(x)))
 function convert{T<:AbstractFloat}(::Type{T}, x::UFixed)
@@ -163,3 +174,6 @@ end
     end
     :(UFixed{$T,$f})
 end
+
+_unsafe_trunc{T}(::Type{T}, x::Integer) = x % T
+_unsafe_trunc{T}(::Type{T}, x)          = unsafe_trunc(T, x)

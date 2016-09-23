@@ -44,14 +44,15 @@ end
 @test typemax(UFixed{UInt64,3}) == typemax(UInt64) // (2^3-1)
 @test typemax(UFixed{UInt128,7}) == typemax(UInt128) // (2^7-1)
 
-@test_throws InexactError UFixed8(2)
-@test_throws InexactError UFixed8(255)
-@test_throws InexactError UFixed8(0xff)
-@test_throws InexactError UFixed16(2)
-@test_throws InexactError UFixed16(0xff)
-@test_throws InexactError UFixed16(0xffff)
-@test_throws InexactError convert(UFixed8,  typemax(UFixed10))
-@test_throws InexactError convert(UFixed16, typemax(UFixed10))
+# TODO: change back to InexactError when it allows message strings
+@test_throws ArgumentError UFixed8(2)
+@test_throws ArgumentError UFixed8(255)
+@test_throws ArgumentError UFixed8(0xff)
+@test_throws ArgumentError UFixed16(2)
+@test_throws ArgumentError UFixed16(0xff)
+@test_throws ArgumentError UFixed16(0xffff)
+@test_throws ArgumentError convert(UFixed8,  typemax(UFixed10))
+@test_throws ArgumentError convert(UFixed16, typemax(UFixed10))
 
 x = UFixed8(0.5)
 @test isfinite(x) == true

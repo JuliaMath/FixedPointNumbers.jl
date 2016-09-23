@@ -157,6 +157,9 @@ for T in (FixedPointNumbers.UF..., UF2...)
     testtrunc(eps(T))
 end
 
+@test !(UFixed8(0.5) < UFixed8(0.5))
+@test UFixed8(0.5) <= UFixed8(0.5)
+
 @test div(0x10uf8, 0x02uf8) == fld(0x10uf8, 0x02uf8) == 8
 @test div(0x0fuf8, 0x02uf8) == fld(0x0fuf8, 0x02uf8) == 7
 @test Base.fld1(0x10uf8, 0x02uf8) == 8

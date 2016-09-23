@@ -79,7 +79,7 @@ abs(x::UFixed) = x
 
 # Comparisons
  <{T<:UFixed}(x::T, y::T) = reinterpret(x) < reinterpret(y)
-<={T<:UFixed}(x::T, y::T) = reinterpret(x) < reinterpret(y)
+<={T<:UFixed}(x::T, y::T) = reinterpret(x) <= reinterpret(y)
 
 # Functions
 trunc{T<:UFixed}(x::T) = T(div(reinterpret(x), rawone(T))*rawone(T),0)

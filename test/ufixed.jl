@@ -65,7 +65,7 @@ x = UFixed8(0.5)
 @test convert(UFixed14, 1.1/typemax(UInt16)*4)  == eps(UFixed14)
 @test convert(UFixed16, 1.1/typemax(UInt16))    == eps(UFixed16)
 @test convert(UFixed{UInt32,16}, 1.1/typemax(UInt32)*2^16) == eps(UFixed{UInt32,16})
-@test convert(UFixed{UInt64,3},  1.1/typemax(UInt64)*2^61)  == eps(UFixed{UInt64,3})
+@test convert(UFixed{UInt64,3},  1.1/typemax(UInt64)*UInt64(2)^61)  == eps(UFixed{UInt64,3})
 @test convert(UFixed{UInt128,7}, 1.1/typemax(UInt128)*UInt128(2)^121) == eps(UFixed{UInt128,7})
 
 @test convert(UFixed8,  1.1f0/typemax(UInt8)) == eps(UFixed8)

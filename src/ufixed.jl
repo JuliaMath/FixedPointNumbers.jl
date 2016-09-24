@@ -11,7 +11,6 @@ end
   rawtype{T,f}(::Type{UFixed{T,f}}) = T
   rawtype(x::Number) = rawtype(typeof(x))
 nbitsfrac{T,f}(::Type{UFixed{T,f}}) = f
-nbitsfrac(x::Number) = nbitsfract(typeof(x))
 
 typealias UFixed8  UFixed{UInt8,8}
 typealias UFixed10 UFixed{UInt16,10}
@@ -42,10 +41,12 @@ rawone(v) = reinterpret(one(v))
 
 # Conversions
 convert{T<:UFixed}(::Type{T}, x::T) = x
-function convert{T<:UFixed}(::Type{T}, x::UFixed)
-    y = round((rawone(T)/rawone(x))*reinterpret(x))
-    (0 <= y) & (y <= typemax(rawtype(T))) || throw_converterror(T, x)
-    reinterpret(T, _unsafe_trunc(rawtype(T), y))
+convert{T1,T2,f}(::Type{UFixed{T1,f}}, x::UFixed{T2,f}) = UFixed{T1,f}(convert(T1, x.i), 0)
+function convert{T,f}(::Type{UFixed{T,f}}, x::UFixed)
+    U = UFixed{T,f}
+    y = round((rawone(U)/rawone(x))*reinterpret(x))
+    (0 <= y) & (y <= typemax(T)) || throw_converterror(U, x)
+    reinterpret(U, _unsafe_trunc(T, y))
 end
 convert(::Type{UFixed16}, x::UFixed8) = reinterpret(UFixed16, convert(UInt16, 0x0101*reinterpret(x)))
 convert{U<:UFixed}(::Type{U}, x::Real) = _convert(U, rawtype(U), x)
@@ -144,14 +145,11 @@ end
 # Iteration
 # The main subtlety here is that iterating over 0x00uf8:0xffuf8 will wrap around
 # unless we iterate using a wider type
-if VERSION < v"0.3-"
-    start{T<:UFixed}(r::Range{T}) = convert(typeof(reinterpret(r.start)+reinterpret(r.step)), reinterpret(r.start))
-    next{T<:UFixed}(r::Range{T}, i::Integer) = (T(i,0), i+reinterpret(r.step))
-    done{T<:UFixed}(r::Range{T}, i::Integer) = isempty(r) || (i > r.len)
-else
-    start{T<:UFixed}(r::StepRange{T}) = convert(typeof(reinterpret(r.start)+reinterpret(r.step)), reinterpret(r.start))
-    next{T<:UFixed}(r::StepRange{T}, i::Integer) = (T(i,0), i+reinterpret(r.step))
-    done{T<:UFixed}(r::StepRange{T}, i::Integer) = isempty(r) || (i > reinterpret(r.stop))
+@inline start{T<:UFixed}(r::StepRange{T}) = widen1(reinterpret(r.start))
+@inline next{T<:UFixed}(r::StepRange{T}, i::Integer) = (T(i,0), i+reinterpret(r.step))
+@inline function done{T<:UFixed}(r::StepRange{T}, i::Integer)
+    i1, i2 = reinterpret(r.start), reinterpret(r.stop)
+    isempty(r) | (i < min(i1, i2)) | (i > max(i1, i2))
 end
 
 function decompose(x::UFixed)

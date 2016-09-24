@@ -1,6 +1,10 @@
 # FixedPointNumbers
 
-This library exports fixed-point number types.  A
+[![Build Status](https://travis-ci.org/JuliaMath/FixedPointNumbers.jl.svg?branch=master)](https://travis-ci.org/JuliaMath/FixedPointNumbers.jl)
+
+[![codecov.io](http://codecov.io/github/JuliaMath/FixedPointNumbers.jl/coverage.svg?branch=master)](http://codecov.io/github/JuliaMath/FixedPointNumbers.jl?branch=master)
+
+This library implements fixed-point number types.  A
 [fixed-point number][wikipedia] represents a fractional, or
 non-integral, number.  In contrast with the more widely known
 floating-point numbers, with fixed-point numbers the decimal point

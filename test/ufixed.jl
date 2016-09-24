@@ -84,6 +84,13 @@ for T in (FixedPointNumbers.UF..., UF2...)
     @test convert(Rational, one(T)) == 1
 end
 @test convert(Rational, convert(UFixed8, 0.5)) == 0x80//0xff
+@test convert(UFixed16, one(UFixed8)) === one(UFixed16)
+@test convert(UFixed16, UFixed8(0.5)).i === 0x8080
+@test convert(UFixed{UInt16,7}, UFixed{UInt8,7}(0.504)) === UFixed{UInt16,7}(0.504)
+
+@test  UFixed8(0.2) % UFixed8  === UFixed8(0.2)
+@test UFixed14(1.2) % UFixed16 === UFixed16(0.20002)
+@test UFixed14(1.2) % UFixed8  === UFixed8(0.196)
 
 for i = 0.0:0.1:1.0
     @test i % UFixed8 === UFixed8(i)
@@ -175,6 +182,12 @@ end
 
 r = 1uf8:1uf8:48uf8
 @test length(r) == 48
+
+counter = 0
+for x in UFixed8(0):eps(UFixed8):UFixed8(1)
+    counter += 1
+end
+@test counter == 256
 
 # Promotion within UFixed
 @test @inferred(promote(UFixed8(0.2), UFixed8(0.8))) ===

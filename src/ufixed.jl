@@ -41,10 +41,12 @@ rawone(v) = reinterpret(one(v))
 
 # Conversions
 convert{T<:UFixed}(::Type{T}, x::T) = x
-function convert{T<:UFixed}(::Type{T}, x::UFixed)
-    y = round((rawone(T)/rawone(x))*reinterpret(x))
-    (0 <= y) & (y <= typemax(rawtype(T))) || throw_converterror(T, x)
-    reinterpret(T, _unsafe_trunc(rawtype(T), y))
+convert{T1,T2,f}(::Type{UFixed{T1,f}}, x::UFixed{T2,f}) = UFixed{T1,f}(convert(T1, x.i), 0)
+function convert{T,f}(::Type{UFixed{T,f}}, x::UFixed)
+    U = UFixed{T,f}
+    y = round((rawone(U)/rawone(x))*reinterpret(x))
+    (0 <= y) & (y <= typemax(T)) || throw_converterror(U, x)
+    reinterpret(U, _unsafe_trunc(T, y))
 end
 convert(::Type{UFixed16}, x::UFixed8) = reinterpret(UFixed16, convert(UInt16, 0x0101*reinterpret(x)))
 convert{U<:UFixed}(::Type{U}, x::Real) = _convert(U, rawtype(U), x)

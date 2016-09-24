@@ -86,6 +86,7 @@ end
 @test convert(Rational, convert(UFixed8, 0.5)) == 0x80//0xff
 @test convert(UFixed16, one(UFixed8)) === one(UFixed16)
 @test convert(UFixed16, UFixed8(0.5)).i === 0x8080
+@test convert(UFixed{UInt16,7}, UFixed{UInt8,7}(0.504)) === UFixed{UInt16,7}(0.504)
 
 @test  UFixed8(0.2) % UFixed8  === UFixed8(0.2)
 @test UFixed14(1.2) % UFixed16 === UFixed16(0.20002)

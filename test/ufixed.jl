@@ -176,6 +176,12 @@ end
 r = 1uf8:1uf8:48uf8
 @test length(r) == 48
 
+counter = 0
+for x in UFixed8(0):eps(UFixed8):UFixed8(1)
+    counter += 1
+end
+@test counter == 256
+
 # Promotion within UFixed
 @test @inferred(promote(UFixed8(0.2), UFixed8(0.8))) ===
     (UFixed8(0.2), UFixed8(0.8))

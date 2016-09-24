@@ -144,14 +144,11 @@ end
 # Iteration
 # The main subtlety here is that iterating over 0x00uf8:0xffuf8 will wrap around
 # unless we iterate using a wider type
-if VERSION < v"0.3-"
-    start{T<:UFixed}(r::Range{T}) = convert(typeof(reinterpret(r.start)+reinterpret(r.step)), reinterpret(r.start))
-    next{T<:UFixed}(r::Range{T}, i::Integer) = (T(i,0), i+reinterpret(r.step))
-    done{T<:UFixed}(r::Range{T}, i::Integer) = isempty(r) || (i > r.len)
-else
-    start{T<:UFixed}(r::StepRange{T}) = convert(typeof(reinterpret(r.start)+reinterpret(r.step)), reinterpret(r.start))
-    next{T<:UFixed}(r::StepRange{T}, i::Integer) = (T(i,0), i+reinterpret(r.step))
-    done{T<:UFixed}(r::StepRange{T}, i::Integer) = isempty(r) || (i > reinterpret(r.stop))
+@inline start{T<:UFixed}(r::StepRange{T}) = widen1(reinterpret(r.start))
+@inline next{T<:UFixed}(r::StepRange{T}, i::Integer) = (T(i,0), i+reinterpret(r.step))
+@inline function done{T<:UFixed}(r::StepRange{T}, i::Integer)
+    i1, i2 = reinterpret(r.start), reinterpret(r.stop)
+    isempty(r) | (i < min(i1, i2)) | (i > max(i1, i2))
 end
 
 function decompose(x::UFixed)

@@ -21,7 +21,7 @@ v = @compat UFixed12.([2])
 @test v == UFixed12[0x1ffeuf12]
 @test isa(v, Vector{UFixed12})
 
-UF2 = (UFixed{UInt32,16}, UFixed{UInt64,3}, UFixed{UInt128,7})
+UF2 = (UFixed{UInt32,16}, UFixed{UInt64,3}, UFixed{UInt64,51}, UFixed{UInt128,7}, UFixed{UInt128,51})
 
 for T in (FixedPointNumbers.UF..., UF2...)
     @test zero(T) == 0
@@ -43,6 +43,7 @@ end
 @test typemax(UFixed{UInt32,16}) == typemax(UInt32) // (2^16-1)
 @test typemax(UFixed{UInt64,3}) == typemax(UInt64) // (2^3-1)
 @test typemax(UFixed{UInt128,7}) == typemax(UInt128) // (2^7-1)
+@test typemax(UFixed{UInt128,100}) == typemax(UInt128) // (UInt128(2)^100-1)
 
 # TODO: change back to InexactError when it allows message strings
 @test_throws ArgumentError UFixed8(2)
@@ -53,6 +54,8 @@ end
 @test_throws ArgumentError UFixed16(0xffff)
 @test_throws ArgumentError convert(UFixed8,  typemax(UFixed10))
 @test_throws ArgumentError convert(UFixed16, typemax(UFixed10))
+@test_throws ArgumentError convert(UFixed{UInt128,100}, 10^9)
+@test_throws ArgumentError convert(UFixed{UInt128,100}, 10.0^9)
 
 x = UFixed8(0.5)
 @test isfinite(x) == true
@@ -104,8 +107,8 @@ x = UFixed8(0b01010001, 0)
 for T in (FixedPointNumbers.UF..., UF2...)
     x = T(0x10,0)
     y = T(0x25,0)
-    fx = convert(Float32, x)
-    fy = convert(Float32, y)
+    fx = convert(FixedPointNumbers.floattype(T), x)
+    fy = convert(FixedPointNumbers.floattype(T), y)
     @test y > x
     @test y != x
     @test typeof(x+y) == T

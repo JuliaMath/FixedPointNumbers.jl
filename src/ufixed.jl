@@ -9,7 +9,9 @@ immutable UFixed{T<:Unsigned,f} <: FixedPoint{T,f}
 end
 
   rawtype{T,f}(::Type{UFixed{T,f}}) = T
+  rawtype(x::Number) = rawtype(typeof(x))
 nbitsfrac{T,f}(::Type{UFixed{T,f}}) = f
+nbitsfrac(x::Number) = nbitsfract(typeof(x))
 
 typealias UFixed8  UFixed{UInt8,8}
 typealias UFixed10 UFixed{UInt16,10}
@@ -31,9 +33,8 @@ const uf14 = UFixedConstructor{UInt16,14}()
 const uf16 = UFixedConstructor{UInt16,16}()
 
 zero{T,f}(::Type{UFixed{T,f}}) = UFixed{T,f}(zero(T),0)
-@generated function one{T<:UFixed}(::Type{T})
-    f = 2^nbitsfrac(T)-1
-    :( T($f,0) )
+function one{T<:UFixed}(::Type{T})
+    T(typemax(rawtype(T)) >> (8*sizeof(T)-nbitsfrac(T)), 0)
 end
 zero(x::UFixed) = zero(typeof(x))
  one(x::UFixed) =  one(typeof(x))
@@ -65,7 +66,7 @@ rem{T<:UFixed}(x::Real, ::Type{T}) = reinterpret(T, _unsafe_trunc(rawtype(T), ro
 
 convert(::Type{BigFloat}, x::UFixed) = reinterpret(x)*(1/BigFloat(rawone(x)))
 function convert{T<:AbstractFloat}(::Type{T}, x::UFixed)
-    y = reinterpret(x)*(1/convert(T, rawone(x)))
+    y = reinterpret(x)*(one(rawtype(x))/convert(T, rawone(x)))
     convert(T, y)  # needed for types like Float16 which promote arithmetic to Float32
 end
 convert(::Type{Bool}, x::UFixed) = x == zero(x) ? false : true
@@ -80,13 +81,17 @@ sizeof{T<:UFixed}(::Type{T}) = sizeof(rawtype(T))
 abs(x::UFixed) = x
 
 # Arithmetic
+@generated function floattype{U<:UFixed}(::Type{U})
+    eps(U) < eps(Float32) ? :(Float64) : :(Float32)
+end
+
 (-){T<:UFixed}(x::T) = T(-reinterpret(x), 0)
 (~){T<:UFixed}(x::T) = T(~reinterpret(x), 0)
 
 +{T,f}(x::UFixed{T,f}, y::UFixed{T,f}) = UFixed{T,f}(convert(T, x.i+y.i),0)
 -{T,f}(x::UFixed{T,f}, y::UFixed{T,f}) = UFixed{T,f}(convert(T, x.i-y.i),0)
-*{T<:UFixed}(x::T, y::T) = convert(T,convert(Float32, x)*convert(Float32, y))
-/{T<:UFixed}(x::T, y::T) = convert(T,convert(Float32, x)/convert(Float32, y))
+*{T<:UFixed}(x::T, y::T) = convert(T,convert(floattype(T), x)*convert(floattype(T), y))
+/{T<:UFixed}(x::T, y::T) = convert(T,convert(floattype(T), x)/convert(floattype(T), y))
 
 # Comparisons
  <{T<:UFixed}(x::T, y::T) = reinterpret(x) < reinterpret(y)

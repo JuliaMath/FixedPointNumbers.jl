@@ -21,7 +21,7 @@ v = @compat UFixed12.([2])
 @test v == UFixed12[0x1ffeuf12]
 @test isa(v, Vector{UFixed12})
 
-UF2 = (UFixed{UInt32,16}, UFixed{UInt64,3}, UFixed{UInt128,7})
+UF2 = (UFixed{UInt32,16}, UFixed{UInt64,3}, UFixed{UInt64,51}, UFixed{UInt128,7}, UFixed{UInt128,51})
 
 for T in (FixedPointNumbers.UF..., UF2...)
     @test zero(T) == 0
@@ -43,15 +43,19 @@ end
 @test typemax(UFixed{UInt32,16}) == typemax(UInt32) // (2^16-1)
 @test typemax(UFixed{UInt64,3}) == typemax(UInt64) // (2^3-1)
 @test typemax(UFixed{UInt128,7}) == typemax(UInt128) // (2^7-1)
+@test typemax(UFixed{UInt128,100}) == typemax(UInt128) // (UInt128(2)^100-1)
 
-@test_throws InexactError UFixed8(2)
-@test_throws InexactError UFixed8(255)
-@test_throws InexactError UFixed8(0xff)
-@test_throws InexactError UFixed16(2)
-@test_throws InexactError UFixed16(0xff)
-@test_throws InexactError UFixed16(0xffff)
-@test_throws InexactError convert(UFixed8,  typemax(UFixed10))
-@test_throws InexactError convert(UFixed16, typemax(UFixed10))
+# TODO: change back to InexactError when it allows message strings
+@test_throws ArgumentError UFixed8(2)
+@test_throws ArgumentError UFixed8(255)
+@test_throws ArgumentError UFixed8(0xff)
+@test_throws ArgumentError UFixed16(2)
+@test_throws ArgumentError UFixed16(0xff)
+@test_throws ArgumentError UFixed16(0xffff)
+@test_throws ArgumentError convert(UFixed8,  typemax(UFixed10))
+@test_throws ArgumentError convert(UFixed16, typemax(UFixed10))
+@test_throws ArgumentError convert(UFixed{UInt128,100}, 10^9)
+@test_throws ArgumentError convert(UFixed{UInt128,100}, 10.0^9)
 
 x = UFixed8(0.5)
 @test isfinite(x) == true
@@ -64,7 +68,7 @@ x = UFixed8(0.5)
 @test convert(UFixed14, 1.1/typemax(UInt16)*4)  == eps(UFixed14)
 @test convert(UFixed16, 1.1/typemax(UInt16))    == eps(UFixed16)
 @test convert(UFixed{UInt32,16}, 1.1/typemax(UInt32)*2^16) == eps(UFixed{UInt32,16})
-@test convert(UFixed{UInt64,3},  1.1/typemax(UInt64)*2^61)  == eps(UFixed{UInt64,3})
+@test convert(UFixed{UInt64,3},  1.1/typemax(UInt64)*UInt64(2)^61)  == eps(UFixed{UInt64,3})
 @test convert(UFixed{UInt128,7}, 1.1/typemax(UInt128)*UInt128(2)^121) == eps(UFixed{UInt128,7})
 
 @test convert(UFixed8,  1.1f0/typemax(UInt8)) == eps(UFixed8)
@@ -93,6 +97,9 @@ end
 @test (65.2 % UFixed10).i == round(Int, 65.2*1023) % UInt16
 @test (-0.3 % UFixed10).i == round(Int, -0.3*1023) % UInt16
 
+@test 1 % UFixed8 == 1
+@test 2 % UFixed8 == UFixed8(0.996)
+
 x = UFixed8(0b01010001, 0)
 @test ~x == UFixed8(0b10101110, 0)
 @test -x == 0xafuf8
@@ -100,8 +107,8 @@ x = UFixed8(0b01010001, 0)
 for T in (FixedPointNumbers.UF..., UF2...)
     x = T(0x10,0)
     y = T(0x25,0)
-    fx = convert(Float32, x)
-    fy = convert(Float32, y)
+    fx = convert(FixedPointNumbers.floattype(T), x)
+    fy = convert(FixedPointNumbers.floattype(T), y)
     @test y > x
     @test y != x
     @test typeof(x+y) == T
@@ -154,6 +161,9 @@ for T in (FixedPointNumbers.UF..., UF2...)
     testtrunc(eps(T))
 end
 
+@test !(UFixed8(0.5) < UFixed8(0.5))
+@test UFixed8(0.5) <= UFixed8(0.5)
+
 @test div(0x10uf8, 0x02uf8) == fld(0x10uf8, 0x02uf8) == 8
 @test div(0x0fuf8, 0x02uf8) == fld(0x0fuf8, 0x02uf8) == 7
 @test Base.fld1(0x10uf8, 0x02uf8) == 8
@@ -165,6 +175,14 @@ end
 
 r = 1uf8:1uf8:48uf8
 @test length(r) == 48
+
+# Promotion within UFixed
+@test @inferred(promote(UFixed8(0.2), UFixed8(0.8))) ===
+    (UFixed8(0.2), UFixed8(0.8))
+@test @inferred(promote(UFixed{UInt16,3}(0.2), UFixed{UInt8,3}(0.86))) ===
+    (UFixed{UInt16,3}(0.2), UFixed{UInt16,3}(0.86))
+@test @inferred(promote(UFixed{UInt8,7}(0.197), UFixed{UInt8,4}(0.8))) ===
+    (UFixed{UInt16,7}(0.197), UFixed{UInt16,7}(0.8))
 
 # Show
 x = 0xaauf8

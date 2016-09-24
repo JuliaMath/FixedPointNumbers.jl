@@ -109,4 +109,13 @@ end
 const _log2_10 = 3.321928094887362
 showcompact{T,f}(io::IO, x::FixedPoint{T,f}) = show(io, round(convert(Float64,x), ceil(Int,f/_log2_10)))
 
+@noinline function throw_converterror{T<:FixedPoint}(::Type{T}, x)
+    n = 2^(8*sizeof(T))
+    bitstring = sizeof(T) == 1 ? "an 8-bit" : "a $(8*sizeof(T))-bit"
+    io = IOBuffer()
+    showcompact(io, typemin(T)); Tmin = takebuf_string(io)
+    showcompact(io, typemax(T)); Tmax = takebuf_string(io)
+    throw(ArgumentError("$T is $bitstring type representing $n values from $Tmin to $Tmax; cannot represent $x"))
+end
+
 end # module

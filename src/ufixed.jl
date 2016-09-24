@@ -9,7 +9,9 @@ immutable UFixed{T<:Unsigned,f} <: FixedPoint{T,f}
 end
 
   rawtype{T,f}(::Type{UFixed{T,f}}) = T
+  rawtype(x::Number) = rawtype(typeof(x))
 nbitsfrac{T,f}(::Type{UFixed{T,f}}) = f
+nbitsfrac(x::Number) = nbitsfract(typeof(x))
 
 typealias UFixed8  UFixed{UInt8,8}
 typealias UFixed10 UFixed{UInt16,10}
@@ -31,9 +33,8 @@ const uf14 = UFixedConstructor{UInt16,14}()
 const uf16 = UFixedConstructor{UInt16,16}()
 
 zero{T,f}(::Type{UFixed{T,f}}) = UFixed{T,f}(zero(T),0)
-@generated function one{T<:UFixed}(::Type{T})
-    f = 2^nbitsfrac(T)-1
-    :( T($f,0) )
+function one{T<:UFixed}(::Type{T})
+    T(typemax(rawtype(T)) >> (8*sizeof(T)-nbitsfrac(T)), 0)
 end
 zero(x::UFixed) = zero(typeof(x))
  one(x::UFixed) =  one(typeof(x))
@@ -41,19 +42,31 @@ rawone(v) = reinterpret(one(v))
 
 # Conversions
 convert{T<:UFixed}(::Type{T}, x::T) = x
-convert{T1<:UFixed}(::Type{T1}, x::UFixed) = reinterpret(T1, round(rawtype(T1), (rawone(T1)/rawone(x))*reinterpret(x)))
+function convert{T<:UFixed}(::Type{T}, x::UFixed)
+    y = round((rawone(T)/rawone(x))*reinterpret(x))
+    (0 <= y) & (y <= typemax(rawtype(T))) || throw_converterror(T, x)
+    reinterpret(T, _unsafe_trunc(rawtype(T), y))
+end
 convert(::Type{UFixed16}, x::UFixed8) = reinterpret(UFixed16, convert(UInt16, 0x0101*reinterpret(x)))
 convert{U<:UFixed}(::Type{U}, x::Real) = _convert(U, rawtype(U), x)
-_convert{U<:UFixed,T}(::Type{U}, ::Type{T}, x)       = U(round(T, widen1(rawone(U))*x), 0)
-_convert{U<:UFixed  }(::Type{U}, ::Type{UInt128}, x) = U(round(UInt128, rawone(U)*x), 0)
+function _convert{U<:UFixed,T}(::Type{U}, ::Type{T}, x)
+    y = round(widen1(rawone(U))*x)
+    (0 <= y) & (y <= typemax(T)) || throw_converterror(U, x)
+    U(_unsafe_trunc(T, y), 0)
+end
+function _convert{U<:UFixed}(::Type{U}, ::Type{UInt128}, x)
+    y = round(rawone(U)*x)   # for UInt128, we can't widen
+    (0 <= y) & (y <= typemax(UInt128)) & (x <= Float64(typemax(U))) || throw_converterror(U, x)
+    U(_unsafe_trunc(UInt128, y), 0)
+end
 
 rem{T<:UFixed}(x::T, ::Type{T}) = x
-rem{T<:UFixed}(x::UFixed, ::Type{T}) = reinterpret(T, unsafe_trunc(rawtype(T), round((rawone(T)/rawone(x))*reinterpret(x))))
-rem{T<:UFixed}(x::Real, ::Type{T}) = reinterpret(T, unsafe_trunc(rawtype(T), round(rawone(T)*x)))
+rem{T<:UFixed}(x::UFixed, ::Type{T}) = reinterpret(T, _unsafe_trunc(rawtype(T), round((rawone(T)/rawone(x))*reinterpret(x))))
+rem{T<:UFixed}(x::Real, ::Type{T}) = reinterpret(T, _unsafe_trunc(rawtype(T), round(rawone(T)*x)))
 
 convert(::Type{BigFloat}, x::UFixed) = reinterpret(x)*(1/BigFloat(rawone(x)))
 function convert{T<:AbstractFloat}(::Type{T}, x::UFixed)
-    y = reinterpret(x)*(1/convert(T, rawone(x)))
+    y = reinterpret(x)*(one(rawtype(x))/convert(T, rawone(x)))
     convert(T, y)  # needed for types like Float16 which promote arithmetic to Float32
 end
 convert(::Type{Bool}, x::UFixed) = x == zero(x) ? false : true
@@ -68,17 +81,21 @@ sizeof{T<:UFixed}(::Type{T}) = sizeof(rawtype(T))
 abs(x::UFixed) = x
 
 # Arithmetic
+@generated function floattype{U<:UFixed}(::Type{U})
+    eps(U) < eps(Float32) ? :(Float64) : :(Float32)
+end
+
 (-){T<:UFixed}(x::T) = T(-reinterpret(x), 0)
 (~){T<:UFixed}(x::T) = T(~reinterpret(x), 0)
 
 +{T,f}(x::UFixed{T,f}, y::UFixed{T,f}) = UFixed{T,f}(convert(T, x.i+y.i),0)
 -{T,f}(x::UFixed{T,f}, y::UFixed{T,f}) = UFixed{T,f}(convert(T, x.i-y.i),0)
-*{T<:UFixed}(x::T, y::T) = convert(T,convert(Float32, x)*convert(Float32, y))
-/{T<:UFixed}(x::T, y::T) = convert(T,convert(Float32, x)/convert(Float32, y))
+*{T<:UFixed}(x::T, y::T) = convert(T,convert(floattype(T), x)*convert(floattype(T), y))
+/{T<:UFixed}(x::T, y::T) = convert(T,convert(floattype(T), x)/convert(floattype(T), y))
 
 # Comparisons
  <{T<:UFixed}(x::T, y::T) = reinterpret(x) < reinterpret(y)
-<={T<:UFixed}(x::T, y::T) = reinterpret(x) < reinterpret(y)
+<={T<:UFixed}(x::T, y::T) = reinterpret(x) <= reinterpret(y)
 
 # Functions
 trunc{T<:UFixed}(x::T) = T(div(reinterpret(x), rawone(T))*rawone(T),0)
@@ -150,3 +167,18 @@ promote_rule{T<:UFixed, R<:Rational}(::Type{T}, ::Type{R}) = R
     Tp = eps(convert(Float32, typemax(Ti))) > eps(T) ? Float64 : Float32
     :( $Tp )
 end
+@generated function promote_rule{T1,T2,f1,f2}(::Type{UFixed{T1,f1}}, ::Type{UFixed{T2,f2}})
+    f = max(f1, f2)  # ensure we have enough precision
+    T = promote_type(T1, T2)
+    # make sure we have enough integer bits
+    i1, i2 = 8*sizeof(T1)-f1, 8*sizeof(T2)-f2  # number of integer bits for each
+    i = 8*sizeof(T)-f
+    while i < max(i1, i2)
+        T = widen1(T)
+        i = 8*sizeof(T)-f
+    end
+    :(UFixed{$T,$f})
+end
+
+_unsafe_trunc{T}(::Type{T}, x::Integer) = x % T
+_unsafe_trunc{T}(::Type{T}, x)          = unsafe_trunc(T, x)

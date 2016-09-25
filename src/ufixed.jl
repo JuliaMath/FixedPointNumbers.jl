@@ -42,7 +42,7 @@ rawone(v) = reinterpret(one(v))
 # Conversions
 convert{T<:UFixed}(::Type{T}, x::T) = x
 convert{T1,T2,f}(::Type{UFixed{T1,f}}, x::UFixed{T2,f}) = UFixed{T1,f}(convert(T1, x.i), 0)
-function convert{T,f}(::Type{UFixed{T,f}}, x::UFixed)
+function convert{T,T2,f}(::Type{UFixed{T,f}}, x::UFixed{T2})
     U = UFixed{T,f}
     y = round((rawone(U)/rawone(x))*reinterpret(x))
     (0 <= y) & (y <= typemax(T)) || throw_converterror(U, x)
@@ -82,8 +82,14 @@ sizeof{T<:UFixed}(::Type{T}) = sizeof(rawtype(T))
 abs(x::UFixed) = x
 
 # Arithmetic
-@generated function floattype{U<:UFixed}(::Type{U})
-    eps(U) < eps(Float32) ? :(Float64) : :(Float32)
+if VERSION <= v"0.5.0-dev+755"
+    @generated function floattype{T,f}(::Type{UFixed{T,f}})
+        f>22 ? :(Float64) : :(Float32)
+    end
+else
+    @pure function floattype{T,f}(::Type{UFixed{T,f}})
+        f>22 ? Float64 : Float32
+    end
 end
 
 (-){T<:UFixed}(x::T) = T(-reinterpret(x), 0)
@@ -158,12 +164,10 @@ function decompose(x::UFixed)
 end
 
 # Promotions
-promote_rule{T<:UFixed}(::Type{T}, ::Type{Float32}) = Float32
-promote_rule{T<:UFixed}(::Type{T}, ::Type{Float64}) = Float64
+promote_rule{T<:UFixed,Tf<:AbstractFloat}(::Type{T}, ::Type{Tf}) = promote_type(floattype(T), Tf)
 promote_rule{T<:UFixed, R<:Rational}(::Type{T}, ::Type{R}) = R
-@generated function promote_rule{T<:UFixed, Ti<:Union{Signed,Unsigned}}(::Type{T}, ::Type{Ti})
-    Tp = eps(convert(Float32, typemax(Ti))) > eps(T) ? Float64 : Float32
-    :( $Tp )
+function promote_rule{T<:UFixed, Ti<:Union{Signed,Unsigned}}(::Type{T}, ::Type{Ti})
+    floattype(T)
 end
 @generated function promote_rule{T1,T2,f1,f2}(::Type{UFixed{T1,f1}}, ::Type{UFixed{T2,f2}})
     f = max(f1, f2)  # ensure we have enough precision

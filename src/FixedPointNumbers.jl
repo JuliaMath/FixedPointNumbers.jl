@@ -12,6 +12,14 @@ import Base: ==, <, <=, -, +, *, /, ~,
              div, fld, rem, mod, mod1, rem1, fld1, min, max, minmax,
              start, next, done, r_promote, reducedim_init
 
+if VERSION <= v"0.5.0-dev+755"
+    macro pure(ex)
+        nothing
+    end
+else
+    using Base: @pure
+end
+
 using Compat
 
 # T => BaseType

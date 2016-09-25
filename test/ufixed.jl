@@ -197,6 +197,13 @@ end
 @test @inferred(promote(UFixed{UInt8,7}(0.197), UFixed{UInt8,4}(0.8))) ===
     (UFixed{UInt16,7}(0.197), UFixed{UInt16,7}(0.8))
 
+@test promote_type(UFixed8,Float32,Int) == Float32
+@test promote_type(UFixed8,Int,Float32) == Float32
+@test promote_type(Int,UFixed8,Float32) == Float32
+@test promote_type(Int,Float32,UFixed8) == Float32
+@test promote_type(Float32,Int,UFixed8) == Float32
+@test promote_type(Float32,UFixed8,Int) == Float32
+
 # Show
 x = 0xaauf8
 iob = IOBuffer()

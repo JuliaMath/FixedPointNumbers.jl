@@ -111,11 +111,15 @@ x = UFixed8(0b01010001, 0)
 @test ~x == UFixed8(0b10101110, 0)
 @test -x == 0xafuf8
 
+@test isa(float(one(UFixed{UInt8,7})),   Float32)
+@test isa(float(one(UFixed{UInt32,18})), Float32)
+@test isa(float(one(UFixed{UInt32,25})), Float64)
+
 for T in (FixedPointNumbers.UF..., UF2...)
     x = T(0x10,0)
     y = T(0x25,0)
-    fx = convert(FixedPointNumbers.floattype(T), x)
-    fy = convert(FixedPointNumbers.floattype(T), y)
+    fx = float(x)
+    fy = float(y)
     @test y > x
     @test y != x
     @test typeof(x+y) == T

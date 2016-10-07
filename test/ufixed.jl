@@ -197,6 +197,15 @@ end
 @test @inferred(promote(UFixed{UInt8,7}(0.197), UFixed{UInt8,4}(0.8))) ===
     (UFixed{UInt16,7}(0.197), UFixed{UInt16,7}(0.8))
 
+@test UFixed{UInt16,16}(1)   == UFixed{UInt8,8}(1)
+@test UFixed{UInt16,16}(0.2) == UFixed{UInt8,8}(0.2)
+@test UFixed{UInt16,8}(1)   == UFixed{UInt8,8}(1)
+@test UFixed{UInt16,8}(0.2) == UFixed{UInt8,8}(0.2)
+@test UFixed{UInt16,16}(1)   == UFixed{UInt8,6}(1)
+@test UFixed{UInt16,16}(0.20635) == UFixed{UInt8,6}(0.20635)
+@test UFixed{UInt16,4}(1)   == UFixed{UInt8,6}(1)
+@test UFixed{UInt16,4}(0.2) == UFixed{UInt8,6}(0.2)
+
 @test promote_type(UFixed8,Float32,Int) == Float32
 @test promote_type(UFixed8,Int,Float32) == Float32
 @test promote_type(Int,UFixed8,Float32) == Float32

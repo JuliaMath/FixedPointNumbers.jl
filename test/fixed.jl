@@ -78,6 +78,10 @@ end
 @test ( 65.2 % T).i == round(Int,  65.2*512) % Int16
 @test (-67.2 % T).i == round(Int, -67.2*512) % Int16
 
+for T in [Fixed{Int8,7}, Fixed{Int16,8}, Fixed{Int16,10}]
+    testapprox(T)  # defined in ufixed.jl
+end
+
 # reductions
 F8 = Fixed{Int8,8}
 a = F8[0.498, 0.1]

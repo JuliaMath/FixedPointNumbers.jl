@@ -172,6 +172,18 @@ for T in (FixedPointNumbers.UF..., UF2...)
     testtrunc(eps(T))
 end
 
+function testapprox{T}(::Type{T})
+    for x = typemin(T):eps(T):typemax(T)-eps(T)
+        y = x+eps(T)
+        @test x ≈ y
+        @test y ≈ x
+        @test !(x ≈ y+eps(T))
+    end
+end
+for T in FixedPointNumbers.UF
+    testapprox(T)
+end
+
 @test !(UFixed8(0.5) < UFixed8(0.5))
 @test UFixed8(0.5) <= UFixed8(0.5)
 

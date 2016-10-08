@@ -4,7 +4,7 @@ module FixedPointNumbers
 
 using Base: reducedim_initarray
 
-import Base: ==, <, <=, -, +, *, /, ~,
+import Base: ==, <, <=, -, +, *, /, ~, isapprox,
              convert, promote_rule, show, showcompact, isinteger, abs, decompose,
              isnan, isinf, isfinite,
              zero, one, typemin, typemax, realmin, realmax, eps, sizeof, reinterpret,
@@ -51,6 +51,19 @@ reinterpret(x::FixedPoint) = x.i
 =={T <: FixedPoint}(x::T, y::T) = x.i == y.i
  <{T <: FixedPoint}(x::T, y::T) = x.i  < y.i
 <={T <: FixedPoint}(x::T, y::T) = x.i <= y.i
+"""
+    isapprox(x::FixedPoint, y::FixedPoint; rtol=0, atol=max(eps(x), eps(y)))
+
+For FixedPoint numbers, the default criterion is that `x` and `y` differ by no more than `eps`, the separation between adjacent fixed-point numbers.
+"""
+function isapprox{T<:FixedPoint}(x::T, y::T; rtol=0, atol=max(eps(x), eps(y)))
+    maxdiff = T(atol+rtol*max(abs(x), abs(y)))
+    rx, ry, rd = reinterpret(x), reinterpret(y), reinterpret(maxdiff)
+    abs(signed(widen1(rx))-signed(widen1(ry))) <= rd
+end
+function isapprox(x::FixedPoint, y::FixedPoint; rtol=0, atol=max(eps(x), eps(y)))
+    isapprox(promote(x, y)...; rtol=rtol, atol=atol)
+end
 
 # predicates
 isinteger{T,f}(x::FixedPoint{T,f}) = (x.i&(1<<f-1)) == 0
@@ -110,6 +123,17 @@ for T in tuple(Fixed16, UF...)
     R = rawtype(T)
     @eval begin
         reinterpret(::Type{$R}, x::$T) = x.i
+    end
+end
+
+for f in (:div, :fld, :fld1)
+    @eval begin
+        $f{T<:FixedPoint}(x::T, y::T) = $f(reinterpret(x),reinterpret(y))
+    end
+end
+for f in (:rem, :mod, :mod1, :rem1, :min, :max)
+    @eval begin
+        $f{T<:FixedPoint}(x::T, y::T) = T($f(reinterpret(x),reinterpret(y)),0)
     end
 end
 

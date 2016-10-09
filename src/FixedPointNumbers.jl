@@ -4,11 +4,11 @@ module FixedPointNumbers
 
 using Base: reducedim_initarray
 
-import Base: ==, <, <=, -, +, *, /, ~,
+import Base: ==, <, <=, -, +, *, /, ~, isapprox,
              convert, promote_rule, show, showcompact, isinteger, abs, decompose,
              isnan, isinf, isfinite,
              zero, one, typemin, typemax, realmin, realmax, eps, sizeof, reinterpret,
-             trunc, round, floor, ceil, bswap,
+             float, trunc, round, floor, ceil, bswap,
              div, fld, rem, mod, mod1, rem1, fld1, min, max, minmax,
              start, next, done, r_promote, reducedim_init
 
@@ -51,10 +51,24 @@ reinterpret(x::FixedPoint) = x.i
 =={T <: FixedPoint}(x::T, y::T) = x.i == y.i
  <{T <: FixedPoint}(x::T, y::T) = x.i  < y.i
 <={T <: FixedPoint}(x::T, y::T) = x.i <= y.i
+"""
+    isapprox(x::FixedPoint, y::FixedPoint; rtol=0, atol=max(eps(x), eps(y)))
+
+For FixedPoint numbers, the default criterion is that `x` and `y` differ by no more than `eps`, the separation between adjacent fixed-point numbers.
+"""
+function isapprox{T<:FixedPoint}(x::T, y::T; rtol=0, atol=max(eps(x), eps(y)))
+    maxdiff = T(atol+rtol*max(abs(x), abs(y)))
+    rx, ry, rd = reinterpret(x), reinterpret(y), reinterpret(maxdiff)
+    abs(signed(widen1(rx))-signed(widen1(ry))) <= rd
+end
+function isapprox(x::FixedPoint, y::FixedPoint; rtol=0, atol=max(eps(x), eps(y)))
+    isapprox(promote(x, y)...; rtol=rtol, atol=atol)
+end
 
 # predicates
 isinteger{T,f}(x::FixedPoint{T,f}) = (x.i&(1<<f-1)) == 0
 
+# traits
 typemax{T<: FixedPoint}(::Type{T}) = T(typemax(rawtype(T)), 0)
 typemin{T<: FixedPoint}(::Type{T}) = T(typemin(rawtype(T)), 0)
 realmin{T<: FixedPoint}(::Type{T}) = typemin(T)
@@ -70,10 +84,25 @@ widen1(::Type{Int64})  = Int128
 widen1(::Type{UInt64}) = UInt128
 widen1(x::Integer) = x % widen1(typeof(x))
 
+if VERSION <= v"0.5.0-dev+755"
+    @generated function floattype{T,f}(::Type{FixedPoint{T,f}})
+        f>22 ? :(Float64) : :(Float32)
+    end
+else
+    @pure function floattype{T,f}(::Type{FixedPoint{T,f}})
+        f>22 ? Float64 : Float32
+    end
+end
+floattype(x::FixedPoint) = floattype(supertype(typeof(x)))
+
+
 include("fixed.jl")
 include("ufixed.jl")
 include("deprecations.jl")
 
+eps{T<:FixedPoint}(::Type{T}) = T(one(rawtype(T)),0)
+eps{T<:FixedPoint}(::T) = eps(T)
+sizeof{T<:FixedPoint}(::Type{T}) = sizeof(rawtype(T))
 
 # Promotions for reductions
 const Treduce = Float64
@@ -97,6 +126,17 @@ for T in tuple(Fixed16, UF...)
     end
 end
 
+for f in (:div, :fld, :fld1)
+    @eval begin
+        $f{T<:FixedPoint}(x::T, y::T) = $f(reinterpret(x),reinterpret(y))
+    end
+end
+for f in (:rem, :mod, :mod1, :rem1, :min, :max)
+    @eval begin
+        $f{T<:FixedPoint}(x::T, y::T) = T($f(reinterpret(x),reinterpret(y)),0)
+    end
+end
+
 # When multiplying by a float, reduce two multiplies to one.
 # Particularly useful for arrays.
 scaledual(Tdual::Type, x) = one(Tdual), x
@@ -115,7 +155,7 @@ function show{T,f}(io::IO, x::FixedPoint{T,f})
     print(io, ")")
 end
 const _log2_10 = 3.321928094887362
-showcompact{T,f}(io::IO, x::FixedPoint{T,f}) = show(io, round(convert(Float64,x), ceil(Int,f/_log2_10)))
+showcompact{T,f}(io::IO, x::FixedPoint{T,f}) = show(io, round(float(x), ceil(Int,f/_log2_10)))
 
 @noinline function throw_converterror{T<:FixedPoint}(::Type{T}, x)
     n = 2^(8*sizeof(T))

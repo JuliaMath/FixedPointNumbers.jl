@@ -78,6 +78,10 @@ end
 @test ( 65.2 % T).i == round(Int,  65.2*512) % Int16
 @test (-67.2 % T).i == round(Int, -67.2*512) % Int16
 
+for T in [Fixed{Int8,7}, Fixed{Int16,8}, Fixed{Int16,10}]
+    testapprox(T)  # defined in ufixed.jl
+end
+
 # reductions
 F8 = Fixed{Int8,8}
 a = F8[0.498, 0.1]
@@ -96,6 +100,11 @@ for T in (Float16, Float32, Float64, BigFloat)
     y = convert(T, x)
     @test isa(y, T)
 end
+
+# Floating-point conversions
+@test isa(float(one(Fixed{Int8,6})),   Float32)
+@test isa(float(one(Fixed{Int32,18})), Float32)
+@test isa(float(one(Fixed{Int32,25})), Float64)
 
 # Show
 x = Fixed{Int32,3}(0.25)

@@ -11,6 +11,7 @@ end
   rawtype{T,f}(::Type{UFixed{T,f}}) = T
   rawtype(x::Number) = rawtype(typeof(x))
 nbitsfrac{T,f}(::Type{UFixed{T,f}}) = f
+floattype{T<:UFixed}(::Type{T}) = floattype(supertype(T))
 
 typealias UFixed8  UFixed{UInt8,8}
 typealias UFixed10 UFixed{UInt16,10}
@@ -65,6 +66,9 @@ rem{T<:UFixed}(x::T, ::Type{T}) = x
 rem{T<:UFixed}(x::UFixed, ::Type{T}) = reinterpret(T, _unsafe_trunc(rawtype(T), round((rawone(T)/rawone(x))*reinterpret(x))))
 rem{T<:UFixed}(x::Real, ::Type{T}) = reinterpret(T, _unsafe_trunc(rawtype(T), round(rawone(T)*x)))
 
+# convert(::Type{AbstractFloat}, x::UFixed) = convert(floattype(x), x)
+float(x::UFixed) = convert(floattype(x), x)
+
 convert(::Type{BigFloat}, x::UFixed) = reinterpret(x)*(1/BigFloat(rawone(x)))
 function convert{T<:AbstractFloat}(::Type{T}, x::UFixed)
     y = reinterpret(x)*(one(rawtype(x))/convert(T, rawone(x)))
@@ -76,21 +80,7 @@ convert{Ti<:Integer}(::Type{Rational{Ti}}, x::UFixed) = convert(Ti, reinterpret(
 convert(::Type{Rational}, x::UFixed) = reinterpret(x)//rawone(x)
 
 # Traits
-eps{T<:UFixed}(::Type{T}) = T(one(rawtype(T)),0)
-eps{T<:UFixed}(::T) = eps(T)
-sizeof{T<:UFixed}(::Type{T}) = sizeof(rawtype(T))
 abs(x::UFixed) = x
-
-# Arithmetic
-if VERSION <= v"0.5.0-dev+755"
-    @generated function floattype{T,f}(::Type{UFixed{T,f}})
-        f>22 ? :(Float64) : :(Float32)
-    end
-else
-    @pure function floattype{T,f}(::Type{UFixed{T,f}})
-        f>22 ? Float64 : Float32
-    end
-end
 
 (-){T<:UFixed}(x::T) = T(-reinterpret(x), 0)
 (~){T<:UFixed}(x::T) = T(~reinterpret(x), 0)
@@ -133,16 +123,6 @@ isinf(x::UFixed) = false
 bswap{f}(x::UFixed{UInt8,f}) = x
 bswap(x::UFixed)  = typeof(x)(bswap(reinterpret(x)),0)
 
-for f in (:div, :fld, :fld1)
-    @eval begin
-        $f{T<:UFixed}(x::T, y::T) = $f(reinterpret(x),reinterpret(y))
-    end
-end
-for f in (:rem, :mod, :mod1, :rem1, :min, :max)
-    @eval begin
-        $f{T<:UFixed}(x::T, y::T) = T($f(reinterpret(x),reinterpret(y)),0)
-    end
-end
 function minmax{T<:UFixed}(x::T, y::T)
     a, b = minmax(reinterpret(x), reinterpret(y))
     T(a,0), T(b,0)

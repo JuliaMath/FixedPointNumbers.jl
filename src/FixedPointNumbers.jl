@@ -84,15 +84,10 @@ widen1(::Type{Int64})  = Int128
 widen1(::Type{UInt64}) = UInt128
 widen1(x::Integer) = x % widen1(typeof(x))
 
-if VERSION <= v"0.5.0-dev+755"
-    @generated function floattype{T,f}(::Type{FixedPoint{T,f}})
-        f>22 ? :(Float64) : :(Float32)
-    end
-else
-    @pure function floattype{T,f}(::Type{FixedPoint{T,f}})
-        f>22 ? Float64 : Float32
-    end
-end
+typealias ShortInts Union{Int8,UInt8,Int16,UInt16}
+
+floattype{T<:ShortInts,f}(::Type{FixedPoint{T,f}}) = Float32
+floattype{T,f}(::Type{FixedPoint{T,f}}) = Float64
 floattype(x::FixedPoint) = floattype(supertype(typeof(x)))
 
 
@@ -155,7 +150,7 @@ function show{T,f}(io::IO, x::FixedPoint{T,f})
     print(io, ")")
 end
 const _log2_10 = 3.321928094887362
-showcompact{T,f}(io::IO, x::FixedPoint{T,f}) = show(io, round(float(x), ceil(Int,f/_log2_10)))
+showcompact{T,f}(io::IO, x::FixedPoint{T,f}) = show(io, round(Float64(x), ceil(Int,f/_log2_10)))
 
 @noinline function throw_converterror{T<:FixedPoint}(::Type{T}, x)
     n = 2^(8*sizeof(T))

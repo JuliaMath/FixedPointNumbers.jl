@@ -112,7 +112,7 @@ x = UFixed8(0b01010001, 0)
 @test -x == 0xafuf8
 
 @test isa(float(one(UFixed{UInt8,7})),   Float32)
-@test isa(float(one(UFixed{UInt32,18})), Float32)
+@test isa(float(one(UFixed{UInt32,18})), Float64)
 @test isa(float(one(UFixed{UInt32,25})), Float64)
 
 for T in (FixedPointNumbers.UF..., UF2...)
@@ -234,8 +234,7 @@ x = 0xaauf8
 iob = IOBuffer()
 show(iob, x)
 str = takebuf_string(iob)
-@test startswith(str, "UFixed{UInt8,8}(")
-@test eval(parse(str)) == x
+@test str == "UFixed{UInt8,8}(0.667)"
 
 # scaledual
 function generic_scale!(C::AbstractArray, X::AbstractArray, s::Number)

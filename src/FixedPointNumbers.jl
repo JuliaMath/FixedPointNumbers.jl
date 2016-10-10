@@ -84,15 +84,10 @@ widen1(::Type{Int64})  = Int128
 widen1(::Type{UInt64}) = UInt128
 widen1(x::Integer) = x % widen1(typeof(x))
 
-if VERSION <= v"0.5.0-dev+755"
-    @generated function floattype{T,f}(::Type{FixedPoint{T,f}})
-        f>22 ? :(Float64) : :(Float32)
-    end
-else
-    @pure function floattype{T,f}(::Type{FixedPoint{T,f}})
-        f>22 ? Float64 : Float32
-    end
-end
+typealias ShortInts Union{Int8,UInt8,Int16,UInt16}
+
+floattype{T<:ShortInts,f}(::Type{FixedPoint{T,f}}) = Float32
+floattype{T,f}(::Type{FixedPoint{T,f}}) = Float64
 floattype(x::FixedPoint) = floattype(supertype(typeof(x)))
 
 

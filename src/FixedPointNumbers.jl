@@ -155,7 +155,7 @@ function show{T,f}(io::IO, x::FixedPoint{T,f})
     print(io, ")")
 end
 const _log2_10 = 3.321928094887362
-showcompact{T,f}(io::IO, x::FixedPoint{T,f}) = show(io, round(float(x), ceil(Int,f/_log2_10)))
+showcompact{T,f}(io::IO, x::FixedPoint{T,f}) = show(io, round(Float64(x), ceil(Int,f/_log2_10)))
 
 @noinline function throw_converterror{T<:FixedPoint}(::Type{T}, x)
     n = 2^(8*sizeof(T))

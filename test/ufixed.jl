@@ -234,8 +234,7 @@ x = 0xaauf8
 iob = IOBuffer()
 show(iob, x)
 str = takebuf_string(iob)
-@test startswith(str, "UFixed{UInt8,8}(")
-@test eval(parse(str)) == x
+@test str == "UFixed{UInt8,8}(0.667)"
 
 # scaledual
 function generic_scale!(C::AbstractArray, X::AbstractArray, s::Number)

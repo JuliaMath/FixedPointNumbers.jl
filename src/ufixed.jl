@@ -1,5 +1,5 @@
 # UFixed{T,f} maps UInts from 0 to 2^f-1 to the range [0.0, 1.0]
-# For example, a UFixed8 maps 0x00 to 0.0 and 0xff to 1.0
+# For example, UFixed{UInt8,8} == N0f8 maps 0x00 to 0.0 and 0xff to 1.0
 
 immutable UFixed{T<:Unsigned,f} <: FixedPoint{T,f}
     i::T
@@ -24,17 +24,6 @@ for T in (UInt8, UInt16, UInt32, UInt64)
         end
     end
 end
-
-# ASCII typealiases
-typealias U8       UFixed{UInt8,8}
-typealias UFixed8  UFixed{UInt8,8}
-typealias UFixed10 UFixed{UInt16,10}
-typealias UFixed12 UFixed{UInt16,12}
-typealias UFixed14 UFixed{UInt16,14}
-typealias UFixed16 UFixed{UInt16,16}
-typealias U16      UFixed{UInt16,16}
-
-const UF = (UFixed8, UFixed10, UFixed12, UFixed14, UFixed16)
 
 reinterpret{T<:Unsigned, f}(::Type{UFixed{T,f}}, x::T) = UFixed{T,f}(x, 0)
 
@@ -65,7 +54,7 @@ function convert{T,T2,f}(::Type{UFixed{T,f}}, x::UFixed{T2})
     (0 <= y) & (y <= typemax(T)) || throw_converterror(U, x)
     reinterpret(U, _unsafe_trunc(T, y))
 end
-convert(::Type{UFixed16}, x::UFixed8) = reinterpret(UFixed16, convert(UInt16, 0x0101*reinterpret(x)))
+convert(::Type{N0f16}, x::N0f8) = reinterpret(N0f16, convert(UInt16, 0x0101*reinterpret(x)))
 convert{U<:UFixed}(::Type{U}, x::Real) = _convert(U, rawtype(U), x)
 function _convert{U<:UFixed,T}(::Type{U}, ::Type{T}, x)
     y = round(widen1(rawone(U))*x)

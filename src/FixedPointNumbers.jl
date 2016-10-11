@@ -27,34 +27,11 @@ using Compat
 abstract FixedPoint{T <: Integer, f} <: Real
 
 
-# Printing. These are used to generate type-symbols, so we need them early.
-function showtype{X<:FixedPoint}(io::IO, ::Type{X})
-    print(io, typechar(X))
-    f = nbitsfrac(X)
-    m = sizeof(X)*8-f-signbits(X)
-    print(io, m, 'f', f)
-    io
-end
-function show{T,f}(io::IO, x::FixedPoint{T,f})
-    showcompact(io, x)
-    showtype(io, typeof(x))
-end
-const _log2_10 = 3.321928094887362
-showcompact{T,f}(io::IO, x::FixedPoint{T,f}) = show(io, round(convert(Float64,x), ceil(Int,f/_log2_10)))
-
 export
     FixedPoint,
     Fixed,
     UFixed,
 # "special" typealiases
-    Fixed16,
-    UFixed8,
-    U8,
-    UFixed10,
-    UFixed12,
-    UFixed14,
-    UFixed16,
-    U16,
     # Q and U typealiases are exported in separate source files
 # literal constructor constants
     uf8,
@@ -66,6 +43,7 @@ export
     scaledual
 
 reinterpret(x::FixedPoint) = x.i
+reinterpret{T,f}(::Type{T}, x::FixedPoint{T,f}) = x.i
 
 # construction using the (approximate) intended value, i.e., N0f8
 *{X<:FixedPoint}(x::Real, ::Type{X}) = X(x)
@@ -116,6 +94,23 @@ floattype(x::FixedPoint) = floattype(supertype(typeof(x)))
 # This IOBuffer is used during module definition to generate typealias names
 _iotypealias = IOBuffer()
 
+# Printing. These are used to generate type-symbols, so we need them
+# before we include any files.
+function showtype{X<:FixedPoint}(io::IO, ::Type{X})
+    print(io, typechar(X))
+    f = nbitsfrac(X)
+    m = sizeof(X)*8-f-signbits(X)
+    print(io, m, 'f', f)
+    io
+end
+function show{T,f}(io::IO, x::FixedPoint{T,f})
+    showcompact(io, x)
+    showtype(io, typeof(x))
+end
+const _log2_10 = 3.321928094887362
+showcompact{T,f}(io::IO, x::FixedPoint{T,f}) = show(io, round(convert(Float64,x), ceil(Int,f/_log2_10)))
+
+
 include("fixed.jl")
 include("ufixed.jl")
 include("deprecations.jl")
@@ -137,14 +132,6 @@ reducedim_init{T<:FixedPoint}(f::typeof(@functorize(identity)),
                               op::typeof(@functorize(*)),
                               A::AbstractArray{T}, region) =
     reducedim_initarray(A, region, one(Treduce))
-
-# TODO: rewrite this by @generated
-for T in tuple(Fixed16, UF...)
-    R = rawtype(T)
-    @eval begin
-        reinterpret(::Type{$R}, x::$T) = x.i
-    end
-end
 
 for f in (:div, :fld, :fld1)
     @eval begin

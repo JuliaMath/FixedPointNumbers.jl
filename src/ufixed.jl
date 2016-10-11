@@ -27,16 +27,6 @@ end
 
 reinterpret{T<:Unsigned, f}(::Type{UFixed{T,f}}, x::T) = UFixed{T,f}(x, 0)
 
-## The next lines mimic the floating-point literal syntax "3.2f0"
-# construction using a UInt, i.e., 0xccuf8
-immutable UFixedConstructor{T,f} end
-*{T,f}(n::Integer, ::UFixedConstructor{T,f}) = UFixed{T,f}(n,0)
-const uf8  = UFixedConstructor{UInt8,8}()
-const uf10 = UFixedConstructor{UInt16,10}()
-const uf12 = UFixedConstructor{UInt16,12}()
-const uf14 = UFixedConstructor{UInt16,14}()
-const uf16 = UFixedConstructor{UInt16,16}()
-
 zero{T,f}(::Type{UFixed{T,f}}) = UFixed{T,f}(zero(T),0)
 function one{T<:UFixed}(::Type{T})
     T(typemax(rawtype(T)) >> (8*sizeof(T)-nbitsfrac(T)), 0)

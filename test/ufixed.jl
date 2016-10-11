@@ -2,28 +2,29 @@ using FixedPointNumbers
 using Base.Test
 using Compat
 
-@test reinterpret(0xa2uf8)  == 0xa2
-@test reinterpret(0xa2uf10) == 0xa2
-@test reinterpret(0xa2uf12) == 0xa2
-@test reinterpret(0xa2uf14) == 0xa2
-@test reinterpret(0xa2uf16) == 0xa2
+@test reinterpret(N0f8, 0xa2).i  === 0xa2
+@test reinterpret(N6f10, 0x1fa2).i === 0x1fa2
+@test reinterpret(N4f12, 0x1fa2).i === 0x1fa2
+@test reinterpret(N2f14, 0x1fa2).i === 0x1fa2
+@test reinterpret(N0f16, 0x1fa2).i === 0x1fa2
 
-@test reinterpret(N0f8, 0xa2) == 0xa2uf8
-@test reinterpret(N6f10, 0x1fa2) == 0x1fa2uf10
-@test reinterpret(N4f12, 0x1fa2) == 0x1fa2uf12
-@test reinterpret(N2f14, 0x1fa2) == 0x1fa2uf14
-@test reinterpret(N0f16, 0x1fa2) == 0x1fa2uf16
+@test reinterpret(reinterpret(N0f8, 0xa2))    === 0xa2
+@test reinterpret(reinterpret(N6f10, 0x00a2)) === 0x00a2
+@test reinterpret(reinterpret(N4f12, 0x00a2)) === 0x00a2
+@test reinterpret(reinterpret(N2f14, 0x00a2)) === 0x00a2
+@test reinterpret(reinterpret(N0f16, 0x00a2)) === 0x00a2
+
 @test 0.635N0f8   == N0f8(0.635)
 @test 0.635N6f10 == N6f10(0.635)
 @test 0.635N4f12 == N4f12(0.635)
 @test 0.635N2f14 == N2f14(0.635)
 @test 0.635N0f16 == N0f16(0.635)
 
-@test N0f8(1.0) == 0xffuf8
-@test N0f8(0.5) == 0x80uf8
-@test N2f14(1.0) == 0x3fffuf14
+@test N0f8(1.0) == reinterpret(N0f8, 0xff)
+@test N0f8(0.5) == reinterpret(N0f8, 0x80)
+@test N2f14(1.0) == reinterpret(N2f14, 0x3fff)
 v = @compat N4f12.([2])
-@test v == N4f12[0x1ffeuf12]
+@test v == N4f12[reinterpret(N4f12, 0x1ffe)]
 @test isa(v, Vector{N4f12})
 
 UF2 = (UFixed{UInt32,16}, UFixed{UInt64,3}, UFixed{UInt64,51}, UFixed{UInt128,7}, UFixed{UInt128,51})
@@ -114,7 +115,7 @@ end
 
 x = N0f8(0b01010001, 0)
 @test ~x == N0f8(0b10101110, 0)
-@test -x == 0xafuf8
+@test -x == reinterpret(N0f8, 0xaf)
 
 @test isa(float(one(UFixed{UInt8,7})),   Float32)
 @test isa(float(one(UFixed{UInt32,18})), Float64)
@@ -192,16 +193,16 @@ end
 @test !(N0f8(0.5) < N0f8(0.5))
 @test N0f8(0.5) <= N0f8(0.5)
 
-@test div(0x10uf8, 0x02uf8) == fld(0x10uf8, 0x02uf8) == 8
-@test div(0x0fuf8, 0x02uf8) == fld(0x0fuf8, 0x02uf8) == 7
-@test Base.fld1(0x10uf8, 0x02uf8) == 8
-@test Base.fld1(0x0fuf8, 0x02uf8) == 8
-@test mod(0x10uf8, 0x02uf8) == rem(0x10uf8, 0x02uf8) == 0
-@test mod(0x0fuf8, 0x02uf8) == rem(0x0fuf8, 0x02uf8) == 0x01uf8
-@test mod1(0x10uf8, 0x02uf8) == 0x02uf8
-@test mod1(0x0fuf8, 0x02uf8) == 0x01uf8
+@test div(reinterpret(N0f8, 0x10), reinterpret(N0f8, 0x02)) == fld(reinterpret(N0f8, 0x10), reinterpret(N0f8, 0x02)) == 8
+@test div(reinterpret(N0f8, 0x0f), reinterpret(N0f8, 0x02)) == fld(reinterpret(N0f8, 0x0f), reinterpret(N0f8, 0x02)) == 7
+@test Base.fld1(reinterpret(N0f8, 0x10), reinterpret(N0f8, 0x02)) == 8
+@test Base.fld1(reinterpret(N0f8, 0x0f), reinterpret(N0f8, 0x02)) == 8
+@test mod(reinterpret(N0f8, 0x10), reinterpret(N0f8, 0x02)) == rem(reinterpret(N0f8, 0x10), reinterpret(N0f8, 0x02)) == 0
+@test mod(reinterpret(N0f8, 0x0f), reinterpret(N0f8, 0x02)) == rem(reinterpret(N0f8, 0x0f), reinterpret(N0f8, 0x02)) == reinterpret(N0f8, 0x01)
+@test mod1(reinterpret(N0f8, 0x10), reinterpret(N0f8, 0x02)) == reinterpret(N0f8, 0x02)
+@test mod1(reinterpret(N0f8, 0x0f), reinterpret(N0f8, 0x02)) == reinterpret(N0f8, 0x01)
 
-r = 1uf8:1uf8:48uf8
+r = reinterpret(N0f8, 0x01):reinterpret(N0f8, 0x01):reinterpret(N0f8, convert(UInt8, 48))
 @test length(r) == 48
 
 counter = 0
@@ -235,7 +236,7 @@ end
 @test promote_type(Float32,N0f8,Int) == Float32
 
 # Show
-x = 0xaauf8
+x = reinterpret(N0f8, 0xaa)
 iob = IOBuffer()
 show(iob, x)
 str = takebuf_string(iob)
@@ -269,7 +270,7 @@ generic_scale!(rfixed, ad, b)
 @test rfloat == rfixed
 
 # reductions
-a = N0f8[0xffuf8, 0xffuf8]
+a = N0f8[reinterpret(N0f8, 0xff), reinterpret(N0f8, 0xff)]
 @test sum(a) == 2.0
 @test sum(a, 1) == [2.0]
 

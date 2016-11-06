@@ -10,7 +10,7 @@ import Base: ==, <, <=, -, +, *, /, ~, isapprox,
              zero, one, typemin, typemax, realmin, realmax, eps, sizeof, reinterpret,
              float, trunc, round, floor, ceil, bswap,
              div, fld, rem, mod, mod1, rem1, fld1, min, max, minmax,
-             start, next, done, r_promote, reducedim_init
+             start, next, done, r_promote, reducedim_init, rand
 
 if VERSION <= v"0.5.0-dev+755"
     macro pure(ex)
@@ -160,5 +160,8 @@ showcompact{T,f}(io::IO, x::FixedPoint{T,f}) = show(io, round(Float64(x), ceil(I
     showcompact(io, typemax(T)); Tmax = takebuf_string(io)
     throw(ArgumentError("$T is $bitstring type representing $n values from $Tmin to $Tmax; cannot represent $x"))
 end
+
+rand{T<:FixedPoint}(::Type{T}) = reinterpret(T, rand(rawtype(T)))
+rand{T<:FixedPoint}(::Type{T}, sz::Dims) = reinterpret(T, rand(rawtype(T), sz))
 
 end # module

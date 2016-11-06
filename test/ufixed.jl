@@ -277,3 +277,14 @@ for T in (Float16, Float32, Float64, BigFloat)
     y = convert(T, x)
     @test isa(y, T)
 end
+
+for T in (UFixed{UInt8,8}, UFixed{UInt8,6},
+          UFixed{UInt16,16}, UFixed{UInt16,14},
+          UFixed{UInt32,32}, UFixed{UInt32,30},
+          UFixed{UInt64,64}, UFixed{UInt64,62})
+    a = rand(T)
+    @test isa(a, T)
+    a = rand(T, (3, 5))
+    @test isa(a, Array{T,2})
+    @test size(a) == (3,5)
+end

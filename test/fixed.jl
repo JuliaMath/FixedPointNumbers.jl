@@ -113,3 +113,11 @@ show(iob, x)
 str = takebuf_string(iob)
 @test startswith(str, "Fixed{Int32,3}(")
 @test eval(parse(str)) == x
+
+for T in (Fixed{Int8,8}, Fixed{Int16,8}, Fixed{Int16,10}, Fixed{Int32,16})
+    a = rand(T)
+    @test isa(a, T)
+    a = rand(T, (3, 5))
+    @test isa(a, Array{T,2})
+    @test size(a) == (3,5)
+end

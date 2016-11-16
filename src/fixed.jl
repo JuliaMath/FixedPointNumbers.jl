@@ -11,6 +11,8 @@ end
 
 typealias Fixed16 Fixed{Int32, 16}
 
+reinterpret{T<:Signed, f}(::Type{Fixed{T,f}}, x::T) = Fixed{T,f}(x, 0)
+
   rawtype{T,f}(::Type{Fixed{T,f}}) = T
 nbitsfrac{T,f}(::Type{Fixed{T,f}}) = f
 floattype{T<:Fixed}(::Type{T}) = floattype(supertype(T))

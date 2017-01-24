@@ -42,15 +42,23 @@ rawone(v) = reinterpret(one(v))
 
 # Conversions
 convert{T<:UFixed}(::Type{T}, x::T) = x
-convert{T1,T2,f}(::Type{UFixed{T1,f}}, x::UFixed{T2,f}) = UFixed{T1,f}(convert(T1, x.i), 0)
-function convert{T,T2,f}(::Type{UFixed{T,f}}, x::UFixed{T2})
+function _ufixed_convert{T,f}(::Type{UFixed{T, f}}, x)
     U = UFixed{T,f}
     y = round((rawone(U)/rawone(x))*reinterpret(x))
     (0 <= y) & (y <= typemax(T)) || throw_converterror(U, x)
     reinterpret(U, _unsafe_trunc(T, y))
 end
-convert(::Type{UFixed16}, x::UFixed8) = reinterpret(UFixed16, convert(UInt16, 0x0101*reinterpret(x)))
+if isdefined(Core,:UnionAll)
+convert{T,f,U<:UFixed{T,f}}(::Type{U}, x::UFixed) = _ufixed_convert(U, x)
+convert{T,f,U<:UFixed{T,f}}(::Type{U}, x::Real) = _convert(U, rawtype(U), x)
+convert{T,f,U<:UFixed{T,f}}(::Type{U}, x::(UFixed{T2, f} where T2)) =
+    U(convert(T,x.i), 0)
+else
+    convert{T,f,T2}(::Type{UFixed{T,f}}, x::UFixed{T2}) = _ufixed_convert(UFixed{T, f}, x)
 convert{U<:UFixed}(::Type{U}, x::Real) = _convert(U, rawtype(U), x)
+convert{T1,T2,f}(::Type{UFixed{T1,f}}, x::UFixed{T2,f}) = UFixed{T1,f}(convert(T1, x.i), 0)
+end
+convert(::Type{UFixed16}, x::UFixed8) = reinterpret(UFixed16, convert(UInt16, 0x0101*reinterpret(x)))
 function _convert{U<:UFixed,T}(::Type{U}, ::Type{T}, x)
     y = round(widen1(rawone(U))*x)
     (0 <= y) & (y <= typemax(T)) || throw_converterror(U, x)

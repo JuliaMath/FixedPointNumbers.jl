@@ -50,8 +50,8 @@ function test_fixed{T}(::Type{T}, f)
     end
 end
 
-@test_approx_eq_eps convert(Fixed{Int8,7}, 0.8) 0.797 0.001
-@test_approx_eq_eps convert(Fixed{Int8,7}, 0.9) 0.898 0.001
+@test convert(Fixed{Int8,7}, 0.8) ≈ 0.797 atol=0.001
+@test convert(Fixed{Int8,7}, 0.9) ≈ 0.898 atol=0.001
 @test_throws InexactError convert(Fixed{Int8, 7}, 0.999)
 @test_throws InexactError convert(Fixed{Int8, 7}, 1.0)
 @test_throws InexactError convert(Fixed{Int8, 7}, 1)
@@ -110,7 +110,7 @@ end
 x = Fixed{Int32,3}(0.25)
 iob = IOBuffer()
 show(iob, x)
-str = takebuf_string(iob)
+str = String(take!(iob))
 @test startswith(str, "Fixed{Int32,3}(")
 @test eval(parse(str)) == x
 

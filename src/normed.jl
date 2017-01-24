@@ -17,7 +17,7 @@ signbits{X<:Normed}(::Type{X}) = 0
 
 for T in (UInt8, UInt16, UInt32, UInt64)
     for f in 0:sizeof(T)*8
-        sym = Symbol(takebuf_string(showtype(_iotypealias, Normed{T,f})))
+        sym = Symbol(String(take!(showtype(_iotypealias, Normed{T,f}))))
         @eval begin
             typealias $sym Normed{$T,$f}
             export $sym
@@ -37,15 +37,17 @@ rawone(v) = reinterpret(one(v))
 
 # Conversions
 convert{T<:Normed}(::Type{T}, x::T) = x
-convert{T1,T2,f}(::Type{Normed{T1,f}}, x::Normed{T2,f}) = Normed{T1,f}(convert(T1, x.i), 0)
-function convert{T,T2,f}(::Type{Normed{T,f}}, x::Normed{T2})
+convert{T1<:Unsigned,T2<:Unsigned,f}(::Type{Normed{T1,f}}, x::Normed{T2,f}) = Normed{T1,f}(convert(T1, x.i), 0)
+function convert{T<:Unsigned,T2<:Unsigned,f}(::Type{Normed{T,f}}, x::Normed{T2})
     U = Normed{T,f}
     y = round((rawone(U)/rawone(x))*reinterpret(x))
     (0 <= y) & (y <= typemax(T)) || throw_converterror(U, x)
     reinterpret(U, _unsafe_trunc(T, y))
 end
-convert(::Type{N0f16}, x::N0f8) = reinterpret(N0f16, convert(UInt16, 0x0101*reinterpret(x)))
 convert{U<:Normed}(::Type{U}, x::Real) = _convert(U, rawtype(U), x)
+convert{T1,T2,f}(::Type{Normed{T1,f}}, x::Normed{T2,f}) = Normed{T1,f}(convert(T1, x.i), 0)
+
+convert(::Type{N0f16}, x::N0f8) = reinterpret(N0f16, convert(UInt16, 0x0101*reinterpret(x)))
 function _convert{U<:Normed,T}(::Type{U}, ::Type{T}, x)
     y = round(widen1(rawone(U))*x)
     (0 <= y) & (y <= typemax(T)) || throw_converterror(U, x)

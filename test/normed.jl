@@ -1,6 +1,7 @@
 using FixedPointNumbers
 using Base.Test
 using Compat
+import Compat.String
 
 @test reinterpret(N0f8, 0xa2).i  === 0xa2
 @test reinterpret(N6f10, 0x1fa2).i === 0x1fa2
@@ -132,14 +133,14 @@ for T in (FixedPointNumbers.UF..., UF2...)
     @test typeof((x+y)-y) == T
     @test typeof(x*y) == T
     @test typeof(x/y) == T
-    @test_approx_eq(x+y, T(0x35,0))
-    @test_approx_eq((x+y)-x, fy)
-    @test_approx_eq((x-y)+y, fx)
-    @test_approx_eq(x*y, convert(T, fx*fy))
-    @test_approx_eq(x/y, convert(T, fx/fy))
-    @test_approx_eq(x^2, convert(T, fx^2))
-    @test_approx_eq(x^2.1f0, fx^2.1f0)
-    @test_approx_eq(x^2.1, convert(Float64, x)^2.1)
+    @test (x+y) ≈ T(0x35,0)
+    @test ((x+y)-x) ≈ fy
+    @test ((x-y)+y) ≈ fx
+    @test (x*y)  ≈ convert(T, fx*fy)
+    @test (x/y)  ≈ convert(T, fx/fy)
+    @test (x^2) ≈ convert(T, fx^2)
+    @test (x^2.1f0) ≈ fx^2.1f0
+    @test (x^2.1) ≈ convert(Float64, x)^2.1
 end
 
 function testtrunc{T}(inc::T)
@@ -239,7 +240,7 @@ end
 x = reinterpret(N0f8, 0xaa)
 iob = IOBuffer()
 show(iob, x)
-str = takebuf_string(iob)
+str = String(take!(iob))
 @test str == "0.667N0f8"
 @test eval(parse(str)) == x
 

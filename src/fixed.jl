@@ -27,8 +27,6 @@ for T in (Int8, Int16, Int32, Int64)
     end
 end
 
-reinterpret{T<:Signed, f}(::Type{Fixed{T,f}}, x::T) = Fixed{T,f}(x, 0)
-
 # basic operators
 -{T,f}(x::Fixed{T,f}) = Fixed{T,f}(-x.i,0)
 abs{T,f}(x::Fixed{T,f}) = Fixed{T,f}(abs(x.i),0)

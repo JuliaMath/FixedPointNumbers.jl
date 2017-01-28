@@ -1,6 +1,7 @@
 using FixedPointNumbers
 using Base.Test
 using Compat
+import Compat.String
 
 @test reinterpret(N0f8, 0xa2).i  === 0xa2
 @test reinterpret(N6f10, 0x1fa2).i === 0x1fa2
@@ -239,7 +240,7 @@ end
 x = reinterpret(N0f8, 0xaa)
 iob = IOBuffer()
 show(iob, x)
-str = takebuf_string(iob)
+str = String(take!(iob))
 @test str == "0.667N0f8"
 @test eval(parse(str)) == x
 

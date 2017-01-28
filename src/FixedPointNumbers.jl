@@ -30,7 +30,7 @@ abstract FixedPoint{T <: Integer, f} <: Real
 export
     FixedPoint,
     Fixed,
-    UFixed,
+    Normed,
 # "special" typealiases
     # Q and U typealiases are exported in separate source files
 # literal constructor constants
@@ -112,7 +112,7 @@ showcompact{T,f}(io::IO, x::FixedPoint{T,f}) = show(io, round(convert(Float64,x)
 
 
 include("fixed.jl")
-include("ufixed.jl")
+include("normed.jl")
 include("deprecations.jl")
 
 eps{T<:FixedPoint}(::Type{T}) = T(one(rawtype(T)),0)

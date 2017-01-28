@@ -7,8 +7,9 @@ import Base.@deprecate_binding
 @deprecate_binding UFixed14 N2f14
 @deprecate_binding UFixed16 N0f16
 
-@deprecate_binding UfixedBase UFixed
-@deprecate_binding Ufixed UFixed
+@deprecate_binding UfixedBase Normed
+@deprecate_binding Ufixed Normed
+@deprecate_binding UFixed Normed
 @deprecate_binding Ufixed8 N0f8
 @deprecate_binding Ufixed10 N6f10
 @deprecate_binding Ufixed12 N4f12
@@ -35,20 +36,22 @@ Compat.@dep_vectorize_1arg Real ufixed16
 
 ## The next lines mimic the floating-point literal syntax "3.2f0"
 # construction using a UInt, i.e., 0xccuf8
-immutable UFixedConstructor{T,f} end
-function *{T,f}(n::Integer, ::UFixedConstructor{T,f})
+immutable NormedConstructor{T,f} end
+function *{T,f}(n::Integer, ::NormedConstructor{T,f})
     i = 8*sizeof(T)-f
     io = IOBuffer()
     show(io, n)
     nstr = takebuf_string(io)
     cstr = typeof(n) == T ? nstr : "convert($T, $nstr)"
     Base.depwarn("$(nstr)uf$f is deprecated, please use reinterpret(N$(i)f$f, $cstr) instead", :*)
-    reinterpret(UFixed{T,f}, convert(T, n))
+    reinterpret(Normed{T,f}, convert(T, n))
 end
-const uf8  = UFixedConstructor{UInt8,8}()
-const uf10 = UFixedConstructor{UInt16,10}()
-const uf12 = UFixedConstructor{UInt16,12}()
-const uf14 = UFixedConstructor{UInt16,14}()
-const uf16 = UFixedConstructor{UInt16,16}()
+const uf8  = NormedConstructor{UInt8,8}()
+const uf10 = NormedConstructor{UInt16,10}()
+const uf12 = NormedConstructor{UInt16,12}()
+const uf14 = NormedConstructor{UInt16,14}()
+const uf16 = NormedConstructor{UInt16,16}()
 
-@deprecate_binding UfixedConstructor UFixedConstructor
+@deprecate_binding UfixedConstructor NormedConstructor
+@deprecate_binding UFixedConstructor NormedConstructor
+

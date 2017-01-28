@@ -27,7 +27,7 @@ v = @compat N4f12.([2])
 @test v == N4f12[reinterpret(N4f12, 0x1ffe)]
 @test isa(v, Vector{N4f12})
 
-UF2 = (UFixed{UInt32,16}, UFixed{UInt64,3}, UFixed{UInt64,51}, UFixed{UInt128,7}, UFixed{UInt128,51})
+UF2 = (Normed{UInt32,16}, Normed{UInt64,3}, Normed{UInt64,51}, Normed{UInt128,7}, Normed{UInt128,51})
 
 for T in (FixedPointNumbers.UF..., UF2...)
     @test zero(T) == 0
@@ -46,10 +46,10 @@ end
 @test typemax(N6f10) == typemax(UInt16) // (2^10-1)
 @test typemax(N4f12) == typemax(UInt16) // (2^12-1)
 @test typemax(N2f14) == typemax(UInt16) // (2^14-1)
-@test typemax(UFixed{UInt32,16}) == typemax(UInt32) // (2^16-1)
-@test typemax(UFixed{UInt64,3}) == typemax(UInt64) // (2^3-1)
-@test typemax(UFixed{UInt128,7}) == typemax(UInt128) // (2^7-1)
-@test typemax(UFixed{UInt128,100}) == typemax(UInt128) // (UInt128(2)^100-1)
+@test typemax(Normed{UInt32,16}) == typemax(UInt32) // (2^16-1)
+@test typemax(Normed{UInt64,3}) == typemax(UInt64) // (2^3-1)
+@test typemax(Normed{UInt128,7}) == typemax(UInt128) // (2^7-1)
+@test typemax(Normed{UInt128,100}) == typemax(UInt128) // (UInt128(2)^100-1)
 
 # TODO: change back to InexactError when it allows message strings
 @test_throws ArgumentError N0f8(2)
@@ -60,8 +60,8 @@ end
 @test_throws ArgumentError N0f16(0xffff)
 @test_throws ArgumentError convert(N0f8,  typemax(N6f10))
 @test_throws ArgumentError convert(N0f16, typemax(N6f10))
-@test_throws ArgumentError convert(UFixed{UInt128,100}, 10^9)
-@test_throws ArgumentError convert(UFixed{UInt128,100}, 10.0^9)
+@test_throws ArgumentError convert(Normed{UInt128,100}, 10^9)
+@test_throws ArgumentError convert(Normed{UInt128,100}, 10.0^9)
 
 x = N0f8(0.5)
 @test isfinite(x) == true
@@ -73,9 +73,9 @@ x = N0f8(0.5)
 @test convert(N4f12, 1.1/typemax(UInt16)*16) == eps(N4f12)
 @test convert(N2f14, 1.1/typemax(UInt16)*4)  == eps(N2f14)
 @test convert(N0f16, 1.1/typemax(UInt16))    == eps(N0f16)
-@test convert(UFixed{UInt32,16}, 1.1/typemax(UInt32)*2^16) == eps(UFixed{UInt32,16})
-@test convert(UFixed{UInt64,3},  1.1/typemax(UInt64)*UInt64(2)^61)  == eps(UFixed{UInt64,3})
-@test convert(UFixed{UInt128,7}, 1.1/typemax(UInt128)*UInt128(2)^121) == eps(UFixed{UInt128,7})
+@test convert(Normed{UInt32,16}, 1.1/typemax(UInt32)*2^16) == eps(Normed{UInt32,16})
+@test convert(Normed{UInt64,3},  1.1/typemax(UInt64)*UInt64(2)^61)  == eps(Normed{UInt64,3})
+@test convert(Normed{UInt128,7}, 1.1/typemax(UInt128)*UInt128(2)^121) == eps(Normed{UInt128,7})
 
 @test convert(N0f8,  1.1f0/typemax(UInt8)) == eps(N0f8)
 
@@ -92,7 +92,7 @@ end
 @test convert(Rational, convert(N0f8, 0.5)) == 0x80//0xff
 @test convert(N0f16, one(N0f8)) === one(N0f16)
 @test convert(N0f16, N0f8(0.5)).i === 0x8080
-@test convert(UFixed{UInt16,7}, UFixed{UInt8,7}(0.504)) === UFixed{UInt16,7}(0.504)
+@test convert(Normed{UInt16,7}, Normed{UInt8,7}(0.504)) === Normed{UInt16,7}(0.504)
 
 @test  N0f8(0.2) % N0f8  === N0f8(0.2)
 @test N2f14(1.2) % N0f16 === N0f16(0.20002)
@@ -117,9 +117,9 @@ x = N0f8(0b01010001, 0)
 @test ~x == N0f8(0b10101110, 0)
 @test -x == reinterpret(N0f8, 0xaf)
 
-@test isa(float(one(UFixed{UInt8,7})),   Float32)
-@test isa(float(one(UFixed{UInt32,18})), Float64)
-@test isa(float(one(UFixed{UInt32,25})), Float64)
+@test isa(float(one(Normed{UInt8,7})),   Float32)
+@test isa(float(one(Normed{UInt32,18})), Float64)
+@test isa(float(one(Normed{UInt32,25})), Float64)
 
 for T in (FixedPointNumbers.UF..., UF2...)
     x = T(0x10,0)
@@ -211,22 +211,22 @@ for x in N0f8(0):eps(N0f8):N0f8(1)
 end
 @test counter == 256
 
-# Promotion within UFixed
+# Promotion within Normed
 @test @inferred(promote(N0f8(0.2), N0f8(0.8))) ===
     (N0f8(0.2), N0f8(0.8))
-@test @inferred(promote(UFixed{UInt16,3}(0.2), UFixed{UInt8,3}(0.86))) ===
-    (UFixed{UInt16,3}(0.2), UFixed{UInt16,3}(0.86))
-@test @inferred(promote(UFixed{UInt8,7}(0.197), UFixed{UInt8,4}(0.8))) ===
-    (UFixed{UInt16,7}(0.197), UFixed{UInt16,7}(0.8))
+@test @inferred(promote(Normed{UInt16,3}(0.2), Normed{UInt8,3}(0.86))) ===
+    (Normed{UInt16,3}(0.2), Normed{UInt16,3}(0.86))
+@test @inferred(promote(Normed{UInt8,7}(0.197), Normed{UInt8,4}(0.8))) ===
+    (Normed{UInt16,7}(0.197), Normed{UInt16,7}(0.8))
 
-@test UFixed{UInt16,16}(1)   == UFixed{UInt8,8}(1)
-@test UFixed{UInt16,16}(0.2) == UFixed{UInt8,8}(0.2)
-@test UFixed{UInt16,8}(1)   == UFixed{UInt8,8}(1)
-@test UFixed{UInt16,8}(0.2) == UFixed{UInt8,8}(0.2)
-@test UFixed{UInt16,16}(1)   == UFixed{UInt8,6}(1)
-@test UFixed{UInt16,16}(0.20635) == UFixed{UInt8,6}(0.20635)
-@test UFixed{UInt16,4}(1)   == UFixed{UInt8,6}(1)
-@test UFixed{UInt16,4}(0.2) == UFixed{UInt8,6}(0.2)
+@test Normed{UInt16,16}(1)   == Normed{UInt8,8}(1)
+@test Normed{UInt16,16}(0.2) == Normed{UInt8,8}(0.2)
+@test Normed{UInt16,8}(1)   == Normed{UInt8,8}(1)
+@test Normed{UInt16,8}(0.2) == Normed{UInt8,8}(0.2)
+@test Normed{UInt16,16}(1)   == Normed{UInt8,6}(1)
+@test Normed{UInt16,16}(0.20635) == Normed{UInt8,6}(0.20635)
+@test Normed{UInt16,4}(1)   == Normed{UInt8,6}(1)
+@test Normed{UInt16,4}(0.2) == Normed{UInt8,6}(0.2)
 
 @test promote_type(N0f8,Float32,Int) == Float32
 @test promote_type(N0f8,Int,Float32) == Float32
@@ -285,10 +285,10 @@ for T in (Float16, Float32, Float64, BigFloat)
     @test isa(y, T)
 end
 
-for T in (UFixed{UInt8,8}, UFixed{UInt8,6},
-          UFixed{UInt16,16}, UFixed{UInt16,14},
-          UFixed{UInt32,32}, UFixed{UInt32,30},
-          UFixed{UInt64,64}, UFixed{UInt64,62})
+for T in (Normed{UInt8,8}, Normed{UInt8,6},
+          Normed{UInt16,16}, Normed{UInt16,14},
+          Normed{UInt32,32}, Normed{UInt32,30},
+          Normed{UInt64,64}, Normed{UInt64,62})
     a = rand(T)
     @test isa(a, T)
     a = rand(T, (3, 5))

@@ -19,7 +19,7 @@ signbits{X<:Fixed}(::Type{X}) = 1
 
 for T in (Int8, Int16, Int32, Int64)
     for f in 0:sizeof(T)*8-1
-        sym = Symbol(takebuf_string(showtype(_iotypealias, Fixed{T,f})))
+        sym = Symbol(String(take!(showtype(_iotypealias, Fixed{T,f}))))
         @eval begin
             typealias $sym Fixed{$T,$f}
             export $sym

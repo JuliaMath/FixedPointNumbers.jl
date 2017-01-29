@@ -21,6 +21,7 @@ else
 end
 
 using Compat
+import Compat.String
 
 # T => BaseType
 # f => Number of Bytes reserved for fractional part
@@ -157,8 +158,8 @@ scaledual{Tdual<:Number, T<:FixedPoint}(b::Tdual, x::Union{T,AbstractArray{T}}) 
     n = 2^(8*sizeof(T))
     bitstring = sizeof(T) == 1 ? "an 8-bit" : "a $(8*sizeof(T))-bit"
     io = IOBuffer()
-    showcompact(io, typemin(T)); Tmin = takebuf_string(io)
-    showcompact(io, typemax(T)); Tmax = takebuf_string(io)
+    showcompact(io, typemin(T)); Tmin = String(take!(io))
+    showcompact(io, typemax(T)); Tmax = String(take!(io))
     throw(ArgumentError("$T is $bitstring type representing $n values from $Tmin to $Tmax; cannot represent $x"))
 end
 

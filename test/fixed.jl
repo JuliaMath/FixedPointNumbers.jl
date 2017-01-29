@@ -1,5 +1,7 @@
 using Base.Test
 using FixedPointNumbers
+using Compat
+import Compat.String
 
 function test_op{F,T}(fun::F, ::Type{T}, fx, fy, fxf, fyf, tol)
     # Make sure that the result is representable
@@ -110,7 +112,7 @@ end
 x = Fixed{Int32,5}(0.25)
 iob = IOBuffer()
 show(iob, x)
-str = takebuf_string(iob)
+str = String(take!(iob))
 @test str == "0.25Q26f5"
 @test eval(parse(str)) == x
 

@@ -45,16 +45,19 @@ because the range of `Int8` is from -128 to 127.
 
 In contrast, the `Normed{T,f}`, with `f` fraction bits, map the closed
 interval [0.0,1.0] to the span of numbers with `f` bits.  For example,
-the `Normed8` type (aliased to `Normed{UInt8,8}`) is represented
+the `N0f8` type (aliased to `Normed{UInt8,8}`) is represented
 internally by a `UInt8`, and makes `0x00` equivalent to `0.0` and
 `0xff` to `1.0`. Consequently, `Normed` numbers are scaled by `2^f-1`
-rather than `2^f`.  The type aliases `Normed10`, `Normed12`,
-`Normed14`, and `Normed16` are all based on `UInt16` and reach the
+rather than `2^f`.  The type aliases `N6f10`, `N4f12`,
+`N2f14`, and `N0f16` are all based on `UInt16` and reach the
 value `1.0` at 10, 12, 14, and 16 bits, respectively (`0x03ff`,
-`0x0fff`, `0x3fff`, and `0xffff`).
+`0x0fff`, `0x3fff`, and `0xffff`). The `NXfY` notation is used for
+compact printing and the `fY` component informs about the number of
+fractional bits and `X+Y` equals the number of underlying bits used.
 
-To construct such a number, use `convert(Normed12, 1.3)`, `Normed12(1.3)`, `Normed{UInt16,12}(1.3)`, or the literal syntax
-`0x14ccuf12`.  The latter syntax means to construct a `Normed12` (it ends in
+To construct such a number, use `convert(N4f12, 1.3)`, `N4f12(1.3)`,
+`Normed{UInt16,12}(1.3)`, or `reinterpret(N4f12, 0x14cc)`.
+The latter syntax means to construct a `N4f12` (it ends in
 `uf12`) from the `UInt16` value `0x14cc`.
 
 More generally, an arbitrary number of bits from any of the standard unsigned

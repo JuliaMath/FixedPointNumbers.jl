@@ -41,7 +41,7 @@ function *{T,f}(n::Integer, ::NormedConstructor{T,f})
     i = 8*sizeof(T)-f
     io = IOBuffer()
     show(io, n)
-    nstr = takebuf_string(io)
+    nstr = String(take!(io))
     cstr = typeof(n) == T ? nstr : "convert($T, $nstr)"
     Base.depwarn("$(nstr)uf$f is deprecated, please use reinterpret(N$(i)f$f, $cstr) instead", :*)
     reinterpret(Normed{T,f}, convert(T, n))
@@ -54,4 +54,3 @@ const uf16 = NormedConstructor{UInt16,16}()
 
 @deprecate_binding UfixedConstructor NormedConstructor
 @deprecate_binding UFixedConstructor NormedConstructor
-

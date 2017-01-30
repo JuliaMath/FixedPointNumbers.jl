@@ -21,6 +21,7 @@ else
 end
 
 using Compat
+import Compat.String
 
 # T => BaseType
 # f => Number of Bytes reserved for fractional part
@@ -83,6 +84,7 @@ widen1(::Type{Int32})  = Int64
 widen1(::Type{UInt32}) = UInt64
 widen1(::Type{Int64})  = Int128
 widen1(::Type{UInt64}) = UInt128
+widen1(::Type{UInt128}) = UInt128
 widen1(x::Integer) = x % widen1(typeof(x))
 
 typealias ShortInts Union{Int8,UInt8,Int16,UInt16}
@@ -157,8 +159,8 @@ scaledual{Tdual<:Number, T<:FixedPoint}(b::Tdual, x::Union{T,AbstractArray{T}}) 
     n = 2^(8*sizeof(T))
     bitstring = sizeof(T) == 1 ? "an 8-bit" : "a $(8*sizeof(T))-bit"
     io = IOBuffer()
-    showcompact(io, typemin(T)); Tmin = takebuf_string(io)
-    showcompact(io, typemax(T)); Tmax = takebuf_string(io)
+    showcompact(io, typemin(T)); Tmin = String(take!(io))
+    showcompact(io, typemax(T)); Tmax = String(take!(io))
     throw(ArgumentError("$T is $bitstring type representing $n values from $Tmin to $Tmax; cannot represent $x"))
 end
 

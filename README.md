@@ -64,6 +64,4 @@ More generally, an arbitrary number of bits from any of the standard unsigned
 integer widths can be used for the fractional part.  For example:
 `Normed{UInt32,16}`, `Normed{UInt64,3}`, `Normed{UInt128,7}`.
 
-There currently is no literal syntax for signed `Fixed` numbers.
-
 [wikipedia]: http://en.wikipedia.org/wiki/Fixed-point_arithmetic

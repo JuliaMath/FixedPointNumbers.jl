@@ -4,8 +4,8 @@
 immutable Normed{T<:Unsigned,f} <: FixedPoint{T,f}
     i::T
 
-    Normed(i::Integer,_) = new(i%T)   # for setting by raw representation
-    Normed(x) = convert(Normed{T,f}, x)
+    (::Type{Normed{T, f}}){T, f}(i::Integer,_) = new{T, f}(i%T)   # for setting by raw representation
+    (::Type{Normed{T, f}}){T, f}(x) = convert(Normed{T,f}, x)
 end
 
   rawtype{T,f}(::Type{Normed{T,f}}) = T

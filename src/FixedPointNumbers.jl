@@ -9,19 +9,14 @@ import Base: ==, <, <=, -, +, *, /, ~, isapprox,
              isnan, isinf, isfinite,
              zero, one, typemin, typemax, realmin, realmax, eps, sizeof, reinterpret,
              float, trunc, round, floor, ceil, bswap,
-             div, fld, rem, mod, mod1, rem1, fld1, min, max, minmax,
+             div, fld, rem, mod, mod1, fld1, min, max, minmax,
              start, next, done, r_promote, reducedim_init, rand
-
-if VERSION <= v"0.5.0-dev+755"
-    macro pure(ex)
-        nothing
-    end
-else
-    using Base: @pure
+if isdefined(Base, :rem1)
+    import Base: rem1
 end
+using Base: @pure
 
 using Compat
-import Compat.String
 
 # T => BaseType
 # f => Number of Bytes reserved for fractional part
@@ -141,6 +136,9 @@ for f in (:div, :fld, :fld1)
     end
 end
 for f in (:rem, :mod, :mod1, :rem1, :min, :max)
+    if f === :rem1 && !isdefined(Base, :rem1)
+        continue
+    end
     @eval begin
         $f{T<:FixedPoint}(x::T, y::T) = T($f(reinterpret(x),reinterpret(y)),0)
     end

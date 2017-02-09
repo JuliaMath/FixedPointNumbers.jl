@@ -4,9 +4,8 @@ immutable Fixed{T <: Signed,f} <: FixedPoint{T,  f}
 
     # constructor for manipulating the representation;
     # selected by passing an extra dummy argument
-    Fixed(i::Integer,_) = new(i % T)
-
-    Fixed(x) = convert(Fixed{T,f}, x)
+    (::Type{Fixed{T, f}}){T, f}(i::Integer, _) = new{T, f}(i % T)
+    (::Type{Fixed{T, f}}){T, f}(x) = convert(Fixed{T,f}, x)
 end
 
 reinterpret{T<:Signed, f}(::Type{Fixed{T,f}}, x::T) = Fixed{T,f}(x, 0)

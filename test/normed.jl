@@ -65,6 +65,7 @@ end
 @test_throws ArgumentError convert(Normed{UInt128,100}, 10.0^9)
 
 x = N0f8(0.5)
+@test convert(N0f8, x) === x
 @test isfinite(x) == true
 @test isnan(x) == false
 @test isinf(x) == false

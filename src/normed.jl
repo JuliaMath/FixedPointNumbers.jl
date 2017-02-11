@@ -36,7 +36,7 @@ zero(x::Normed) = zero(typeof(x))
 rawone(v) = reinterpret(one(v))
 
 # Conversions
-convert{T<:Normed}(::Type{T}, x::T) = x
+convert{T<:Unsigned,f}(::Type{Normed{T,f}}, x::Normed{T,f}) = x
 convert{T1<:Unsigned,T2<:Unsigned,f}(::Type{Normed{T1,f}}, x::Normed{T2,f}) = Normed{T1,f}(convert(T1, x.i), 0)
 function convert{T<:Unsigned,T2<:Unsigned,f}(::Type{Normed{T,f}}, x::Normed{T2})
     U = Normed{T,f}
@@ -45,7 +45,6 @@ function convert{T<:Unsigned,T2<:Unsigned,f}(::Type{Normed{T,f}}, x::Normed{T2})
     reinterpret(U, _unsafe_trunc(T, y))
 end
 convert{U<:Normed}(::Type{U}, x::Real) = _convert(U, rawtype(U), x)
-convert{T1,T2,f}(::Type{Normed{T1,f}}, x::Normed{T2,f}) = Normed{T1,f}(convert(T1, x.i), 0)
 
 convert(::Type{N0f16}, x::N0f8) = reinterpret(N0f16, convert(UInt16, 0x0101*reinterpret(x)))
 function _convert{U<:Normed,T}(::Type{U}, ::Type{T}, x)

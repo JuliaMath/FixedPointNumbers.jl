@@ -85,8 +85,16 @@ widen1(x::Integer) = x % widen1(typeof(x))
 typealias ShortInts Union{Int8,UInt8,Int16,UInt16}
 
 floattype{T<:ShortInts,f}(::Type{FixedPoint{T,f}}) = Float32
-floattype{T,f}(::Type{FixedPoint{T,f}}) = Float64
-floattype(x::FixedPoint) = floattype(supertype(typeof(x)))
+floattype{T<:Integer,f}(::Type{FixedPoint{T,f}}) = Float64
+floattype{F<:FixedPoint}(::Type{F}) = floattype(supertype(F))
+floattype(x::FixedPoint) = floattype(typeof(x))
+
+nbitsfrac{T<:Integer,f}(::Type{FixedPoint{T,f}}) = f
+nbitsfrac{F<:FixedPoint}(::Type{F}) = nbitsfrac(supertype(F))
+
+rawtype{T<:Integer,f}(::Type{FixedPoint{T,f}}) = T
+rawtype{F<:FixedPoint}(::Type{F}) = rawtype(supertype(F))
+rawtype(x::FixedPoint) = rawtype(typeof(x))
 
 # This IOBuffer is used during module definition to generate typealias names
 _iotypealias = IOBuffer()

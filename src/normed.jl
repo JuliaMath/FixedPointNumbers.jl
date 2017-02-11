@@ -8,10 +8,6 @@ immutable Normed{T<:Unsigned,f} <: FixedPoint{T,f}
     (::Type{Normed{T, f}}){T, f}(x) = convert(Normed{T,f}, x)
 end
 
-  rawtype{T,f}(::Type{Normed{T,f}}) = T
-  rawtype(x::Number) = rawtype(typeof(x))
-nbitsfrac{T,f}(::Type{Normed{T,f}}) = f
-floattype{T<:Normed}(::Type{T}) = floattype(supertype(T))
 typechar{X<:Normed}(::Type{X}) = 'N'
 signbits{X<:Normed}(::Type{X}) = 0
 

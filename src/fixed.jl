@@ -10,9 +10,6 @@ end
 
 reinterpret{T<:Signed, f}(::Type{Fixed{T,f}}, x::T) = Fixed{T,f}(x, 0)
 
-  rawtype{T,f}(::Type{Fixed{T,f}}) = T
-nbitsfrac{T,f}(::Type{Fixed{T,f}}) = f
-floattype{T<:Fixed}(::Type{T}) = floattype(supertype(T))
 typechar{X<:Fixed}(::Type{X}) = 'Q'
 signbits{X<:Fixed}(::Type{X}) = 1
 

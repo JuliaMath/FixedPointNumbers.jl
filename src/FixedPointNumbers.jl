@@ -20,7 +20,7 @@ using Compat
 
 # T => BaseType
 # f => Number of Bytes reserved for fractional part
-abstract FixedPoint{T <: Integer, f} <: Real
+@compat abstract type FixedPoint{T <: Integer, f} <: Real end
 
 
 export

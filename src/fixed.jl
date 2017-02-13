@@ -17,7 +17,7 @@ for T in (Int8, Int16, Int32, Int64)
     for f in 0:sizeof(T)*8-1
         sym = Symbol(String(take!(showtype(_iotypealias, Fixed{T,f}))))
         @eval begin
-            typealias $sym Fixed{$T,$f}
+            const $sym = Fixed{$T,$f}
             export $sym
         end
     end

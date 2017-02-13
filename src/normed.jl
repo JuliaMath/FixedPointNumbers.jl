@@ -15,7 +15,7 @@ for T in (UInt8, UInt16, UInt32, UInt64)
     for f in 0:sizeof(T)*8
         sym = Symbol(String(take!(showtype(_iotypealias, Normed{T,f}))))
         @eval begin
-            typealias $sym Normed{$T,$f}
+            const $sym = Normed{$T,$f}
             export $sym
         end
     end

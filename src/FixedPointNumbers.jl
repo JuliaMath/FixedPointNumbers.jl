@@ -82,7 +82,7 @@ widen1(::Type{UInt64}) = UInt128
 widen1(::Type{UInt128}) = UInt128
 widen1(x::Integer) = x % widen1(typeof(x))
 
-typealias ShortInts Union{Int8,UInt8,Int16,UInt16}
+const ShortInts = Union{Int8,UInt8,Int16,UInt16}
 
 floattype{T<:ShortInts,f}(::Type{FixedPoint{T,f}}) = Float32
 floattype{T<:Integer,f}(::Type{FixedPoint{T,f}}) = Float64

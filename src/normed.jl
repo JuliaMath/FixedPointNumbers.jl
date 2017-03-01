@@ -33,42 +33,42 @@ rawone(v) = reinterpret(one(v))
 
 # Conversions
 convert{T<:Unsigned,f}(::Type{Normed{T,f}}, x::Normed{T,f}) = x
-convert{T1<:Unsigned,T2<:Unsigned,f}(::Type{Normed{T1,f}}, x::Normed{T2,f}) = Normed{T1,f}(convert(T1, x.i), 0)
-function convert{T<:Unsigned,T2<:Unsigned,f}(::Type{Normed{T,f}}, x::Normed{T2})
+@inline convert{T1<:Unsigned,T2<:Unsigned,f}(::Type{Normed{T1,f}}, x::Normed{T2,f}) = Normed{T1,f}(convert(T1, x.i), 0)
+@inline function convert{T<:Unsigned,T2<:Unsigned,f}(::Type{Normed{T,f}}, x::Normed{T2})
     U = Normed{T,f}
     y = round((rawone(U)/rawone(x))*reinterpret(x))
     (0 <= y) & (y <= typemax(T)) || throw_converterror(U, x)
     reinterpret(U, _unsafe_trunc(T, y))
 end
-convert{U<:Normed}(::Type{U}, x::Real) = _convert(U, rawtype(U), x)
+@inline convert{U<:Normed}(::Type{U}, x::Real) = _convert(U, rawtype(U), x)
 
-convert(::Type{N0f16}, x::N0f8) = reinterpret(N0f16, convert(UInt16, 0x0101*reinterpret(x)))
-function _convert{U<:Normed,T}(::Type{U}, ::Type{T}, x)
+@inline convert(::Type{N0f16}, x::N0f8) = reinterpret(N0f16, convert(UInt16, 0x0101*reinterpret(x)))
+@inline function _convert{U<:Normed,T}(::Type{U}, ::Type{T}, x)
     y = round(widen1(rawone(U))*x)
     (0 <= y) & (y <= typemax(T)) || throw_converterror(U, x)
     U(_unsafe_trunc(T, y), 0)
 end
-function _convert{U<:Normed}(::Type{U}, ::Type{UInt128}, x)
+@inline function _convert{U<:Normed}(::Type{U}, ::Type{UInt128}, x)
     y = round(rawone(U)*x)   # for UInt128, we can't widen
     (0 <= y) & (y <= typemax(UInt128)) & (x <= Float64(typemax(U))) || throw_converterror(U, x)
     U(_unsafe_trunc(UInt128, y), 0)
 end
 
 rem{T<:Normed}(x::T, ::Type{T}) = x
-rem{T<:Normed}(x::Normed, ::Type{T}) = reinterpret(T, _unsafe_trunc(rawtype(T), round((rawone(T)/rawone(x))*reinterpret(x))))
-rem{T<:Normed}(x::Real, ::Type{T}) = reinterpret(T, _unsafe_trunc(rawtype(T), round(rawone(T)*x)))
+@inline rem{T<:Normed}(x::Normed, ::Type{T}) = reinterpret(T, _unsafe_trunc(rawtype(T), round((rawone(T)/rawone(x))*reinterpret(x))))
+@inline rem{T<:Normed}(x::Real, ::Type{T}) = reinterpret(T, _unsafe_trunc(rawtype(T), round(rawone(T)*x)))
 
 # convert(::Type{AbstractFloat}, x::Normed) = convert(floattype(x), x)
 float(x::Normed) = convert(floattype(x), x)
 
 convert(::Type{BigFloat}, x::Normed) = reinterpret(x)*(1/BigFloat(rawone(x)))
-function convert{T<:AbstractFloat}(::Type{T}, x::Normed)
+@inline function convert{T<:AbstractFloat}(::Type{T}, x::Normed)
     y = reinterpret(x)*(one(rawtype(x))/convert(T, rawone(x)))
     convert(T, y)  # needed for types like Float16 which promote arithmetic to Float32
 end
 convert(::Type{Bool}, x::Normed) = x == zero(x) ? false : true
-convert{T<:Integer}(::Type{T}, x::Normed) = convert(T, x*(1/one(T)))
-convert{Ti<:Integer}(::Type{Rational{Ti}}, x::Normed) = convert(Ti, reinterpret(x))//convert(Ti, rawone(x))
+@inline convert{T<:Integer}(::Type{T}, x::Normed) = convert(T, x*(1/one(T)))
+@inline convert{Ti<:Integer}(::Type{Rational{Ti}}, x::Normed) = convert(Ti, reinterpret(x))//convert(Ti, rawone(x))
 convert(::Type{Rational}, x::Normed) = reinterpret(x)//rawone(x)
 
 # Traits

@@ -44,7 +44,7 @@ end
 
 @inline convert(::Type{N0f16}, x::N0f8) = reinterpret(N0f16, convert(UInt16, 0x0101*reinterpret(x)))
 @inline function _convert{U<:Normed,T}(::Type{U}, ::Type{T}, x)
-    y = round(widen1(rawone(U))*x)
+    y = @fastmath round(widen1(rawone(U))*x)
     (0 <= y) & (y <= typemax(T)) || throw_converterror(U, x)
     U(_unsafe_trunc(T, y), 0)
 end
@@ -63,7 +63,7 @@ float(x::Normed) = convert(floattype(x), x)
 
 convert(::Type{BigFloat}, x::Normed) = reinterpret(x)*(1/BigFloat(rawone(x)))
 @inline function convert{T<:AbstractFloat}(::Type{T}, x::Normed)
-    y = reinterpret(x)*(one(rawtype(x))/convert(T, rawone(x)))
+    y = @fastmath reinterpret(x)*(one(rawtype(x))/convert(T, rawone(x)))
     convert(T, y)  # needed for types like Float16 which promote arithmetic to Float32
 end
 convert(::Type{Bool}, x::Normed) = x == zero(x) ? false : true

@@ -56,6 +56,7 @@ end
 
 rem{T<:Normed}(x::T, ::Type{T}) = x
 @inline rem{T<:Normed}(x::Normed, ::Type{T}) = reinterpret(T, _unsafe_trunc(rawtype(T), round((rawone(T)/rawone(x))*reinterpret(x))))
+@inline rem{T<:Normed}(x::Integer, ::Type{T}) = reinterpret(T, _unsafe_trunc(rawtype(T), round(rawone(T)*x)))
 @inline rem{T<:Normed}(x::Real, ::Type{T}) = reinterpret(T, _unsafe_trunc(rawtype(T), round(rawone(T)*x)))
 
 # convert(::Type{AbstractFloat}, x::Normed) = convert(floattype(x), x)

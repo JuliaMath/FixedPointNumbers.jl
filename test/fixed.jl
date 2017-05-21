@@ -103,6 +103,9 @@ for T in (Float16, Float32, Float64, BigFloat)
     @test isa(y, T)
 end
 
+@test convert(Int, Q1f6(1)) === 1
+@test convert(Integer, Q1f6(1)) === Int8(1)
+
 # Floating-point conversions
 @test isa(float(one(Fixed{Int8,6})),   Float32)
 @test isa(float(one(Fixed{Int32,18})), Float64)

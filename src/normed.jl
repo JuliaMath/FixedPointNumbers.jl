@@ -32,7 +32,7 @@ zero(x::Normed) = zero(typeof(x))
 rawone(v) = reinterpret(one(v))
 
 # Conversions
-convert{T<:Unsigned,f}(::Type{Normed{T,f}}, x::Normed{T,f}) = x
+convert{U<:Normed}(::Type{U}, x::U) = x
 convert{T1<:Unsigned,T2<:Unsigned,f}(::Type{Normed{T1,f}}, x::Normed{T2,f}) = Normed{T1,f}(convert(T1, x.i), 0)
 function convert{T<:Unsigned,T2<:Unsigned,f}(::Type{Normed{T,f}}, x::Normed{T2})
     U = Normed{T,f}
@@ -67,6 +67,7 @@ function convert{T<:AbstractFloat}(::Type{T}, x::Normed)
     convert(T, y)  # needed for types like Float16 which promote arithmetic to Float32
 end
 convert(::Type{Bool}, x::Normed) = x == zero(x) ? false : true
+convert(::Type{Integer}, x::Normed) = convert(Integer, x*1.0)
 convert{T<:Integer}(::Type{T}, x::Normed) = convert(T, x*(1/one(T)))
 convert{Ti<:Integer}(::Type{Rational{Ti}}, x::Normed) = convert(Ti, reinterpret(x))//convert(Ti, rawone(x))
 convert(::Type{Rational}, x::Normed) = reinterpret(x)//rawone(x)

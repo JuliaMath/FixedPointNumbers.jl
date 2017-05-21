@@ -89,6 +89,7 @@ for T in (FixedPointNumbers.UF..., UF2...)
     @test convert(Bool, one(T))  == true
     @test convert(Bool, convert(T, 0.2)) == true
     @test convert(Int, one(T)) == 1
+    @test convert(Integer, one(T)) == 1
     @test convert(Rational, one(T)) == 1
 end
 @test convert(Rational, convert(N0f8, 0.5)) == 0x80//0xff
@@ -203,6 +204,9 @@ end
 @test mod(reinterpret(N0f8, 0x0f), reinterpret(N0f8, 0x02)) == rem(reinterpret(N0f8, 0x0f), reinterpret(N0f8, 0x02)) == reinterpret(N0f8, 0x01)
 @test mod1(reinterpret(N0f8, 0x10), reinterpret(N0f8, 0x02)) == reinterpret(N0f8, 0x02)
 @test mod1(reinterpret(N0f8, 0x0f), reinterpret(N0f8, 0x02)) == reinterpret(N0f8, 0x01)
+@test bswap(N0f8(0.5)) === N0f8(0.5)
+@test bswap(N0f16(0.5)) === reinterpret(N0f16, 0x0080)
+@test minmax(N0f8(0.8), N0f8(0.2)) === (N0f8(0.2), N0f8(0.8))
 
 r = reinterpret(N0f8, 0x01):reinterpret(N0f8, 0x01):reinterpret(N0f8, convert(UInt8, 48))
 @test length(r) == 48

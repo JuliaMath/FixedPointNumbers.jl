@@ -5,6 +5,4 @@ for f in ["normed.jl", "fixed.jl"]
     include(f)
 end
 
-if v"0.5.0" <= VERSION < v"0.6.0-dev"
-    @test isempty(detect_ambiguities(FixedPointNumbers, Base, Core))
-end
+@test isempty(detect_ambiguities(FixedPointNumbers, Base, Core))

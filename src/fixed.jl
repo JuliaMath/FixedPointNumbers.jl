@@ -55,6 +55,10 @@ convert{TF<:AbstractFloat,T,f}(::Type{TF}, x::Fixed{T,f}) =
     convert(TF,x.i>>f) + convert(TF,x.i&(1<<f - 1))/convert(TF,1<<f)
 
 convert{T,f}(::Type{Bool}, x::Fixed{T,f}) = x.i!=0
+function convert{T,f}(::Type{Integer}, x::Fixed{T,f})
+    isinteger(x) || throw(InexactError())
+    convert(Integer, x.i>>f)
+end
 function convert{TI<:Integer, T,f}(::Type{TI}, x::Fixed{T,f})
     isinteger(x) || throw(InexactError())
     convert(TI, x.i>>f)

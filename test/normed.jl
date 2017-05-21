@@ -89,6 +89,7 @@ for T in (FixedPointNumbers.UF..., UF2...)
     @test convert(Bool, one(T))  == true
     @test convert(Bool, convert(T, 0.2)) == true
     @test convert(Int, one(T)) == 1
+    @test convert(Integer, one(T)) == 1
     @test convert(Rational, one(T)) == 1
 end
 @test convert(Rational, convert(N0f8, 0.5)) == 0x80//0xff

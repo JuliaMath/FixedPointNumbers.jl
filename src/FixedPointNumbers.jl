@@ -126,15 +126,15 @@ sizeof{T<:FixedPoint}(::Type{T}) = sizeof(rawtype(T))
 
 # Promotions for reductions
 const Treduce = Float64
-r_promote{T}(::typeof(@functorize(+)), x::FixedPoint{T}) = Treduce(x)
-r_promote{T}(::typeof(@functorize(*)), x::FixedPoint{T}) = Treduce(x)
+r_promote{T}(::typeof(+), x::FixedPoint{T}) = Treduce(x)
+r_promote{T}(::typeof(*), x::FixedPoint{T}) = Treduce(x)
 
-reducedim_init{T<:FixedPoint}(f::typeof(@functorize(identity)),
-                              op::typeof(@functorize(+)),
+reducedim_init{T<:FixedPoint}(f::typeof(identity),
+                              op::typeof(+),
                               A::AbstractArray{T}, region) =
     reducedim_initarray(A, region, zero(Treduce))
-reducedim_init{T<:FixedPoint}(f::typeof(@functorize(identity)),
-                              op::typeof(@functorize(*)),
+reducedim_init{T<:FixedPoint}(f::typeof(identity),
+                              op::typeof(*),
                               A::AbstractArray{T}, region) =
     reducedim_initarray(A, region, one(Treduce))
 

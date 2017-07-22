@@ -35,7 +35,7 @@ for T in (FixedPointNumbers.UF..., UF2...)
     @test one(T) == 1
     @test one(T) * one(T) == one(T)
     @test typemin(T) == 0
-    @test realmin(T) == 0
+    @test realmin(T) == eps(T)
     @test eps(zero(T)) == eps(typemax(T))
     @test sizeof(T) == sizeof(FixedPointNumbers.rawtype(T))
 end

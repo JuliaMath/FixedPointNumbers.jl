@@ -68,7 +68,7 @@ isinteger{T,f}(x::FixedPoint{T,f}) = (x.i&(1<<f-1)) == 0
 # traits
 typemax{T<: FixedPoint}(::Type{T}) = T(typemax(rawtype(T)), 0)
 typemin{T<: FixedPoint}(::Type{T}) = T(typemin(rawtype(T)), 0)
-realmin{T<: FixedPoint}(::Type{T}) = typemin(T)
+realmin{T<: FixedPoint}(::Type{T}) = eps(T)
 realmax{T<: FixedPoint}(::Type{T}) = typemax(T)
 
 widen1(::Type{Int8})   = Int16

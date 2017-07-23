@@ -126,3 +126,6 @@ for T in (Fixed{Int8,8}, Fixed{Int16,8}, Fixed{Int16,10}, Fixed{Int32,16})
     @test isa(a, Array{T,2})
     @test size(a) == (3,5)
 end
+
+# issue #79
+@test realmin(Q11f4) == Q11f4(0.06)

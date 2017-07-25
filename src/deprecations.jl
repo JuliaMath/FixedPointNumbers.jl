@@ -36,7 +36,7 @@ Compat.@dep_vectorize_1arg Real ufixed16
 
 ## The next lines mimic the floating-point literal syntax "3.2f0"
 # construction using a UInt, i.e., 0xccuf8
-immutable NormedConstructor{T,f} end
+struct NormedConstructor{T,f} end
 function *{T,f}(n::Integer, ::NormedConstructor{T,f})
     i = 8*sizeof(T)-f
     io = IOBuffer()

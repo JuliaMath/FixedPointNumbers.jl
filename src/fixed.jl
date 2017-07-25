@@ -1,5 +1,5 @@
 # 32-bit fixed point; parameter `f` is the number of fraction bits
-immutable Fixed{T <: Signed,f} <: FixedPoint{T,  f}
+struct Fixed{T <: Signed,f} <: FixedPoint{T,  f}
     i::T
 
     # constructor for manipulating the representation;

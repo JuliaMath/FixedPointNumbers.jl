@@ -1,7 +1,7 @@
 # Normed{T,f} maps UInts from 0 to 2^f-1 to the range [0.0, 1.0]
 # For example, Normed{UInt8,8} == N0f8 maps 0x00 to 0.0 and 0xff to 1.0
 
-immutable Normed{T<:Unsigned,f} <: FixedPoint{T,f}
+struct Normed{T<:Unsigned,f} <: FixedPoint{T,f}
     i::T
 
     (::Type{Normed{T, f}}){T, f}(i::Integer,_) = new{T, f}(i%T)   # for setting by raw representation

@@ -31,7 +31,7 @@ const UF = (N0f8, N6f10, N4f12, N2f14, N0f16)
 ## The next lines mimic the floating-point literal syntax "3.2f0"
 # construction using a UInt, i.e., 0xccuf8
 struct NormedConstructor{T,f} end
-function *{T,f}(n::Integer, ::NormedConstructor{T,f})
+function *(n::Integer, ::NormedConstructor{T,f}) where {T,f}
     i = 8*sizeof(T)-f
     io = IOBuffer()
     show(io, n)

@@ -1,7 +1,5 @@
 using FixedPointNumbers
 using Base.Test
-using Compat
-import Compat.String
 
 @test reinterpret(N0f8, 0xa2).i  === 0xa2
 @test reinterpret(N6f10, 0x1fa2).i === 0x1fa2
@@ -24,7 +22,7 @@ import Compat.String
 @test N0f8(1.0) == reinterpret(N0f8, 0xff)
 @test N0f8(0.5) == reinterpret(N0f8, 0x80)
 @test N2f14(1.0) == reinterpret(N2f14, 0x3fff)
-v = @compat N4f12.([2])
+v = N4f12.([2])
 @test v == N4f12[reinterpret(N4f12, 0x1ffe)]
 @test isa(v, Vector{N4f12})
 
@@ -145,7 +143,7 @@ for T in (FixedPointNumbers.UF..., UF2...)
     @test (x^2.1) ≈ convert(Float64, x)^2.1
 end
 
-function testtrunc{T}(inc::T)
+function testtrunc(inc::T) where {T}
     incf = convert(Float64, inc)
     tm = reinterpret(typemax(T))/reinterpret(one(T))
     x = zero(T)
@@ -181,7 +179,7 @@ for T in (FixedPointNumbers.UF..., UF2...)
     testtrunc(eps(T))
 end
 
-function testapprox{T}(::Type{T})
+function testapprox(::Type{T}) where {T}
     for x = typemin(T):eps(T):typemax(T)-eps(T)
         y = x+eps(T)
         @test x ≈ y

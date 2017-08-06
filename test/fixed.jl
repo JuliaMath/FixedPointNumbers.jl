@@ -1,16 +1,14 @@
 using Base.Test
 using FixedPointNumbers
-using Compat
-import Compat.String
 
-function test_op{F,T}(fun::F, ::Type{T}, fx, fy, fxf, fyf, tol)
+function test_op(fun::F, ::Type{T}, fx, fy, fxf, fyf, tol) where {F,T}
     # Make sure that the result is representable
     (typemin(T) <= fun(fxf, fyf) <= typemax(T)) || return nothing
     @assert abs(fun(fx, fy) - convert(T, fun(fxf, fyf))) <= tol
     @assert abs(convert(Float64, fun(fx, fy)) - fun(fxf, fyf)) <= tol
 end
 
-function test_fixed{T}(::Type{T}, f)
+function test_fixed(::Type{T}, f) where {T}
     values = [-10:0.01:10; -180:.01:-160; 160:.01:180]
     tol = 2.0^-f
     for x in values

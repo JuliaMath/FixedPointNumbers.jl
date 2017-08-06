@@ -10,7 +10,7 @@ notifications:
 script:
     - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
     - julia -e 'Pkg.clone(pwd()); Pkg.build("FixedPointNumbers")'
-    - julia -e 'if VERSION >= v"0.6.0-dev.565" Pkg.test("FixedPointNumbers"; coverage=true); else cd(Pkg.dir("FixedPointNumbers", "test")); include("runtests.jl"); end '
+    - julia -e 'Pkg.test("FixedPointNumbers"; coverage=true)'
 after_success:
   # push coverage results to Codecov
-  - julia -e 'if VERSION >= v"0.6.0-dev.565" cd(Pkg.dir("FixedPointNumbers")); Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder()); end'
+  - julia -e 'cd(Pkg.dir("FixedPointNumbers")); Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())'

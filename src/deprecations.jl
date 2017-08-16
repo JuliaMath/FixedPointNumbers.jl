@@ -28,16 +28,10 @@ const UF = (N0f8, N6f10, N4f12, N2f14, N0f16)
 @deprecate ufixed14(x) N2f14(x)
 @deprecate ufixed16(x) N0f16(x)
 
-Compat.@dep_vectorize_1arg Real ufixed8
-Compat.@dep_vectorize_1arg Real ufixed10
-Compat.@dep_vectorize_1arg Real ufixed12
-Compat.@dep_vectorize_1arg Real ufixed14
-Compat.@dep_vectorize_1arg Real ufixed16
-
 ## The next lines mimic the floating-point literal syntax "3.2f0"
 # construction using a UInt, i.e., 0xccuf8
 struct NormedConstructor{T,f} end
-function *{T,f}(n::Integer, ::NormedConstructor{T,f})
+function *(n::Integer, ::NormedConstructor{T,f}) where {T,f}
     i = 8*sizeof(T)-f
     io = IOBuffer()
     show(io, n)

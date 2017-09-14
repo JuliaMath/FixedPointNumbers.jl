@@ -211,6 +211,7 @@ r = reinterpret(N0f8, 0x01):reinterpret(N0f8, 0x01):reinterpret(N0f8, convert(UI
 
 counter = 0
 for x in N0f8(0):eps(N0f8):N0f8(1)
+    local x
     counter += 1
 end
 @test counter == 256

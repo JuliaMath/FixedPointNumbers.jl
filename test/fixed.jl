@@ -79,6 +79,7 @@ end
 @test (-67.2 % T).i == round(Int, -67.2*512) % Int16
 
 for T in [Fixed{Int8,7}, Fixed{Int16,8}, Fixed{Int16,10}]
+    local T
     testapprox(T)  # defined in ufixed.jl
 end
 
@@ -97,6 +98,7 @@ acmp = Float64(a[1])*Float64(a[2])
 
 x = Fixed{Int8,8}(0.3)
 for T in (Float16, Float32, Float64, BigFloat)
+    local T
     y = convert(T, x)
     @test isa(y, T)
 end
@@ -118,6 +120,7 @@ str = String(take!(iob))
 @test eval(parse(str)) == x
 
 for T in (Fixed{Int8,8}, Fixed{Int16,8}, Fixed{Int16,10}, Fixed{Int32,16})
+    local T
     a = rand(T)
     @test isa(a, T)
     a = rand(T, (3, 5))

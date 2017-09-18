@@ -7,7 +7,7 @@ using Base: reducedim_initarray
 import Base: ==, <, <=, -, +, *, /, ~, isapprox,
              convert, promote_rule, show, showcompact, isinteger, abs, decompose,
              isnan, isinf, isfinite,
-             zero, one, typemin, typemax, realmin, realmax, eps, sizeof, reinterpret,
+             zero, oneunit, one, typemin, typemax, realmin, realmax, eps, sizeof, reinterpret,
              float, trunc, round, floor, ceil, bswap,
              div, fld, rem, mod, mod1, fld1, min, max, minmax,
              start, next, done, r_promote, reducedim_init, rand
@@ -118,7 +118,7 @@ include("fixed.jl")
 include("normed.jl")
 include("deprecations.jl")
 
-eps(::Type{T}) where {T <: FixedPoint} = T(one(rawtype(T)),0)
+eps(::Type{T}) where {T <: FixedPoint} = T(oneunit(rawtype(T)),0)
 eps(::T) where {T <: FixedPoint} = eps(T)
 sizeof(::Type{T}) where {T <: FixedPoint} = sizeof(rawtype(T))
 
@@ -134,7 +134,7 @@ reducedim_init(f::typeof(identity),
 reducedim_init(f::typeof(identity),
                               op::typeof(*),
                               A::AbstractArray{T}, region) where {T <: FixedPoint} =
-    reducedim_initarray(A, region, one(Treduce))
+    reducedim_initarray(A, region, oneunit(Treduce))
 
 for f in (:div, :fld, :fld1)
     @eval begin
@@ -152,12 +152,12 @@ end
 
 # When multiplying by a float, reduce two multiplies to one.
 # Particularly useful for arrays.
-scaledual(Tdual::Type, x) = one(Tdual), x
+scaledual(Tdual::Type, x) = oneunit(Tdual), x
 scaledual(b::Tdual, x) where {Tdual <: Number} = b, x
 scaledual(Tdual::Type, x::Union{T,AbstractArray{T}}) where {T <: FixedPoint} =
-    convert(Tdual, 1/one(T)), reinterpret(rawtype(T), x)
+    convert(Tdual, 1/oneunit(T)), reinterpret(rawtype(T), x)
 scaledual(b::Tdual, x::Union{T,AbstractArray{T}}) where {Tdual <: Number,T <: FixedPoint} =
-    convert(Tdual, b/one(T)), reinterpret(rawtype(T), x)
+    convert(Tdual, b/oneunit(T)), reinterpret(rawtype(T), x)
 
 @noinline function throw_converterror(::Type{T}, x) where {T <: FixedPoint}
     n = 2^(8*sizeof(T))

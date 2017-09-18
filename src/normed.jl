@@ -24,11 +24,13 @@ end
 reinterpret(::Type{Normed{T,f}}, x::T) where {T <: Unsigned,f} = Normed{T,f}(x, 0)
 
 zero(::Type{Normed{T,f}}) where {T,f} = Normed{T,f}(zero(T),0)
-function one(::Type{T}) where {T <: Normed}
+function oneunit(::Type{T}) where {T <: Normed}
     T(typemax(rawtype(T)) >> (8*sizeof(T)-nbitsfrac(T)), 0)
 end
+one(::Type{T}) where {T <: Normed} = oneunit(T)
 zero(x::Normed) = zero(typeof(x))
- one(x::Normed) =  one(typeof(x))
+oneunit(x::Normed) =  one(typeof(x))
+one(x::Normed) = oneunit(x)
 rawone(v) = reinterpret(one(v))
 
 # Conversions
@@ -68,7 +70,7 @@ function convert(::Type{T}, x::Normed) where {T <: AbstractFloat}
 end
 convert(::Type{Bool}, x::Normed) = x == zero(x) ? false : true
 convert(::Type{Integer}, x::Normed) = convert(Integer, x*1.0)
-convert(::Type{T}, x::Normed) where {T <: Integer} = convert(T, x*(1/one(T)))
+convert(::Type{T}, x::Normed) where {T <: Integer} = convert(T, x*(1/oneunit(T)))
 convert(::Type{Rational{Ti}}, x::Normed) where {Ti <: Integer} = convert(Ti, reinterpret(x))//convert(Ti, rawone(x))
 convert(::Type{Rational}, x::Normed) = reinterpret(x)//rawone(x)
 
@@ -94,14 +96,14 @@ function round(x::Normed{T,f}) where {T,f}
     mask = convert(T, 1<<(f-1))
     y = trunc(x)
     return convert(T, reinterpret(x)-reinterpret(y)) & mask>0 ?
-            Normed{T,f}(y+one(Normed{T,f})) : y
+            Normed{T,f}(y+oneunit(Normed{T,f})) : y
 end
 function ceil(x::Normed{T,f}) where {T,f}
     k = 8*sizeof(T)-f
     mask = (typemax(T)<<k)>>k
     y = trunc(x)
     return convert(T, reinterpret(x)-reinterpret(y)) & (mask)>0 ?
-            Normed{T,f}(y+one(Normed{T,f})) : y
+            Normed{T,f}(y+oneunit(Normed{T,f})) : y
 end
 
 trunc(::Type{T}, x::Normed) where {T <: Integer} = convert(T, div(reinterpret(x), rawone(x)))

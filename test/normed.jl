@@ -304,3 +304,9 @@ end
 # Overflow with Float16
 @test N0f16(Float16(1.0)) === N0f16(1.0)
 @test Float16(1.0) % N0f16 === N0f16(1.0)
+
+if VERSION >= v"0.7.0-DEV.1790"
+    a = N0f8[0.2, 0.4]
+    @test summary(a) == "2-element Array{N0f8,1} with eltype FixedPointNumbers.Normed{UInt8,8}"
+    @test summary(view(a, 1:2)) == "2-element view(::Array{N0f8,1}, 1:2) with eltype FixedPointNumbers.Normed{UInt8,8}"
+end

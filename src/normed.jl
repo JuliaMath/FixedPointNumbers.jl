@@ -50,6 +50,11 @@ function _convert(::Type{U}, ::Type{T}, x) where {U <: Normed,T}
     (0 <= y) & (y <= typemax(T)) || throw_converterror(U, x)
     U(_unsafe_trunc(T, y), 0)
 end
+# Prevent overflow (https://discourse.julialang.org/t/saving-greater-than-8-bit-images/6057)
+_convert(::Type{U}, ::Type{T}, x::Float16) where {U <: Normed,T} =
+    _convert(U, T, Float32(x))
+_convert(::Type{U}, ::Type{UInt128}, x::Float16) where {U <: Normed} =
+    _convert(U, UInt128, Float32(x))
 function _convert(::Type{U}, ::Type{UInt128}, x) where {U <: Normed}
     y = round(rawone(U)*x)   # for UInt128, we can't widen
     (0 <= y) & (y <= typemax(UInt128)) & (x <= Float64(typemax(U))) || throw_converterror(U, x)
@@ -59,6 +64,7 @@ end
 rem(x::T, ::Type{T}) where {T <: Normed} = x
 rem(x::Normed, ::Type{T}) where {T <: Normed} = reinterpret(T, _unsafe_trunc(rawtype(T), round((rawone(T)/rawone(x))*reinterpret(x))))
 rem(x::Real, ::Type{T}) where {T <: Normed} = reinterpret(T, _unsafe_trunc(rawtype(T), round(rawone(T)*x)))
+rem(x::Float16, ::Type{T}) where {T <: Normed} = rem(Float32(x), T)  # avoid overflow
 
 # convert(::Type{AbstractFloat}, x::Normed) = convert(floattype(x), x)
 float(x::Normed) = convert(floattype(x), x)

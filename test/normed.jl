@@ -300,3 +300,7 @@ for T in (Normed{UInt8,8}, Normed{UInt8,6},
     @test isa(a, Array{T,2})
     @test size(a) == (3,5)
 end
+
+# Overflow with Float16
+@test N0f16(Float16(1.0)) === N0f16(1.0)
+@test Float16(1.0) % N0f16 === N0f16(1.0)

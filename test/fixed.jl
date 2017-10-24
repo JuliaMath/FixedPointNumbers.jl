@@ -124,7 +124,7 @@ for T in (Fixed{Int8,8}, Fixed{Int16,8}, Fixed{Int16,10}, Fixed{Int32,16})
     a = rand(T)
     @test isa(a, T)
     a = rand(T, (3, 5))
-    @test isa(a, Array{T,2})
+    @test ndims(a) == 2 && eltype(a) == T
     @test size(a) == (3,5)
 end
 

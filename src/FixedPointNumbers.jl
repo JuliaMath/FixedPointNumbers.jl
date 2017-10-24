@@ -10,7 +10,7 @@ import Base: ==, <, <=, -, +, *, /, ~, isapprox,
              zero, oneunit, one, typemin, typemax, realmin, realmax, eps, sizeof, reinterpret,
              float, trunc, round, floor, ceil, bswap,
              div, fld, rem, mod, mod1, fld1, min, max, minmax,
-             start, next, done, r_promote, reducedim_init, rand
+             start, next, done, reducedim_init, rand
 if isdefined(Base, :rem1)
     import Base: rem1
 end
@@ -133,8 +133,12 @@ sizeof(::Type{T}) where {T <: FixedPoint} = sizeof(rawtype(T))
 
 # Promotions for reductions
 const Treduce = Float64
-r_promote(::typeof(+), x::FixedPoint{T}) where {T} = Treduce(x)
-r_promote(::typeof(*), x::FixedPoint{T}) where {T} = Treduce(x)
+if isdefined(Base, :r_promote)
+    Base.r_promote(::typeof(+), x::FixedPoint{T}) where {T} = Treduce(x)
+    Base.r_promote(::typeof(*), x::FixedPoint{T}) where {T} = Treduce(x)
+else
+    Base.promote_sys_size(::Type{<:FixedPoint}) = Treduce
+end
 
 reducedim_init(f::typeof(identity),
                               op::typeof(+),

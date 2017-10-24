@@ -297,7 +297,7 @@ for T in (Normed{UInt8,8}, Normed{UInt8,6},
     a = rand(T)
     @test isa(a, T)
     a = rand(T, (3, 5))
-    @test isa(a, Array{T,2})
+    @test ndims(a) == 2 && eltype(a) == T
     @test size(a) == (3,5)
 end
 

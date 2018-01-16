@@ -10,7 +10,7 @@ import Base: ==, <, <=, -, +, *, /, ~, isapprox,
              zero, oneunit, one, typemin, typemax, realmin, realmax, eps, sizeof, reinterpret,
              float, trunc, round, floor, ceil, bswap,
              div, fld, rem, mod, mod1, fld1, min, max, minmax,
-             start, next, done, reducedim_init, rand
+             start, next, done, rand
 if isdefined(Base, :rem1)
     import Base: rem1
 end
@@ -134,20 +134,27 @@ sizeof(::Type{T}) where {T <: FixedPoint} = sizeof(rawtype(T))
 # Promotions for reductions
 const Treduce = Float64
 if isdefined(Base, :r_promote)
+    # Julia v0.6
     Base.r_promote(::typeof(+), x::FixedPoint{T}) where {T} = Treduce(x)
     Base.r_promote(::typeof(*), x::FixedPoint{T}) where {T} = Treduce(x)
+    Base.reducedim_init(f::typeof(identity),
+                   op::typeof(+),
+                   A::AbstractArray{T}, region) where {T <: FixedPoint} =
+                       Base.reducedim_initarray(A, region, zero(Treduce))
+    Base.reducedim_init(f::typeof(identity),
+                   op::typeof(*),
+                   A::AbstractArray{T}, region) where {T <: FixedPoint} =
+                       Base.reducedim_initarray(A, region, oneunit(Treduce))
 else
-    Base.promote_sys_size(::Type{<:FixedPoint}) = Treduce
+    # Julia v0.7
+    Base.add_sum(x::FixedPoint, y::FixedPoint) = Treduce(x) + Treduce(y)
+    Base.reduce_empty(::typeof(Base.add_sum), ::Type{F}) where {F<:FixedPoint}  = zero(Treduce)
+    Base.reduce_first(::typeof(Base.add_sum), x::FixedPoint)   = Treduce(x)
+    Base.mul_prod(x::FixedPoint, y::FixedPoint) = Treduce(x) * Treduce(y)
+    Base.reduce_empty(::typeof(Base.mul_prod), ::Type{F}) where {F<:FixedPoint} = one(Treduce)
+    Base.reduce_first(::typeof(Base.mul_prod), x::FixedPoint)  = Treduce(x)
 end
 
-reducedim_init(f::typeof(identity),
-                              op::typeof(+),
-                              A::AbstractArray{T}, region) where {T <: FixedPoint} =
-    reducedim_initarray(A, region, zero(Treduce))
-reducedim_init(f::typeof(identity),
-                              op::typeof(*),
-                              A::AbstractArray{T}, region) where {T <: FixedPoint} =
-    reducedim_initarray(A, region, oneunit(Treduce))
 
 for f in (:div, :fld, :fld1)
     @eval begin

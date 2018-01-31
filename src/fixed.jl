@@ -6,6 +6,7 @@ struct Fixed{T <: Signed,f} <: FixedPoint{T,  f}
     # selected by passing an extra dummy argument
     Fixed{T, f}(i::Integer, _) where {T,f} = new{T, f}(i % T)
     Fixed{T, f}(x) where {T,f} = convert(Fixed{T,f}, x)
+    Fixed{T, f}(x::Fixed{T,f}) where {T,f} = x
 end
 
 reinterpret(::Type{Fixed{T,f}}, x::T) where {T <: Signed,f} = Fixed{T,f}(x, 0)

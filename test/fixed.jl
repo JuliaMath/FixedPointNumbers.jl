@@ -1,5 +1,4 @@
-using Base.Test
-using FixedPointNumbers
+using FixedPointNumbers, Compat, Test
 
 function test_op(fun::F, ::Type{T}, fx, fy, fxf, fyf, tol) where {F,T}
     # Make sure that the result is representable

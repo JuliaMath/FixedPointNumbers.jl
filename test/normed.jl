@@ -1,5 +1,4 @@
-using FixedPointNumbers
-using Base.Test
+using FixedPointNumbers, Compat, Test
 
 @test reinterpret(N0f8, 0xa2).i  === 0xa2
 @test reinterpret(N6f10, 0x1fa2).i === 0x1fa2

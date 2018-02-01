@@ -1,4 +1,4 @@
-using FixedPointNumbers, Compat, Test
+using FixedPointNumbers, Compat.Test
 
 @test isempty(detect_ambiguities(FixedPointNumbers, Base, Core))
 

@@ -1,4 +1,4 @@
-using FixedPointNumbers, Compat, Test
+using FixedPointNumbers, Compat.Test
 
 function test_op(fun::F, ::Type{T}, fx, fy, fxf, fyf, tol) where {F,T}
     # Make sure that the result is representable
@@ -129,3 +129,9 @@ end
 
 # issue #79
 @test realmin(Q11f4) == Q11f4(0.06)
+
+# Test disambiguation constructors
+@test_throws ArgumentError Fixed{Int32,16}('a')
+@test_throws InexactError  Fixed{Int32,16}(complex(1.0, 1.0))
+@test Fixed{Int32,16}(complex(1.0, 0.0))        == 1
+@test Fixed{Int32,16}(Base.TwicePrecision(1.0, 0.0)) == 1

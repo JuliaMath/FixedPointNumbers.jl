@@ -6,6 +6,7 @@ struct Normed{T<:Unsigned,f} <: FixedPoint{T,f}
 
     Normed{T, f}(i::Integer,_) where {T,f} = new{T, f}(i%T)   # for setting by raw representation
     Normed{T, f}(x) where {T,f} = convert(Normed{T,f}, x)
+    Normed{T, f}(x::Normed{T,f}) where {T,f} = x
 end
 
 typechar(::Type{X}) where {X <: Normed} = 'N'

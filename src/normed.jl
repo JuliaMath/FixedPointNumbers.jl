@@ -7,6 +7,9 @@ struct Normed{T<:Unsigned,f} <: FixedPoint{T,f}
     Normed{T, f}(i::Integer,_) where {T,f} = new{T, f}(i%T)   # for setting by raw representation
     Normed{T, f}(x) where {T,f} = convert(Normed{T,f}, x)
     Normed{T, f}(x::Normed{T,f}) where {T,f} = x
+    Normed{T, f}(x::Char) where {T,f} = throw(ArgumentError("Normed cannot be constructed from a Char"))
+    Normed{T, f}(x::Complex) where {T,f} = Normed{T, f}(real(x))
+    Normed{T, f}(x::Base.TwicePrecision) where {T,f,S} = Normed{T, f}(convert(Float64, x))
 end
 
 typechar(::Type{X}) where {X <: Normed} = 'N'

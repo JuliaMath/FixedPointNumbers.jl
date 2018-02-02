@@ -1,8 +1,6 @@
-using FixedPointNumbers, Base.Test
+using FixedPointNumbers, Compat.Test
 
-if VERSION < v"0.7.0-"
-    @test isempty(detect_ambiguities(FixedPointNumbers, Base, Core))
-end
+@test isempty(detect_ambiguities(FixedPointNumbers, Base, Core))
 
 for f in ["normed.jl", "fixed.jl"]
     println("Testing $f")

@@ -1,5 +1,4 @@
-using FixedPointNumbers
-using Base.Test
+using FixedPointNumbers, Compat.Test
 
 @test reinterpret(N0f8, 0xa2).i  === 0xa2
 @test reinterpret(N6f10, 0x1fa2).i === 0x1fa2
@@ -314,3 +313,10 @@ elseif VERSION >= v"0.7.0-DEV.1790"
     @test summary(a) == "2-element Array{N0f8,1} with eltype FixedPointNumbers.Normed{UInt8,8}"
     @test summary(view(a, 1:2)) == "2-element view(::Array{N0f8,1}, 1:2) with eltype FixedPointNumbers.Normed{UInt8,8}"
 end
+
+# Test disambiguation constructors
+@test_throws ArgumentError Normed{UInt32,16}('a')
+@test_throws InexactError  Normed{UInt32,16}(complex(1.0, 1.0))
+@test Normed{UInt32,16}(complex(1.0, 0.0))        == 1
+@test Normed{UInt32,16}(Base.TwicePrecision(1.0, 0.0)) == 1
+

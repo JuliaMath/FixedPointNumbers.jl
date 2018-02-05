@@ -137,12 +137,14 @@ end
 @test Fixed{Int32,16}(Base.TwicePrecision(1.0, 0.0)) == 1
 
 # test all-fractional fixed-point numbers (issue #104)
-for T in (Fixed{Int8, 7},
-          Fixed{Int16, 15},
-          Fixed{Int32, 31},
-          Fixed{Int64, 63})
-    tol = (typemax(T) + 1.0) / (sizeof(T) * 8)
-    for x in linspace(-1, float(typemax(T))-tol, 50)
-        @test abs(Fixed{Int16, 15}(x) - x) <= tol
+for (T, f) in ((Int8, 7),
+             (Int16, 15),
+             (Int32, 31),
+             (Int64, 63))
+    tmax = typemax(Fixed{T, f})
+    @test tmax == BigInt(typemax(T)) / BigInt(2)^f
+    tol = (tmax + BigFloat(1.0)) / (sizeof(T) * 8)
+    for x in linspace(-1, BigFloat(tmax)-tol, 50)
+        @test abs(Fixed{T, f}(x) - x) <= tol
     end
 end

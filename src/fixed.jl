@@ -37,26 +37,26 @@ abs(x::Fixed{T,f}) where {T,f} = Fixed{T,f}(abs(x.i),0)
 # with truncation:
 #*{f}(x::Fixed32{f}, y::Fixed32{f}) = Fixed32{f}(Base.widemul(x.i,y.i)>>f,0)
 # with rounding up:
-*(x::Fixed{T,f}, y::Fixed{T,f}) where {T,f} = Fixed{T,f}((Base.widemul(x.i,y.i) + (convert(widen(T), 1) << (f-1) ))>>f,0)
+*(x::Fixed{T,f}, y::Fixed{T,f}) where {T,f} = Fixed{T,f}((Base.widemul(x.i,y.i) + (one(widen(T)) << (f-1)))>>f,0)
 
 /(x::Fixed{T,f}, y::Fixed{T,f}) where {T,f} = Fixed{T,f}(div(convert(widen(T), x.i) << f, y.i), 0)
 
 
 # # conversions and promotions
 convert(::Type{Fixed{T,f}}, x::Integer) where {T,f} = Fixed{T,f}(round(T, convert(widen1(T),x)<<f),0)
-convert(::Type{Fixed{T,f}}, x::AbstractFloat) where {T,f} = Fixed{T,f}(round(T, trunc(widen1(T),x)<<f + rem(x,1)*(1<<f)),0)
+convert(::Type{Fixed{T,f}}, x::AbstractFloat) where {T,f} = Fixed{T,f}(round(T, trunc(widen1(T),x)<<f + rem(x,1)*(one(widen1(T))<<f)),0)
 convert(::Type{Fixed{T,f}}, x::Rational) where {T,f} = Fixed{T,f}(x.num)/Fixed{T,f}(x.den)
 
 rem(x::Integer, ::Type{Fixed{T,f}}) where {T,f} = Fixed{T,f}(rem(x,T)<<f,0)
-rem(x::Real,    ::Type{Fixed{T,f}}) where {T,f} = Fixed{T,f}(rem(Integer(trunc(x)),T)<<f + rem(Integer(round(rem(x,1)*(1<<f))),T),0)
+rem(x::Real,    ::Type{Fixed{T,f}}) where {T,f} = Fixed{T,f}(rem(Integer(trunc(x)),T)<<f + rem(Integer(round(rem(x,1)*(one(widen1(T))<<f))),T),0)
 
 # convert{T,f}(::Type{AbstractFloat}, x::Fixed{T,f}) = convert(floattype(x), x)
 float(x::Fixed) = convert(floattype(x), x)
 
 convert(::Type{BigFloat}, x::Fixed{T,f}) where {T,f} =
-    convert(BigFloat,x.i>>f) + convert(BigFloat,x.i&(1<<f - 1))/convert(BigFloat,1<<f)
+    convert(BigFloat,x.i>>f) + convert(BigFloat,x.i&(one(widen1(T))<<f - 1))/convert(BigFloat,one(widen1(T))<<f)
 convert(::Type{TF}, x::Fixed{T,f}) where {TF <: AbstractFloat,T,f} =
-    convert(TF,x.i>>f) + convert(TF,x.i&(1<<f - 1))/convert(TF,1<<f)
+    convert(TF,x.i>>f) + convert(TF,x.i&(one(widen1(T))<<f - 1))/convert(TF,one(widen1(T))<<f)
 
 convert(::Type{Bool}, x::Fixed{T,f}) where {T,f} = x.i!=0
 function convert(::Type{Integer}, x::Fixed{T,f}) where {T,f}
@@ -69,7 +69,7 @@ function convert(::Type{TI}, x::Fixed{T,f}) where {TI <: Integer,T,f}
 end
 
 convert(::Type{TR}, x::Fixed{T,f}) where {TR <: Rational,T,f} =
-    convert(TR, x.i>>f + (x.i&(1<<f-1))//(1<<f))
+    convert(TR, x.i>>f + (x.i&(1<<f-1))//(one(widen1(T))<<f))
 
 promote_rule(ft::Type{Fixed{T,f}}, ::Type{TI}) where {T,f,TI <: Integer} = Fixed{T,f}
 promote_rule(::Type{Fixed{T,f}}, ::Type{TF}) where {T,f,TF <: AbstractFloat} = TF

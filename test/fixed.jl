@@ -135,3 +135,16 @@ end
 @test_throws InexactError  Fixed{Int32,16}(complex(1.0, 1.0))
 @test Fixed{Int32,16}(complex(1.0, 0.0))        == 1
 @test Fixed{Int32,16}(Base.TwicePrecision(1.0, 0.0)) == 1
+
+# test all-fractional fixed-point numbers (issue #104)
+for (T, f) in ((Int8, 7),
+             (Int16, 15),
+             (Int32, 31),
+             (Int64, 63))
+    tmax = typemax(Fixed{T, f})
+    @test tmax == BigInt(typemax(T)) / BigInt(2)^f
+    tol = (tmax + BigFloat(1.0)) / (sizeof(T) * 8)
+    for x in linspace(-1, BigFloat(tmax)-tol, 50)
+        @test abs(Fixed{T, f}(x) - x) <= tol
+    end
+end

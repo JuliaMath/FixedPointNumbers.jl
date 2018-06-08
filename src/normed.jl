@@ -7,7 +7,7 @@ struct Normed{T<:Unsigned,f} <: FixedPoint{T,f}
     Normed{T, f}(i::Integer,_) where {T,f} = new{T, f}(i%T)   # for setting by raw representation
     Normed{T, f}(x) where {T,f} = convert(Normed{T,f}, x)
     Normed{T, f}(x::Normed{T,f}) where {T,f} = x
-    Normed{T, f}(x::Char) where {T,f} = throw(ArgumentError("Normed cannot be constructed from a Char"))
+    Normed{T, f}(x::AbstractChar) where {T,f} = throw(ArgumentError("Normed cannot be constructed from a Char"))
     Normed{T, f}(x::Complex) where {T,f} = Normed{T, f}(convert(real(typeof(x)), x))
     Normed{T, f}(x::Base.TwicePrecision) where {T,f} = Normed{T, f}(convert(Float64, x))
 end
@@ -61,7 +61,7 @@ _convert(::Type{U}, ::Type{UInt128}, x::Float16) where {U <: Normed} =
     _convert(U, UInt128, Float32(x))
 function _convert(::Type{U}, ::Type{UInt128}, x) where {U <: Normed}
     y = round(rawone(U)*x)   # for UInt128, we can't widen
-    (0 <= y) & (y <= typemax(UInt128)) & (x <= Float64(typemax(U))) || throw_converterror(U, x)
+    (0 <= y) & (y <= typemax(UInt128)) & (x <= convert(Float64, typemax(U))) || throw_converterror(U, x)
     U(_unsafe_trunc(UInt128, y), 0)
 end
 

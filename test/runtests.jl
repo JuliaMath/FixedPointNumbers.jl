@@ -1,8 +1,11 @@
-using FixedPointNumbers, Compat.Test
+using FixedPointNumbers, Test
 
 @test isempty(detect_ambiguities(FixedPointNumbers, Base, Core))
 
-for f in ["normed.jl", "fixed.jl"]
-    println("Testing $f")
-    include(f)
+@testset "normed" begin
+    include("normed.jl")
+end
+
+@testset "fixed" begin
+    include("fixed.jl")
 end

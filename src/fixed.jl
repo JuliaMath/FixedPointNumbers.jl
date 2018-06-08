@@ -7,7 +7,7 @@ struct Fixed{T <: Signed,f} <: FixedPoint{T,  f}
     Fixed{T, f}(i::Integer, _) where {T,f} = new{T, f}(i % T)
     Fixed{T, f}(x) where {T,f} = convert(Fixed{T,f}, x)
     Fixed{T, f}(x::Fixed{T,f}) where {T,f} = x
-    Fixed{T, f}(x::Char) where {T,f} = throw(ArgumentError("Fixed cannot be constructed from a Char"))
+    Fixed{T, f}(x::AbstractChar) where {T,f} = throw(ArgumentError("Fixed cannot be constructed from a Char"))
     Fixed{T, f}(x::Complex) where {T,f} = Fixed{T, f}(convert(real(typeof(x)), x))
     Fixed{T, f}(x::Base.TwicePrecision) where {T,f} = Fixed{T, f}(convert(Float64, x))
 end

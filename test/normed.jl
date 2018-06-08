@@ -1,4 +1,4 @@
-using FixedPointNumbers, Compat.Test
+using FixedPointNumbers, Test
 
 @testset "reinterpret" begin
 @test reinterpret(N0f8, 0xa2).i  === 0xa2

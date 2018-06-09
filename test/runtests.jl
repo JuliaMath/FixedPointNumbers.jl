@@ -5,7 +5,6 @@ using FixedPointNumbers, Test
 @testset "normed" begin
     include("normed.jl")
 end
-
 @testset "fixed" begin
     include("fixed.jl")
 end

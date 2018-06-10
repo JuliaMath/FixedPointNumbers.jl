@@ -27,12 +27,6 @@ export
     Normed,
 # "special" typealiases
     # Q and U typealiases are exported in separate source files
-# literal constructor constants
-    uf8,
-    uf10,
-    uf12,
-    uf14,
-    uf16,
 # Functions
     scaledual
 

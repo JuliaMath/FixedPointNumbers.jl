@@ -142,12 +142,12 @@ if isdefined(Base, :r_promote)
                        Base.reducedim_initarray(A, region, oneunit(Treduce))
 else
     # Julia v0.7
-    Base.add_sum(x::FixedPoint, y::FixedPoint) = convert(Treduce, x) + convert(Treduce, y)
+    Base.add_sum(x::FixedPoint, y::FixedPoint) = Treduce(x) + Treduce(y)
     Base.reduce_empty(::typeof(Base.add_sum), ::Type{F}) where {F<:FixedPoint}  = zero(Treduce)
-    Base.reduce_first(::typeof(Base.add_sum), x::FixedPoint)   = convert(Treduce, x)
-    Base.mul_prod(x::FixedPoint, y::FixedPoint) = convert(Treduce, x) * convert(Treduce, y)
+    Base.reduce_first(::typeof(Base.add_sum), x::FixedPoint)   = Treduce(x)
+    Base.mul_prod(x::FixedPoint, y::FixedPoint) = Treduce(x) * Treduce(y)
     Base.reduce_empty(::typeof(Base.mul_prod), ::Type{F}) where {F<:FixedPoint} = one(Treduce)
-    Base.reduce_first(::typeof(Base.mul_prod), x::FixedPoint)  = convert(Treduce, x)
+    Base.reduce_first(::typeof(Base.mul_prod), x::FixedPoint)  = Treduce(x)
 end
 
 

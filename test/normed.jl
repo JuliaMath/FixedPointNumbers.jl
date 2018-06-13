@@ -307,7 +307,7 @@ a = N0f8[reinterpret(N0f8, 0xff), reinterpret(N0f8, 0xff)]
 @test sum(a, dims=1) == [2.0]
 
 a = N2f14[3.2, 2.4]
-acmp = convert(Float64, a[1])*convert(Float64, a[2])
+acmp = Float64(a[1])*Float64(a[2])
 @test prod(a) == acmp
 @test prod(a, dims=1) == [acmp]
 end

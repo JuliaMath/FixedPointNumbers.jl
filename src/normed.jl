@@ -5,12 +5,12 @@ struct Normed{T<:Unsigned,f} <: FixedPoint{T,f}
     i::T
 
     Normed{T, f}(i::Integer,_) where {T,f} = new{T, f}(i%T)   # for setting by raw representation
-    Normed{T, f}(x) where {T,f} = convert(Normed{T,f}, x)
-    Normed{T, f}(x::Normed{T,f}) where {T,f} = x
-    Normed{T, f}(x::AbstractChar) where {T,f} = throw(ArgumentError("Normed cannot be constructed from a Char"))
-    Normed{T, f}(x::Complex) where {T,f} = Normed{T, f}(convert(real(typeof(x)), x))
-    Normed{T, f}(x::Base.TwicePrecision) where {T,f} = Normed{T, f}(convert(Float64, x))
 end
+
+Normed{T, f}(x::AbstractChar) where {T,f} = throw(ArgumentError("Normed cannot be constructed from a Char"))
+Normed{T, f}(x::Complex) where {T,f} = Normed{T, f}(convert(real(typeof(x)), x))
+Normed{T, f}(x::Base.TwicePrecision) where {T,f} = Normed{T, f}(convert(Float64, x))
+Normed{T1,f}(x::Normed{T2,f}) where {T1 <: Unsigned,T2 <: Unsigned,f} = Normed{T1,f}(convert(T1, x.i), 0)
 
 typechar(::Type{X}) where {X <: Normed} = 'N'
 signbits(::Type{X}) where {X <: Normed} = 0
@@ -38,17 +38,16 @@ one(x::Normed) = oneunit(x)
 rawone(v) = reinterpret(one(v))
 
 # Conversions
-convert(::Type{U}, x::U) where {U <: Normed} = x
-convert(::Type{Normed{T1,f}}, x::Normed{T2,f}) where {T1 <: Unsigned,T2 <: Unsigned,f} = Normed{T1,f}(convert(T1, x.i), 0)
-function convert(::Type{Normed{T,f}}, x::Normed{T2}) where {T <: Unsigned,T2 <: Unsigned,f}
+function Normed{T,f}(x::Normed{T2}) where {T <: Unsigned,T2 <: Unsigned,f}
     U = Normed{T,f}
     y = round((rawone(U)/rawone(x))*reinterpret(x))
     (0 <= y) & (y <= typemax(T)) || throw_converterror(U, x)
     reinterpret(U, _unsafe_trunc(T, y))
 end
-convert(::Type{U}, x::Real) where {U <: Normed} = _convert(U, rawtype(U), x)
+N0f16(x::N0f8) = reinterpret(N0f16, convert(UInt16, 0x0101*reinterpret(x)))
 
-convert(::Type{N0f16}, x::N0f8) = reinterpret(N0f16, convert(UInt16, 0x0101*reinterpret(x)))
+(::Type{U})(x::Real) where {U <: Normed} = _convert(U, rawtype(U), x)
+
 function _convert(::Type{U}, ::Type{T}, x) where {U <: Normed,T}
     y = round(widen1(rawone(U))*x)
     (0 <= y) & (y <= typemax(T)) || throw_converterror(U, x)
@@ -61,7 +60,7 @@ _convert(::Type{U}, ::Type{UInt128}, x::Float16) where {U <: Normed} =
     _convert(U, UInt128, Float32(x))
 function _convert(::Type{U}, ::Type{UInt128}, x) where {U <: Normed}
     y = round(rawone(U)*x)   # for UInt128, we can't widen
-    (0 <= y) & (y <= typemax(UInt128)) & (x <= convert(Float64, typemax(U))) || throw_converterror(U, x)
+    (0 <= y) & (y <= typemax(UInt128)) & (x <= Float64(typemax(U))) || throw_converterror(U, x)
     U(_unsafe_trunc(UInt128, y), 0)
 end
 
@@ -70,19 +69,18 @@ rem(x::Normed, ::Type{T}) where {T <: Normed} = reinterpret(T, _unsafe_trunc(raw
 rem(x::Real, ::Type{T}) where {T <: Normed} = reinterpret(T, _unsafe_trunc(rawtype(T), round(rawone(T)*x)))
 rem(x::Float16, ::Type{T}) where {T <: Normed} = rem(Float32(x), T)  # avoid overflow
 
-# convert(::Type{AbstractFloat}, x::Normed) = convert(floattype(x), x)
 float(x::Normed) = convert(floattype(x), x)
 
-convert(::Type{BigFloat}, x::Normed) = reinterpret(x)*(1/BigFloat(rawone(x)))
-function convert(::Type{T}, x::Normed) where {T <: AbstractFloat}
+Base.BigFloat(x::Normed) = reinterpret(x)*(1/BigFloat(rawone(x)))
+function (::Type{T})(x::Normed) where {T <: AbstractFloat}
     y = reinterpret(x)*(one(rawtype(x))/convert(T, rawone(x)))
     convert(T, y)  # needed for types like Float16 which promote arithmetic to Float32
 end
-convert(::Type{Bool}, x::Normed) = x == zero(x) ? false : true
-convert(::Type{Integer}, x::Normed) = convert(Integer, x*1.0)
-convert(::Type{T}, x::Normed) where {T <: Integer} = convert(T, x*(1/oneunit(T)))
-convert(::Type{Rational{Ti}}, x::Normed) where {Ti <: Integer} = convert(Ti, reinterpret(x))//convert(Ti, rawone(x))
-convert(::Type{Rational}, x::Normed) = reinterpret(x)//rawone(x)
+Base.Bool(x::Normed) = x == zero(x) ? false : true
+Base.Integer(x::Normed) = convert(Integer, x*1.0)
+(::Type{T})(x::Normed) where {T <: Integer} = convert(T, x*(1/oneunit(T)))
+Base.Rational{Ti}(x::Normed) where {Ti <: Integer} = convert(Ti, reinterpret(x))//convert(Ti, rawone(x))
+Base.Rational(x::Normed) = reinterpret(x)//rawone(x)
 
 # Traits
 abs(x::Normed) = x

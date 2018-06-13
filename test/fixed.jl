@@ -92,13 +92,13 @@ end
 @testset "reductions" begin
 F8 = Fixed{Int8,8}
 a = F8[0.498, 0.1]
-acmp = convert(Float64, a[1]) + convert(Float64, a[2])
+acmp = Float64(a[1]) + Float64(a[2])
 @test sum(a) == acmp
 @test sum(a, dims=1) == [acmp]
 
 F6 = Fixed{Int8,6}
 a = F6[1.2, 1.4]
-acmp = convert(Float64, a[1])*convert(Float64, a[2])
+acmp = Float64(a[1])*Float64(a[2])
 @test prod(a) == acmp
 @test prod(a, dims=1) == [acmp]
 end
@@ -162,7 +162,7 @@ for (T, f) in ((Int8, 7),
     tmax = typemax(Fixed{T, f})
     @test tmax == BigInt(typemax(T)) / BigInt(2)^f
     tol = (tmax + BigFloat(1.0)) / (sizeof(T) * 8)
-    for x in range(-1, stop=convert(BigFloat, tmax)-tol, length=50)
+    for x in range(-1, stop=BigFloat(tmax)-tol, length=50)
         @test abs(Fixed{T, f}(x) - x) <= tol
     end
 end

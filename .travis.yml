@@ -3,14 +3,14 @@ os:
     - linux
     - osx
 julia:
-    - 0.6
+    - 0.7
     - nightly
 notifications:
   email: false
 script:
     - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
-    - julia -e 'Pkg.clone(pwd()); Pkg.build("FixedPointNumbers")'
-    - julia -e 'Pkg.test("FixedPointNumbers"; coverage=true)'
+    - julia -e 'using Pkg; Pkg.clone(pwd()); Pkg.build("FixedPointNumbers")'
+    - julia -e 'using Pkg; Pkg.test("FixedPointNumbers"; coverage=true)'
 after_success:
   # push coverage results to Codecov
-  - julia -e 'cd(Pkg.dir("FixedPointNumbers")); Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())'
+  - julia -e 'using Pkg; cd(Pkg.dir("FixedPointNumbers")); Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())'

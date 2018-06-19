@@ -27,12 +27,6 @@ export
     Normed,
 # "special" typealiases
     # Q and U typealiases are exported in separate source files
-# literal constructor constants
-    uf8,
-    uf10,
-    uf12,
-    uf14,
-    uf16,
 # Functions
     scaledual
 
@@ -111,7 +105,7 @@ function show(io::IO, x::FixedPoint{T,f}) where {T,f}
     showtype(io, typeof(x))
 end
 const _log2_10 = 3.321928094887362
-showcompact(io::IO, x::FixedPoint{T,f}) where {T,f} = show(io, round(convert(Float64,x), ceil(Int,f/_log2_10)))
+showcompact(io::IO, x::FixedPoint{T,f}) where {T,f} = show(io, round(convert(Float64,x), digits=ceil(Int,f/_log2_10)))
 
 if VERSION >= v"0.7.0-DEV.1790"
     function Base.showarg(io::IO, a::Array{T}, toplevel) where {T<:FixedPoint}
@@ -126,6 +120,7 @@ end
 include("fixed.jl")
 include("normed.jl")
 include("deprecations.jl")
+const UF = (N0f8, N6f10, N4f12, N2f14, N0f16)
 
 eps(::Type{T}) where {T <: FixedPoint} = T(oneunit(rawtype(T)),0)
 eps(::T) where {T <: FixedPoint} = eps(T)

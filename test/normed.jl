@@ -1,5 +1,6 @@
-using FixedPointNumbers, Compat.Test
+using FixedPointNumbers, Test
 
+@testset "reinterpret" begin
 @test reinterpret(N0f8, 0xa2).i  === 0xa2
 @test reinterpret(N6f10, 0x1fa2).i === 0x1fa2
 @test reinterpret(N4f12, 0x1fa2).i === 0x1fa2
@@ -24,9 +25,11 @@ using FixedPointNumbers, Compat.Test
 v = N4f12.([2])
 @test v == N4f12[reinterpret(N4f12, 0x1ffe)]
 @test isa(v, Vector{N4f12})
+end
 
 UF2 = (Normed{UInt32,16}, Normed{UInt64,3}, Normed{UInt64,51}, Normed{UInt128,7}, Normed{UInt128,51})
 
+@testset "limits and identities" begin
 for T in (FixedPointNumbers.UF..., UF2...)
     @test zero(T) == 0
     @test one(T) == 1
@@ -48,7 +51,9 @@ end
 @test typemax(Normed{UInt64,3}) == typemax(UInt64) // (2^3-1)
 @test typemax(Normed{UInt128,7}) == typemax(UInt128) // (2^7-1)
 @test typemax(Normed{UInt128,100}) == typemax(UInt128) // (UInt128(2)^100-1)
+end
 
+@testset "inexactness" begin
 # TODO: change back to InexactError when it allows message strings
 @test_throws ArgumentError N0f8(2)
 @test_throws ArgumentError N0f8(255)
@@ -60,7 +65,9 @@ end
 @test_throws ArgumentError convert(N0f16, typemax(N6f10))
 @test_throws ArgumentError convert(Normed{UInt128,100}, 10^9)
 @test_throws ArgumentError convert(Normed{UInt128,100}, 10.0^9)
+end
 
+@testset "conversion" begin
 x = N0f8(0.5)
 @test convert(N0f8, x) === x
 @test isfinite(x) == true
@@ -93,7 +100,9 @@ end
 @test convert(N0f16, one(N0f8)) === one(N0f16)
 @test convert(N0f16, N0f8(0.5)).i === 0x8080
 @test convert(Normed{UInt16,7}, Normed{UInt8,7}(0.504)) === Normed{UInt16,7}(0.504)
+end
 
+@testset "modulus" begin
 @test  N0f8(0.2) % N0f8  === N0f8(0.2)
 @test N2f14(1.2) % N0f16 === N0f16(0.20002)
 @test N2f14(1.2) % N0f8  === N0f8(0.196)
@@ -112,15 +121,21 @@ end
 
 @test 1 % N0f8 == 1
 @test 2 % N0f8 == N0f8(0.996)
+end
 
+@testset "bitwise" begin
 x = N0f8(0b01010001, 0)
 @test ~x == N0f8(0b10101110, 0)
 @test -x == reinterpret(N0f8, 0xaf)
+end
 
+@testset "float" begin
 @test isa(float(one(Normed{UInt8,7})),   Float32)
 @test isa(float(one(Normed{UInt32,18})), Float64)
 @test isa(float(one(Normed{UInt32,25})), Float64)
+end
 
+@testset "arithmetic" begin
 for T in (FixedPointNumbers.UF..., UF2...)
     x = T(0x10,0)
     y = T(0x25,0)
@@ -140,6 +155,7 @@ for T in (FixedPointNumbers.UF..., UF2...)
     @test (x^2) ≈ convert(T, fx^2)
     @test (x^2.1f0) ≈ fx^2.1f0
     @test (x^2.1) ≈ convert(Float64, x)^2.1
+end
 end
 
 function testtrunc(inc::T) where {T}
@@ -174,8 +190,10 @@ function testtrunc(inc::T) where {T}
     end
 end
 
+@testset "trunc" begin
 for T in (FixedPointNumbers.UF..., UF2...)
     testtrunc(eps(T))
+end
 end
 
 function testapprox(::Type{T}) where {T}
@@ -186,10 +204,14 @@ function testapprox(::Type{T}) where {T}
         @test !(x ≈ y+eps(T))
     end
 end
+
+@testset "approx" begin
 for T in FixedPointNumbers.UF
     testapprox(T)
 end
+end
 
+@testset "low-level arithmetic" begin
 @test !(N0f8(0.5) < N0f8(0.5))
 @test N0f8(0.5) <= N0f8(0.5)
 
@@ -207,15 +229,17 @@ end
 
 r = reinterpret(N0f8, 0x01):reinterpret(N0f8, 0x01):reinterpret(N0f8, convert(UInt8, 48))
 @test length(r) == 48
+end
 
+@testset "step range" begin
 counter = 0
 for x in N0f8(0):eps(N0f8):N0f8(1)
-    local x
     counter += 1
 end
 @test counter == 256
+end
 
-# Promotion within Normed
+@testset "Promotion within Normed" begin
 @test @inferred(promote(N0f8(0.2), N0f8(0.8))) ===
     (N0f8(0.2), N0f8(0.8))
 @test @inferred(promote(Normed{UInt16,3}(0.2), Normed{UInt8,3}(0.86))) ===
@@ -238,14 +262,16 @@ end
 @test promote_type(Int,Float32,N0f8) == Float32
 @test promote_type(Float32,Int,N0f8) == Float32
 @test promote_type(Float32,N0f8,Int) == Float32
+end
 
-# Show
+@testset "show" begin
 x = reinterpret(N0f8, 0xaa)
 iob = IOBuffer()
 show(iob, x)
 str = String(take!(iob))
 @test str == "0.667N0f8"
-@test eval(parse(str)) == x
+@test eval(Meta.parse(str)) == x
+end
 
 # scaledual
 function generic_scale!(C::AbstractArray, X::AbstractArray, s::Number)
@@ -256,6 +282,7 @@ function generic_scale!(C::AbstractArray, X::AbstractArray, s::Number)
     C
 end
 
+@testset "scaledual" begin
 a = rand(UInt8, 10)
 rfloat = similar(a, Float32)
 rfixed = similar(rfloat)
@@ -272,23 +299,28 @@ b, ad = scaledual(0.5, ad)
 generic_scale!(rfloat, a, 0.5)
 generic_scale!(rfixed, ad, b)
 @test rfloat == rfixed
+end
 
-# reductions
+@testset "reductions" begin
 a = N0f8[reinterpret(N0f8, 0xff), reinterpret(N0f8, 0xff)]
 @test sum(a) == 2.0
-@test sum(a, 1) == [2.0]
+@test sum(a, dims=1) == [2.0]
 
 a = N2f14[3.2, 2.4]
 acmp = Float64(a[1])*Float64(a[2])
 @test prod(a) == acmp
-@test prod(a, 1) == [acmp]
+@test prod(a, dims=1) == [acmp]
+end
 
+@testset "convert" begin
 x = N0f8(0.3)
 for T in (Float16, Float32, Float64, BigFloat)
     y = convert(T, x)
     @test isa(y, T)
 end
+end
 
+@testset "rand" begin
 for T in (Normed{UInt8,8}, Normed{UInt8,6},
           Normed{UInt16,16}, Normed{UInt16,14},
           Normed{UInt32,32}, Normed{UInt32,30},
@@ -299,24 +331,22 @@ for T in (Normed{UInt8,8}, Normed{UInt8,6},
     @test ndims(a) == 2 && eltype(a) == T
     @test size(a) == (3,5)
 end
-
-# Overflow with Float16
-@test N0f16(Float16(1.0)) === N0f16(1.0)
-@test Float16(1.0) % N0f16 === N0f16(1.0)
-
-if VERSION >= v"0.7.0-DEV.2657"
-    a = N0f8[0.2, 0.4]
-    @test summary(a) == "2-element Array{N0f8,1} with eltype Normed{UInt8,8}"
-    @test summary(view(a, 1:2)) == "2-element view(::Array{N0f8,1}, 1:2) with eltype Normed{UInt8,8}"
-elseif VERSION >= v"0.7.0-DEV.1790"
-    a = N0f8[0.2, 0.4]
-    @test summary(a) == "2-element Array{N0f8,1} with eltype FixedPointNumbers.Normed{UInt8,8}"
-    @test summary(view(a, 1:2)) == "2-element view(::Array{N0f8,1}, 1:2) with eltype FixedPointNumbers.Normed{UInt8,8}"
 end
 
-# Test disambiguation constructors
+@testset "Overflow with Float16" begin
+@test N0f16(Float16(1.0)) === N0f16(1.0)
+@test Float16(1.0) % N0f16 === N0f16(1.0)
+end
+
+@testset "summary" begin
+a = N0f8[0.2, 0.4]
+@test summary(a) == "2-element Array{N0f8,1} with eltype Normed{UInt8,8}"
+@test summary(view(a, 1:2)) == "2-element view(::Array{N0f8,1}, 1:2) with eltype Normed{UInt8,8}"
+end
+
+@testset "disambiguation constructors" begin
 @test_throws ArgumentError Normed{UInt32,16}('a')
 @test_throws InexactError  Normed{UInt32,16}(complex(1.0, 1.0))
 @test Normed{UInt32,16}(complex(1.0, 0.0))        == 1
 @test Normed{UInt32,16}(Base.TwicePrecision(1.0, 0.0)) == 1
-
+end

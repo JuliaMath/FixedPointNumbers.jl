@@ -107,14 +107,12 @@ end
 const _log2_10 = 3.321928094887362
 showcompact(io::IO, x::FixedPoint{T,f}) where {T,f} = show(io, round(convert(Float64,x), digits=ceil(Int,f/_log2_10)))
 
-if VERSION >= v"0.7.0-DEV.1790"
-    function Base.showarg(io::IO, a::Array{T}, toplevel) where {T<:FixedPoint}
-        toplevel || print(io, "::")
-        print(io, "Array{")
-        showtype(io, T)
-        print(io, ",$(ndims(a))}")
-        toplevel && print(io, " with eltype ", T)
-    end
+function Base.showarg(io::IO, a::Array{T}, toplevel) where {T<:FixedPoint}
+    toplevel || print(io, "::")
+    print(io, "Array{")
+    showtype(io, T)
+    print(io, ",$(ndims(a))}")
+    toplevel && print(io, " with eltype ", T)
 end
 
 include("fixed.jl")

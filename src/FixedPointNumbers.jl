@@ -5,7 +5,7 @@ module FixedPointNumbers
 using Base: reducedim_initarray
 
 import Base: ==, <, <=, -, +, *, /, ~, isapprox,
-             convert, promote_rule, show, showcompact, isinteger, abs, decompose,
+             convert, promote_rule, show, isinteger, abs, decompose,
              isnan, isinf, isfinite,
              zero, oneunit, one, typemin, typemax, realmin, realmax, eps, sizeof, reinterpret,
              float, trunc, round, floor, ceil, bswap,
@@ -101,11 +101,10 @@ function showtype(io::IO, ::Type{X}) where {X <: FixedPoint}
     io
 end
 function show(io::IO, x::FixedPoint{T,f}) where {T,f}
-    showcompact(io, x)
-    showtype(io, typeof(x))
+    show(io, round(convert(Float64,x), digits=ceil(Int,f/_log2_10)))
+    get(io, :compact, false) || showtype(io, typeof(x))
 end
 const _log2_10 = 3.321928094887362
-showcompact(io::IO, x::FixedPoint{T,f}) where {T,f} = show(io, round(convert(Float64,x), digits=ceil(Int,f/_log2_10)))
 
 function Base.showarg(io::IO, a::Array{T}, toplevel) where {T<:FixedPoint}
     toplevel || print(io, "::")
@@ -176,8 +175,8 @@ scaledual(b::Tdual, x::Union{T,AbstractArray{T}}) where {Tdual <: Number,T <: Fi
     n = 2^(8*sizeof(T))
     bitstring = sizeof(T) == 1 ? "an 8-bit" : "a $(8*sizeof(T))-bit"
     io = IOBuffer()
-    showcompact(io, typemin(T)); Tmin = String(take!(io))
-    showcompact(io, typemax(T)); Tmax = String(take!(io))
+    show(IOContext(io, :compact=>true), typemin(T)); Tmin = String(take!(io))
+    show(IOContext(io, :compact=>true), typemax(T)); Tmax = String(take!(io))
     throw(ArgumentError("$T is $bitstring type representing $n values from $Tmin to $Tmax; cannot represent $x"))
 end
 

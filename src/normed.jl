@@ -132,7 +132,7 @@ function minmax(x::T, y::T) where {T <: Normed}
 end
 
 # Iteration
-# The main subtlety here is that iterating over 0x00uf8:0xffuf8 will wrap around
+# The main subtlety here is that iterating over N0f8(0):N0f8(1) will wrap around
 # unless we iterate using a wider type
 @inline start(r::StepRange{T}) where {T <: Normed} = widen1(reinterpret(r.start))
 @inline next(r::StepRange{T}, i::Integer) where {T <: Normed} = (T(i,0), i+reinterpret(r.step))

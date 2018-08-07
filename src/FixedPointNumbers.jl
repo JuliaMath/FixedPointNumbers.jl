@@ -7,7 +7,7 @@ using Base: reducedim_initarray
 import Base: ==, <, <=, -, +, *, /, ~, isapprox,
              convert, promote_rule, show, isinteger, abs, decompose,
              isnan, isinf, isfinite,
-             zero, oneunit, one, typemin, typemax, realmin, realmax, eps, sizeof, reinterpret,
+             zero, oneunit, one, typemin, typemax, floatmin, floatmax, eps, sizeof, reinterpret,
              float, trunc, round, floor, ceil, bswap,
              div, fld, rem, mod, mod1, fld1, min, max, minmax,
              start, next, done, rand
@@ -60,8 +60,8 @@ isinteger(x::FixedPoint{T,f}) where {T,f} = (x.i&(1<<f-1)) == 0
 # traits
 typemax(::Type{T}) where {T <: FixedPoint} = T(typemax(rawtype(T)), 0)
 typemin(::Type{T}) where {T <: FixedPoint} = T(typemin(rawtype(T)), 0)
-realmin(::Type{T}) where {T <: FixedPoint} = eps(T)
-realmax(::Type{T}) where {T <: FixedPoint} = typemax(T)
+floatmin(::Type{T}) where {T <: FixedPoint} = eps(T)
+floatmax(::Type{T}) where {T <: FixedPoint} = typemax(T)
 
 widen1(::Type{Int8})   = Int16
 widen1(::Type{UInt8})  = UInt16

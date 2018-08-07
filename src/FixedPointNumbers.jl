@@ -10,10 +10,8 @@ import Base: ==, <, <=, -, +, *, /, ~, isapprox,
              zero, oneunit, one, typemin, typemax, floatmin, floatmax, eps, sizeof, reinterpret,
              float, trunc, round, floor, ceil, bswap,
              div, fld, rem, mod, mod1, fld1, min, max, minmax,
-             start, next, done, rand
-if isdefined(Base, :rem1)
-    import Base: rem1
-end
+             rand
+
 using Base: @pure
 
 # T => BaseType
@@ -153,10 +151,7 @@ for f in (:div, :fld, :fld1)
         $f(x::T, y::T) where {T <: FixedPoint} = $f(reinterpret(x),reinterpret(y))
     end
 end
-for f in (:rem, :mod, :mod1, :rem1, :min, :max)
-    if f === :rem1 && !isdefined(Base, :rem1)
-        continue
-    end
+for f in (:rem, :mod, :mod1, :min, :max)
     @eval begin
         $f(x::T, y::T) where {T <: FixedPoint} = T($f(reinterpret(x),reinterpret(y)),0)
     end

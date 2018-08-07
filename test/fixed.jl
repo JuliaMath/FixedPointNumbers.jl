@@ -141,9 +141,9 @@ for T in (Fixed{Int8,8}, Fixed{Int16,8}, Fixed{Int16,10}, Fixed{Int32,16})
 end
 end
 
-@testset "realmin" begin
+@testset "floatmin" begin
 # issue #79
-@test realmin(Q11f4) == Q11f4(0.06)
+@test floatmin(Q11f4) == Q11f4(0.06)
 end
 
 @testset "Disambiguation constructors" begin

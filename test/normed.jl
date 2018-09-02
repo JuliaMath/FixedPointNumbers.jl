@@ -262,6 +262,7 @@ end
 @test promote_type(Int,Float32,N0f8) == Float32
 @test promote_type(Float32,Int,N0f8) == Float32
 @test promote_type(Float32,N0f8,Int) == Float32
+@test promote_type(N0f8,N1f7,N2f6,N3f5,N4f4,N5f3) == Normed{UInt128,8}
 end
 
 @testset "show" begin

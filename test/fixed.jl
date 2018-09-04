@@ -192,5 +192,4 @@ end
     @test promote_type(Float32,Int,Q0f7) == Float32
     @test promote_type(Float32,Q0f7,Int) == Float32
     @test promote_type(Q0f7,Q1f6,Q2f5,Q3f4,Q4f3,Q5f2) == Fixed{Int128,7}
-    end
 end

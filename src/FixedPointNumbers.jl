@@ -69,6 +69,7 @@ widen1(::Type{Int32})  = Int64
 widen1(::Type{UInt32}) = UInt64
 widen1(::Type{Int64})  = Int128
 widen1(::Type{UInt64}) = UInt128
+widen1(::Type{Int128}) = Int128
 widen1(::Type{UInt128}) = UInt128
 widen1(x::Integer) = x % widen1(typeof(x))
 

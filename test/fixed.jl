@@ -16,7 +16,7 @@ function test_fixed(::Type{T}, f) where {T}
         if !(typemin(T) < x <= typemax(T))
             continue
         end
-        isinteger(x) && @show x
+        # isinteger(x) && @show x
         fx = convert(T,x)
         @test convert(T,convert(Float64, fx)) == fx
         @test convert(T,convert(Float64, -fx)) == -fx
@@ -62,7 +62,7 @@ end
 @testset "test_fixed" begin
     for (TI, f) in [(Int8, 8), (Int16, 8), (Int16, 10), (Int32, 16)]
         T = Fixed{TI,f}
-        println("  Testing $T")
+        # println("  Testing $T")
         test_fixed(T, f)
     end
 end
@@ -165,5 +165,32 @@ end
         for x in range(-1, stop=BigFloat(tmax)-tol, length=50)
             @test abs(Fixed{T, f}(x) - x) <= tol
         end
+    end
+end
+
+@testset "Promotion within Fixed" begin
+    @test @inferred(promote(Q0f7(0.25), Q0f7(0.75))) ===
+        (Q0f7(0.25), Q0f7(0.75))
+    @test @inferred(promote(Fixed{Int16,3}(0.25), Fixed{Int8,3}(0.875))) ===
+        (Fixed{Int16,3}(0.25), Fixed{Int16,3}(0.875))
+    @test @inferred(promote(Fixed{Int8,6}(0.125), Fixed{Int8,4}(0.75))) ===
+        (Fixed{Int16,6}(0.125), Fixed{Int16,6}(0.75))
+
+    @test Fixed{Int16,15}(-1)   == Fixed{Int8,7}(-1)
+    @test Fixed{Int16,15}(0.25) == Fixed{Int8,7}(0.25)
+    @test Fixed{Int16,7}(-1)   == Fixed{Int8,7}(-1)
+    @test Fixed{Int16,7}(0.25) == Fixed{Int8,7}(0.25)
+    @test Fixed{Int16,15}(-1)   == Fixed{Int8,5}(-1)
+    @test Fixed{Int16,15}(5/32) == Fixed{Int8,5}(5/32)
+    @test Fixed{Int16,3}(-1)   == Fixed{Int8,5}(-1)
+    @test Fixed{Int16,3}(0.25) == Fixed{Int8,5}(0.25)
+
+    @test promote_type(Q0f7,Float32,Int) == Float32
+    @test promote_type(Q0f7,Int,Float32) == Float32
+    @test promote_type(Int,Q0f7,Float32) == Float32
+    @test promote_type(Int,Float32,Q0f7) == Float32
+    @test promote_type(Float32,Int,Q0f7) == Float32
+    @test promote_type(Float32,Q0f7,Int) == Float32
+    @test promote_type(Q0f7,Q1f6,Q2f5,Q3f4,Q4f3,Q5f2) == Fixed{Int128,7}
     end
 end

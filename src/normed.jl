@@ -159,7 +159,9 @@ end
     i1, i2 = 8*sizeof(T1)-f1, 8*sizeof(T2)-f2  # number of integer bits for each
     i = 8*sizeof(T)-f
     while i < max(i1, i2)
-        T = widen1(T)
+        Tw = widen1(T)
+        T == Tw && break
+        T = Tw
         i = 8*sizeof(T)-f
     end
     :(Normed{$T,$f})

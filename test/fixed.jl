@@ -149,8 +149,8 @@ end
 @testset "isinteger" begin
     # issue #120
     for T in (Fixed{Int8,6}, Fixed{Int16,8}, Fixed{Int16,10}, Fixed{Int32,16})
-        a = 1
-        @test all(isinteger.(T.(a)))
+        T_ints = round.(clamp.(rand(Int, 50, 50), typemin(T), typemax(T)))
+        @test all(isinteger.(T.(T_ints)))
     end
 end
 

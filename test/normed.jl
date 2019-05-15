@@ -348,7 +348,7 @@ end
 @testset "isinteger" begin
     # issue #120
     for T in (Normed{UInt8,6}, Normed{UInt16,8}, Normed{UInt16,10}, Normed{UInt32,16})
-        a = 1
+        a = round.(clamp.(rand(Int, 50, 50), typemin(T), typemax(T)))
         @test all(isinteger.(T.(a)))
     end
 end

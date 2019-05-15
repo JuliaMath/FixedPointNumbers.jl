@@ -23,6 +23,7 @@ export
     FixedPoint,
     Fixed,
     Normed,
+    floattype,
 # "special" typealiases
     # Q and U typealiases are exported in separate source files
 # Functions
@@ -74,9 +75,38 @@ widen1(::Type{UInt128}) = UInt128
 widen1(x::Integer) = x % widen1(typeof(x))
 
 const ShortInts = Union{Int8,UInt8,Int16,UInt16}
+const LongInts = Union{UInt64, UInt128, Int64, Int128, BigInt}
 
+"""
+    floattype(::Type{T})
+
+Return the minimum float type that represents `T` without overflow to `Inf`.
+
+# Example
+
+A classic usage is to avoid overflow behavior by promoting `FixedPoint` to `AbstractFloat`
+
+```julia
+julia> x = N0f8(1.0)
+1.0N0f8
+
+julia> x + x # overflow
+0.996N0f8
+
+julia> float_x = floattype(eltype(x))(x)
+1.0f0
+
+julia> float_x + float_x
+2.0f0
+```
+"""
+floattype(::Type{T}) where {T <: Real} = T # fallback
+floattype(::Type{T}) where {T <: Union{ShortInts, Bool}} = Float32
+floattype(::Type{T}) where {T <: Integer} = Float64
+floattype(::Type{T}) where {T <: LongInts} = BigFloat
 floattype(::Type{FixedPoint{T,f}}) where {T <: ShortInts,f} = Float32
 floattype(::Type{FixedPoint{T,f}}) where {T <: Integer,f} = Float64
+floattype(::Type{FixedPoint{T,f}}) where {T <: LongInts,f} = BigFloat
 floattype(::Type{F}) where {F <: FixedPoint} = floattype(supertype(F))
 floattype(x::FixedPoint) = floattype(typeof(x))
 

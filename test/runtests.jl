@@ -8,3 +8,7 @@ end
 @testset "fixed" begin
     include("fixed.jl")
 end
+
+@testset "traits" begin
+    include("traits.jl")
+end

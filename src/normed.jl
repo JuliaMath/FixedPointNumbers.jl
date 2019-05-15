@@ -16,7 +16,7 @@ typechar(::Type{X}) where {X <: Normed} = 'N'
 signbits(::Type{X}) where {X <: Normed} = 0
 
 for T in (UInt8, UInt16, UInt32, UInt64)
-    for f in 0:sizeof(T)*8
+    for f in 1:sizeof(T)*8
         sym = Symbol(String(take!(showtype(_iotypealias, Normed{T,f}))))
         @eval begin
             const $sym = Normed{$T,$f}

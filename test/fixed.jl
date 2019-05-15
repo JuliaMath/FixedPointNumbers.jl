@@ -146,6 +146,14 @@ end
     @test floatmin(Q11f4) == Q11f4(0.06)
 end
 
+@testset "isinteger" begin
+    # issue #120
+    for T in (Fixed{Int8,6}, Fixed{Int16,8}, Fixed{Int16,10}, Fixed{Int32,16})
+        a = 1
+        @test all(isinteger.(T.(a)))
+    end
+end
+
 @testset "Disambiguation constructors" begin
     @test_throws ArgumentError Fixed{Int32,16}('a')
     @test_throws InexactError  Fixed{Int32,16}(complex(1.0, 1.0))

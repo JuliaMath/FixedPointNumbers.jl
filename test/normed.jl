@@ -345,6 +345,14 @@ end
     @test summary(view(a, 1:2)) == "2-element view(::Array{N0f8,1}, 1:2) with eltype Normed{UInt8,8}"
 end
 
+@testset "isinteger" begin
+    # issue #120
+    for T in (Normed{UInt8,6}, Normed{UInt16,8}, Normed{UInt16,10}, Normed{UInt32,16})
+        a = 1
+        @test all(isinteger.(T.(a)))
+    end
+end
+
 @testset "disambiguation constructors" begin
     @test_throws ArgumentError Normed{UInt32,16}('a')
     @test_throws InexactError  Normed{UInt32,16}(complex(1.0, 1.0))

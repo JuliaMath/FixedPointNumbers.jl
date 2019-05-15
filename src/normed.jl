@@ -169,3 +169,6 @@ end
 
 _unsafe_trunc(::Type{T}, x::Integer) where {T} = x % T
 _unsafe_trunc(::Type{T}, x) where {T}          = unsafe_trunc(T, x)
+
+# predicates
+isinteger(x::Normed{T,f}) where {T,f} = (x.i%(1<<f-1)) == 0

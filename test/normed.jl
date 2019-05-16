@@ -349,8 +349,8 @@ end
     # issue #120
     for T in generate_fixedpoint_types(:Normed)
         T_ints = T.(clamp.(rand(rawtype(T), 500, 500),
-                        ceil(BigInt, floattype(T)(typemin(T))),
-                        floor(BigInt, floattype(T)(typemax(T)))))
+                        ceil(rawtype(T), floattype(T)(typemin(T))),
+                        floor(rawtype(T), floattype(T)(typemax(T)))))
         @test all(isinteger.(T_ints))
     end
 end

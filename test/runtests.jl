@@ -1,4 +1,5 @@
 using FixedPointNumbers, Test
+using FixedPointNumbers: rawtype
 
 @test isempty(detect_ambiguities(FixedPointNumbers, Base, Core))
 

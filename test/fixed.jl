@@ -148,9 +148,11 @@ end
 
 @testset "isinteger" begin
     # issue #120
-    for T in (Fixed{Int8,6}, Fixed{Int16,8}, Fixed{Int16,10}, Fixed{Int32,16})
-        T_ints = round.(clamp.(rand(Int, 50, 50), typemin(T), typemax(T)))
-        @test all(isinteger.(T.(T_ints)))
+    for T in generate_fixedpoint_types(:Fixed)
+        T_ints = T.(clamp.(rand(rawtype(T), 500, 500),
+                        ceil(BigInt, floattype(T)(typemin(T))),
+                        floor(BigInt, floattype(T)(typemax(T)))))
+        @test all(isinteger.(T_ints))
     end
 end
 

@@ -1,9 +1,9 @@
 name = "FixedPointNumbers"
 uuid = "53c48c17-4a7d-5ca2-90c5-79b7896eea93"
-version = "0.6.0"
+version = "0.6.1"
 
 [compat]
-julia = "≥ 1.0"
+julia = "1"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"

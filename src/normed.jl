@@ -105,11 +105,135 @@ rem(x::Float16, ::Type{T}) where {T <: Normed} = rem(Float32(x), T)  # avoid ove
 
 float(x::Normed) = convert(floattype(x), x)
 
-Base.BigFloat(x::Normed) = reinterpret(x)*(1/BigFloat(rawone(x)))
+macro f32(x::Float64) # just for hexadecimal floating-point literals
+    :(Float32($x))
+end
+macro exp2(n)
+     :(_exp2(Val($(esc(n)))))
+end
+_exp2(::Val{N}) where {N} = exp2(N)
+
+# for Julia v1.0, which does not fold `div_float` before inlining
+inv_rawone(x) = (@generated) ? (y = 1.0 / rawone(x); :($y)) : 1.0 / rawone(x)
+
 function (::Type{T})(x::Normed) where {T <: AbstractFloat}
-    y = reinterpret(x)*(one(rawtype(x))/convert(T, rawone(x)))
+    # The following optimization for constant division may cause rounding errors.
+    # y = reinterpret(x)*(one(rawtype(x))/convert(T, rawone(x)))
+    # Therefore, we use a simple form here.
+    # If you prefer speed over accuracy, consider using `scaledual` instead.
+    y = reinterpret(x) / convert(promote_type(T, floattype(x)), rawone(x))
     convert(T, y)  # needed for types like Float16 which promote arithmetic to Float32
 end
+
+function Base.Float16(x::Normed{Ti,f}) where {Ti <: Union{UInt8, UInt16, UInt32}, f}
+    f == 1 ? Float16(x.i) : Float16(Float32(x))
+end
+function Base.Float16(x::Normed{Ti,f}) where {Ti <: Union{UInt64, UInt128}, f}
+    f == 1 ? Float16(x.i) : Float16(Float64(x))
+end
+
+function Base.Float32(x::Normed{UInt8,f}) where f
+    f == 1 && return Float32(x.i)
+    f == 2 && return Float32(Int32(x.i) * 0x101) * @f32(0x550055p-32)
+    f == 3 && return Float32(Int32(x.i) * 0x00b) * @f32(0xd4c77bp-30)
+    f == 4 && return Float32(Int32(x.i) * 0x101) * @f32(0x110011p-32)
+    f == 5 && return Float32(Int32(x.i) * 0x003) * @f32(0xb02c0bp-30)
+    f == 6 && return Float32(Int32(x.i) * 0x049) * @f32(0xe40039p-36)
+    f == 7 && return Float32(Int32(x.i) * 0x01f) * @f32(0x852b5fp-35)
+    f == 8 && return Float32(Int32(x.i) * 0x155) * @f32(0xc0f0fdp-40)
+    0.0f0
+end
+function Base.Float32(x::Normed{UInt16,f}) where f
+    f32 = Float32(x.i)
+    f ==  1 && return f32
+    f ==  2 && return f32 * @f32(0x55p-8)  + f32 * @f32(0x555555p-32)
+    f ==  3 && return f32 * @f32(0x49p-9)  + f32 * @f32(0x249249p-33)
+    f ==  4 && return f32 * @f32(0x11p-8)  + f32 * @f32(0x111111p-32)
+    f ==  5 && return f32 * @f32(0x21p-10) + f32 * @f32(0x108421p-35)
+    f ==  6 && return f32 * @f32(0x41p-12) + f32 * @f32(0x041041p-36)
+    f ==  7 && return f32 * @f32(0x81p-14) + f32 * @f32(0x204081p-42)
+    f == 16 && return f32 * @f32(0x01p-16) + f32 * @f32(0x010001p-48)
+    Float32(x.i / rawone(x))
+end
+function Base.Float32(x::Normed{UInt32,f}) where f
+    f == 1 && return Float32(x.i)
+    i32 = unsafe_trunc(Int32, x.i)
+    if f == 32
+        rh, rl = Float32(i32>>>16), Float32((i32&0xFFFF)<<8 | (i32>>>24))
+        return muladd(rh, @f32(0x1p-16), rl * @f32(0x1p-40))
+    elseif f >= 25
+        rh, rl = Float32(i32>>>16),Float32(((i32&0xFFFF)<<14) + (i32>>>(f-14)))
+        return muladd(rh, Float32(@exp2(16-f)), rl * Float32(@exp2(-14-f)))
+    end
+    # FIXME: avoid the branch in native x86_64 (non-SIMD) codes
+    m = ifelse(i32 < 0, 0x1p32 * inv_rawone(x), 0.0)
+    Float32(muladd(Float64(i32), inv_rawone(x), m))
+end
+function Base.Float32(x::Normed{Ti,f}) where {Ti <: Union{UInt64, UInt128}, f}
+    f == 1 ? Float32(x.i) : Float32(Float64(x))
+end
+
+function Base.Float64(x::Normed{Ti,f}) where {Ti <: Union{UInt8, UInt16}, f}
+    Float64(Normed{UInt32,f}(x))
+end
+function Base.Float64(x::Normed{UInt32,f}) where f
+    f64 = Float64(x.i)
+    f ==  1 && return f64
+    f ==  2 && return (f64 * 0x040001) * 0x15555000015555p-72
+    f ==  3 && return (f64 * 0x108421) * 0x11b6db76924929p-75
+    f ==  4 && return (f64 * 0x010101) * 0x11000011000011p-72
+    f ==  5 && return (f64 * 0x108421) * 0x04000002000001p-75
+    f ==  6 && return (f64 * 0x09dfb1) * 0x1a56b8e38e6d91p-78
+    f ==  7 && return (f64 * 0x000899) * 0x0f01480001e029p-70
+    f ==  8 && return (f64 * 0x0a5a5b) * 0x18d300000018d3p-80
+    f ==  9 && return (f64 * 0x001001) * 0x080381c8e3f201p-72
+    f == 10 && return (f64 * 0x100001) * 0x04010000000401p-80
+    f == 11 && return (f64 * 0x000009) * 0x0e3aaae3955639p-66
+    f == 12 && return (f64 * 0x0a8055) * 0x186246e46e4cfdp-84
+    f == 13 && return (f64 * 0x002001) * 0x10000004000001p-78
+    f == 14 && return (f64 * 0x03400d) * 0x13b13b14ec4ec5p-84
+    f == 15 && return (f64 * 0x000259) * 0x06d0c5a4f3a5e9p-75
+    f == 16 && return (f64 * 0x011111) * 0x00f000ff00fff1p-80
+    f == 18 && return (f64 * 0x0b06d1) * 0x17377445dd1231p-90
+    f == 19 && return (f64 * 0x080001) * 0x00004000000001p-76
+    f == 20 && return (f64 * 0x000101) * 0x0ff010ef10ff01p-80
+    f == 21 && return (f64 * 0x004001) * 0x01fff8101fc001p-84
+    f == 22 && return (f64 * 0x002945) * 0x18d0000000018dp-88
+    f == 23 && return (f64 * 0x044819) * 0x07794a23729429p-92
+    f == 27 && return (f64 * 0x000a21) * 0x0006518c7df9e1p-81
+    f == 28 && return (f64 * 0x00000d) * 0x13b13b14ec4ec5p-84
+    f == 30 && return (f64 * 0x001041) * 0x00fc003f03ffc1p-90
+    f == 32 && return (f64 * 0x010101) * 0x00ff0000ffff01p-96
+    f64 / rawone(x)
+end
+function Base.Float64(x::Normed{UInt64,f}) where f
+    f == 1 && return Float64(x.i)
+    if f >= 53
+        rh = Float64(unsafe_trunc(Int64, x.i >> 16)) * @exp2(16-f) # upper 48 bits
+        rl = Float64(unsafe_trunc(Int32, x.i&0xFFFF)) * @exp2(-f)  # lower 16 bits
+        return rh + muladd(rh, @exp2(-f), rl)
+    end
+    x.i / rawone(x)
+end
+function Base.Float64(x::Normed{UInt128,f}) where f
+    f == 1 && return Float64(x.i)
+    ih, il = unsafe_trunc(Int64, x.i>>64), unsafe_trunc(Int64, x.i)
+    rh = Float64(ih>>>16) * @exp2(f <= 53 ? 80 : 80 - f) # upper 48 bits
+    km = @exp2(f <= 53 ? 48 : 48 - f) # for middle 32 bits
+    rm = Float64(unsafe_trunc(Int32, ih&0xFFFF)) * (0x1p16 * km) +
+         Float64(unsafe_trunc(Int32, il>>>48)) * km
+    rl = Float64(il&0xFFFFFFFFFFFF) * @exp2(f <= 53 ? 0 : -f) # lower 48 bits
+    if f <= 53
+        return (rh + (rm + rl)) / unsafe_trunc(Int64, rawone(x))
+    elseif f < 76
+        return rh + (rm + muladd(rh, @exp2(-f), rl))
+    else
+        return rh + (rm + rl)
+    end
+end
+
+Base.BigFloat(x::Normed) = reinterpret(x)*(1/BigFloat(rawone(x)))
+
 Base.Bool(x::Normed) = x == zero(x) ? false : true
 Base.Integer(x::Normed) = convert(Integer, x*1.0)
 (::Type{T})(x::Normed) where {T <: Integer} = convert(T, x*(1/oneunit(T)))

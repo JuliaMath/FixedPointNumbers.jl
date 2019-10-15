@@ -112,9 +112,7 @@ end
 
                 @test reinterpret(U(zero(Tf))) == 0x0
 
-                # TODO: fix issue #129
-                # input_typemax = Tf(typemax(U))
-                input_typemax = Tf(BigFloat(typemax(T)) / r)
+                input_typemax = Tf(typemax(U))
                 if isinf(input_typemax)
                     @test reinterpret(U(floatmax(Tf))) >= round(T, floatmax(Tf))
                 else
@@ -134,6 +132,46 @@ end
     @test N0f32(Float32(0x0.7FFFFFp-32)) == zero(N0f32)
     @test N0f32(Float32(0x0.800000p-32)) <= eps(N0f32) # should be zero in RoundNearest mode
     @test N0f32(Float32(0x0.800001p-32)) == eps(N0f32)
+end
+
+@testset "conversions to float" begin
+    x = N0f8(0.3)
+    for T in (Float16, Float32, Float64, BigFloat)
+        y = convert(T, x)
+        @test isa(y, T)
+    end
+
+    for Tf in (Float16, Float32, Float64)
+        @testset "$Tf(::Normed{$Ti})" for Ti in (UInt8, UInt16)
+            @testset "$Tf(::Normed{$Ti,$f})" for f = 1:(sizeof(Ti)*8)
+                T = Normed{Ti,f}
+                float_err = 0.0
+                for i = typemin(Ti):typemax(Ti)
+                    f_expected = Tf(i / BigFloat(FixedPointNumbers.rawone(T)))
+                    isinf(f_expected) && break # for Float16(::Normed{UInt16,1})
+                    f_actual = Tf(reinterpret(T, i))
+                    float_err += abs(f_actual - f_expected)
+                end
+                @test float_err == 0.0
+            end
+        end
+        @testset "$Tf(::Normed{$Ti})" for Ti in (UInt32, UInt64, UInt128)
+            @testset "$Tf(::Normed{$Ti,$f})" for f = 1:(sizeof(Ti)*8)
+                T = Normed{Ti,f}
+                error_count = 0
+                for i in vcat(Ti(0x00):Ti(0xFF), (typemax(Ti)-0xFF):typemax(Ti))
+                    f_expected = Tf(i / BigFloat(FixedPointNumbers.rawone(T)))
+                    isinf(f_expected) && break # for Float16() and Float32()
+                    f_actual = Tf(reinterpret(T, i))
+                    f_actual == f_expected && continue
+                    f_actual == prevfloat(f_expected) && continue
+                    f_actual == nextfloat(f_expected) && continue
+                    error_count += 1
+                end
+                @test error_count == 0
+            end
+        end
+    end
 end
 
 @testset "modulus" begin
@@ -307,10 +345,11 @@ end
     af8 = reinterpret(N0f8, a)
     b = 0.5
 
+    # LHSs of the following `@test`s with `af8` can be slightly more accurate
     bd, eld = scaledual(b, af8[1])
-    @test b*af8[1] == bd*eld
+    @test b*af8[1] ≈ bd*eld rtol=1e-15
     bd, ad = scaledual(b, af8)
-    @test b*af8 == bd*ad
+    @test b*af8 ≈ bd*ad rtol=1e-15
 
     bd, eld = scaledual(b, a[1])
     @test b*a[1] == bd*eld
@@ -318,14 +357,14 @@ end
     @test b*a == bd*ad
 
     bd, eld = scaledual(Float64, af8[1])
-    @test 1.0*af8[1] == bd*eld
+    @test 1.0*af8[1] ≈ bd*eld rtol=1e-15
     bd, ad = scaledual(Float64, af8)
-    @test 1.0*af8 == bd*ad
+    @test 1.0*af8 ≈ bd*ad rtol=1e-15
 
     bd, eld = scaledual(Float64, a[1])
     @test 1.0*a[1] == bd*eld
     bd, ad = scaledual(Float64, a)
-    @test 1.0*a == bd*ad    
+    @test 1.0*a == bd*ad
 end
 
 @testset "reductions" begin
@@ -337,14 +376,6 @@ end
     acmp = Float64(a[1])*Float64(a[2])
     @test prod(a) == acmp
     @test prod(a, dims=1) == [acmp]
-end
-
-@testset "convert" begin
-    x = N0f8(0.3)
-    for T in (Float16, Float32, Float64, BigFloat)
-        y = convert(T, x)
-        @test isa(y, T)
-    end
 end
 
 @testset "rand" begin

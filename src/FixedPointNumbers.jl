@@ -15,7 +15,7 @@ import Base: ==, <, <=, -, +, *, /, ~, isapprox,
 using Base: @pure
 
 # T => BaseType
-# f => Number of Bytes reserved for fractional part
+# f => Number of bits reserved for fractional part
 abstract type FixedPoint{T <: Integer, f} <: Real end
 
 
@@ -25,7 +25,7 @@ export
     Normed,
     floattype,
 # "special" typealiases
-    # Q and U typealiases are exported in separate source files
+    # Q and N typealiases are exported in separate source files
 # Functions
     scaledual
 

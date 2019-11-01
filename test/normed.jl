@@ -274,32 +274,30 @@ end
     @test eval(Meta.parse(str)) == x
 end
 
-# scaledual
-function generic_scale!(C::AbstractArray, X::AbstractArray, s::Number)
-    length(C) == length(X) || error("C must be the same length as X")
-    for i = 1:length(X)
-        @inbounds C[i] = X[i]*s
-    end
-    C
-end
-
 @testset "scaledual" begin
     a = rand(UInt8, 10)
-    rfloat = similar(a, Float32)
-    rfixed = similar(rfloat)
     af8 = reinterpret(N0f8, a)
-
     b = 0.5
-    bd, eld = scaledual(b, af8[1])
-    @assert b*a[1] == bd*eld
 
-    b, ad = scaledual(0.5, a)
-    @test b == 0.5
-    @test ad == a
-    b, ad = scaledual(0.5, ad)
-    generic_scale!(rfloat, a, 0.5)
-    generic_scale!(rfixed, ad, b)
-    @test rfloat == rfixed
+    bd, eld = scaledual(b, af8[1])
+    @test b*af8[1] == bd*eld
+    bd, ad = scaledual(b, af8)
+    @test b*af8 == bd*ad
+
+    bd, eld = scaledual(b, a[1])
+    @test b*a[1] == bd*eld
+    bd, ad = scaledual(b, a)
+    @test b*a == bd*ad
+
+    bd, eld = scaledual(Float64, af8[1])
+    @test 1.0*af8[1] == bd*eld
+    bd, ad = scaledual(Float64, af8)
+    @test 1.0*af8 == bd*ad
+
+    bd, eld = scaledual(Float64, a[1])
+    @test 1.0*a[1] == bd*eld
+    bd, ad = scaledual(Float64, a)
+    @test 1.0*a == bd*ad    
 end
 
 @testset "reductions" begin

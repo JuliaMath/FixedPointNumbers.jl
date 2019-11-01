@@ -102,6 +102,40 @@ end
     @test convert(Normed{UInt16,7}, Normed{UInt8,7}(0.504)) === Normed{UInt16,7}(0.504)
 end
 
+@testset "conversion from float" begin
+    # issue 102
+    for T in (UInt8, UInt16, UInt32, UInt64, UInt128)
+        for Tf in (Float16, Float32, Float64)
+            @testset "Normed{$T,$f}(::$Tf)" for f = 1:sizeof(T)*8
+                U = Normed{T,f}
+                r = FixedPointNumbers.rawone(U)
+
+                @test reinterpret(U(zero(Tf))) == 0x0
+
+                # TODO: fix issue #129
+                # input_typemax = Tf(typemax(U))
+                input_typemax = Tf(BigFloat(typemax(T)) / r)
+                if isinf(input_typemax)
+                    @test reinterpret(U(floatmax(Tf))) >= round(T, floatmax(Tf))
+                else
+                    @test reinterpret(U(input_typemax)) >= (typemax(T)>>1) # overflow check
+                end
+
+                input_upper = Tf(BigFloat(typemax(T)) / r, RoundDown)
+                isinf(input_upper) && continue # for Julia v0.7
+                @test reinterpret(U(input_upper)) == T(min(round(BigFloat(input_upper) * r), typemax(T)))
+
+                input_exp2 = Tf(exp2(sizeof(T) * 8 - f))
+                isinf(input_exp2) && continue
+                @test reinterpret(U(input_exp2)) == T(input_exp2) * r
+            end
+        end
+    end
+    @test N0f32(Float32(0x0.7FFFFFp-32)) == zero(N0f32)
+    @test N0f32(Float32(0x0.800000p-32)) <= eps(N0f32) # should be zero in RoundNearest mode
+    @test N0f32(Float32(0x0.800001p-32)) == eps(N0f32)
+end
+
 @testset "modulus" begin
     @test  N0f8(0.2) % N0f8  === N0f8(0.2)
     @test N2f14(1.2) % N0f16 === N0f16(0.20002)

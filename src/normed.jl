@@ -46,22 +46,56 @@ function Normed{T,f}(x::Normed{T2}) where {T <: Unsigned,T2 <: Unsigned,f}
 end
 N0f16(x::N0f8) = reinterpret(N0f16, convert(UInt16, 0x0101*reinterpret(x)))
 
-(::Type{U})(x::Real) where {U <: Normed} = _convert(U, rawtype(U), x)
+(::Type{U})(x::Real) where {U <: Normed} = _convert(U, x)
 
-function _convert(::Type{U}, ::Type{T}, x) where {U <: Normed,T}
-    y = round(widen1(rawone(U))*x)
-    (0 <= y) & (y <= typemax(T)) || throw_converterror(U, x)
-    U(_unsafe_trunc(T, y), 0)
+function _convert(::Type{U}, x) where {T, f, U <: Normed{T,f}}
+    if T == UInt128 # for UInt128, we can't widen
+        # the upper limit is not exact
+        (0 <= x) & (x <= (typemax(T)/rawone(U))) || throw_converterror(U, x)
+        y = round(rawone(U)*x)
+    else
+        y = round(widen1(rawone(U))*x)
+        (0 <= y) & (y <= typemax(T)) || throw_converterror(U, x)
+    end
+    reinterpret(U, _unsafe_trunc(T, y))
 end
 # Prevent overflow (https://discourse.julialang.org/t/saving-greater-than-8-bit-images/6057)
-_convert(::Type{U}, ::Type{T}, x::Float16) where {U <: Normed,T} =
-    _convert(U, T, Float32(x))
-_convert(::Type{U}, ::Type{UInt128}, x::Float16) where {U <: Normed} =
-    _convert(U, UInt128, Float32(x))
-function _convert(::Type{U}, ::Type{UInt128}, x) where {U <: Normed}
-    y = round(rawone(U)*x)   # for UInt128, we can't widen
-    (0 <= y) & (y <= typemax(UInt128)) & (x <= Float64(typemax(U))) || throw_converterror(U, x)
-    U(_unsafe_trunc(UInt128, y), 0)
+function _convert(::Type{U}, x::Float16) where {T, f, U <: Normed{T,f}}
+    if Float16(typemax(T)/rawone(U)) > Float32(typemax(T)/rawone(U))
+        x == Float16(typemax(T)/rawone(U)) && return typemax(U)
+    end
+    return _convert(U, Float32(x))
+end
+function _convert(::Type{U}, x::Tf) where {T, f, U <: Normed{T,f}, Tf <: Union{Float32, Float64}}
+    if T == UInt128 && f == 53
+        0 <= x <= Tf(3.777893186295717e22) || throw_converterror(U, x)
+    else
+        0 <= x <= Tf((typemax(T)-rawone(U))/rawone(U)+1) || throw_converterror(U, x)
+    end
+
+    significand_bits = Tf == Float64 ? 52 : 23
+    if f <= (significand_bits + 1) && sizeof(T) * 8 < significand_bits
+        return reinterpret(U, unsafe_trunc(T, round(rawone(U) * x)))
+    end
+    # cf. the implementation of `frexp`
+    Tw = f < sizeof(T) * 8 ? T : widen1(T)
+    bits = sizeof(Tw) * 8 - 1
+    xu = reinterpret(Tf == Float64 ? UInt64 : UInt32, x)
+    k = Int(xu >> significand_bits)
+    k == 0 && return zero(U) # neglect subnormal numbers
+    significand = xu | (one(xu) << significand_bits)
+    yh = unsafe_trunc(Tw, significand) << (bits - significand_bits)
+    exponent_bias = Tf == Float64 ? 1023 : 127
+    ex = exponent_bias - k + bits - f
+    yi = bits >= f ? yh - (yh >> f) : yh
+    if ex <= 0
+        ex == 0 && return reinterpret(U, unsafe_trunc(T, yi))
+        ex != -1 || signbit(signed(yi)) && return typemax(U)
+        return reinterpret(U, unsafe_trunc(T, yi + yi))
+    end
+    ex > bits && return reinterpret(U, ex == bits + 1 ? one(T) : zero(T))
+    yi += one(Tw)<<((ex - 1) & bits) # RoundNearestTiesUp
+    return reinterpret(U, unsafe_trunc(T, yi >> (ex & bits)))
 end
 
 rem(x::T, ::Type{T}) where {T <: Normed} = x

@@ -84,8 +84,11 @@ end
 end
 
 @testset "testapprox" begin
-    for T in [Fixed{Int8,7}, Fixed{Int16,8}, Fixed{Int16,10}]
-        testapprox(T)  # defined in ufixed.jl
+    @testset "approx $T" for T in [Fixed{Int8,7}, Fixed{Int16,8}, Fixed{Int16,10}]
+        xs = typemin(T):eps(T):typemax(T)-eps(T)
+        @test all(x -> x ≈ x + eps(T), xs)
+        @test all(x -> x + eps(T) ≈ x, xs)
+        @test !any(x -> x - eps(T) ≈ x + eps(T), xs)
     end
 end
 

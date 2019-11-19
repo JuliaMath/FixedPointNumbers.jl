@@ -230,18 +230,12 @@ end
     end
 end
 
-function testapprox(::Type{T}) where {T}
-    for x = typemin(T):eps(T):typemax(T)-eps(T)
-        y = x+eps(T)
-        @test x ≈ y
-        @test y ≈ x
-        @test !(x ≈ y+eps(T))
-    end
-end
-
 @testset "approx" begin
-    for T in FixedPointNumbers.UF
-        testapprox(T)
+    @testset "approx $T" for T in FixedPointNumbers.UF
+        xs = typemin(T):eps(T):typemax(T)-eps(T)
+        @test all(x -> x ≈ x + eps(T), xs)
+        @test all(x -> x + eps(T) ≈ x, xs)
+        @test !any(x -> x - eps(T) ≈ x + eps(T), xs)
     end
 end
 

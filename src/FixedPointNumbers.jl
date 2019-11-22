@@ -2,8 +2,6 @@ VERSION < v"0.7.0-beta2.199" && __precompile__()
 
 module FixedPointNumbers
 
-using Base: reducedim_initarray
-
 import Base: ==, <, <=, -, +, *, /, ~, isapprox,
              convert, promote_rule, show, isinteger, abs, decompose,
              isnan, isinf, isfinite,
@@ -154,27 +152,12 @@ sizeof(::Type{T}) where {T <: FixedPoint} = sizeof(rawtype(T))
 
 # Promotions for reductions
 const Treduce = Float64
-if isdefined(Base, :r_promote)
-    # Julia v0.6
-    Base.r_promote(::typeof(+), x::FixedPoint{T}) where {T} = Treduce(x)
-    Base.r_promote(::typeof(*), x::FixedPoint{T}) where {T} = Treduce(x)
-    Base.reducedim_init(f::typeof(identity),
-                   op::typeof(+),
-                   A::AbstractArray{T}, region) where {T <: FixedPoint} =
-                       Base.reducedim_initarray(A, region, zero(Treduce))
-    Base.reducedim_init(f::typeof(identity),
-                   op::typeof(*),
-                   A::AbstractArray{T}, region) where {T <: FixedPoint} =
-                       Base.reducedim_initarray(A, region, oneunit(Treduce))
-else
-    # Julia v0.7
-    Base.add_sum(x::FixedPoint, y::FixedPoint) = Treduce(x) + Treduce(y)
-    Base.reduce_empty(::typeof(Base.add_sum), ::Type{F}) where {F<:FixedPoint}  = zero(Treduce)
-    Base.reduce_first(::typeof(Base.add_sum), x::FixedPoint)   = Treduce(x)
-    Base.mul_prod(x::FixedPoint, y::FixedPoint) = Treduce(x) * Treduce(y)
-    Base.reduce_empty(::typeof(Base.mul_prod), ::Type{F}) where {F<:FixedPoint} = one(Treduce)
-    Base.reduce_first(::typeof(Base.mul_prod), x::FixedPoint)  = Treduce(x)
-end
+Base.add_sum(x::FixedPoint, y::FixedPoint) = Treduce(x) + Treduce(y)
+Base.reduce_empty(::typeof(Base.add_sum), ::Type{F}) where {F<:FixedPoint}  = zero(Treduce)
+Base.reduce_first(::typeof(Base.add_sum), x::FixedPoint)   = Treduce(x)
+Base.mul_prod(x::FixedPoint, y::FixedPoint) = Treduce(x) * Treduce(y)
+Base.reduce_empty(::typeof(Base.mul_prod), ::Type{F}) where {F<:FixedPoint} = one(Treduce)
+Base.reduce_first(::typeof(Base.mul_prod), x::FixedPoint)  = Treduce(x)
 
 
 for f in (:div, :fld, :fld1)

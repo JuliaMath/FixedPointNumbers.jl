@@ -1,5 +1,3 @@
-VERSION < v"0.7.0-beta2.199" && __precompile__()
-
 module FixedPointNumbers
 
 import Base: ==, <, <=, -, +, *, /, ~, isapprox,
@@ -198,5 +196,8 @@ end
 
 rand(::Type{T}) where {T <: FixedPoint} = reinterpret(T, rand(rawtype(T)))
 rand(::Type{T}, sz::Dims) where {T <: FixedPoint} = reinterpret(T, rand(rawtype(T), sz))
+
+include("precompile.jl")
+_precompile_()
 
 end # module

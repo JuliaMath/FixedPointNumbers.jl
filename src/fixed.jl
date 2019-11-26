@@ -97,3 +97,10 @@ end
 
 # TODO: Document and check that it still does the right thing.
 decompose(x::Fixed{T,f}) where {T,f} = x.i, -f, 1
+
+CheckedArithmetic.accumulatortype(::typeof(+), ::Type{Fixed{T,f}}) where {T,f} =
+    Fixed{accumulatortype(+, T), f}
+CheckedArithmetic.accumulatortype(::typeof(-), ::Type{Fixed{T,f}}) where {T,f} =
+    Fixed{accumulatortype(-, T), f}
+CheckedArithmetic.accumulatortype(::typeof(*), ::Type{Fixed{T,f}}) where {T,f} =
+    floattype(Fixed{T,f})

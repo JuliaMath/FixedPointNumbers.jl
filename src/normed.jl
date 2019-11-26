@@ -333,3 +333,10 @@ if !signbit(signed(unsafe_trunc(UInt, -12.345)))
         unsafe_trunc(T, unsafe_trunc(typeof(signed(zero(T))), x))
     end
 end
+
+CheckedArithmetic.accumulatortype(::typeof(+), ::Type{Normed{T,f}}) where {T,f} =
+    Normed{accumulatortype(+, T), f}
+CheckedArithmetic.accumulatortype(::typeof(-), ::Type{Normed{T,f}}) where {T,f} =
+    floattype(Normed{T,f})
+CheckedArithmetic.accumulatortype(::typeof(*), ::Type{Normed{T,f}}) where {T,f} =
+    floattype(Normed{T,f})

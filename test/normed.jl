@@ -6,18 +6,21 @@ using FixedPointNumbers, Test
     @test reinterpret(N4f12, 0x1fa2).i === 0x1fa2
     @test reinterpret(N2f14, 0x1fa2).i === 0x1fa2
     @test reinterpret(N0f16, 0x1fa2).i === 0x1fa2
+    @test reinterpret(S7f8, Int16(8098)).i  === Int16(8098)
 
     @test reinterpret(reinterpret(N0f8, 0xa2))    === 0xa2
     @test reinterpret(reinterpret(N6f10, 0x00a2)) === 0x00a2
     @test reinterpret(reinterpret(N4f12, 0x00a2)) === 0x00a2
     @test reinterpret(reinterpret(N2f14, 0x00a2)) === 0x00a2
     @test reinterpret(reinterpret(N0f16, 0x00a2)) === 0x00a2
+    @test reinterpret(reinterpret(S7f8, Int16(162)))  === Int16(162)
 
-    @test 0.635N0f8   == N0f8(0.635)
+    @test 0.635N0f8  ==  N0f8(0.635)
     @test 0.635N6f10 == N6f10(0.635)
     @test 0.635N4f12 == N4f12(0.635)
     @test 0.635N2f14 == N2f14(0.635)
     @test 0.635N0f16 == N0f16(0.635)
+    @test 0.635S7f8  ==  S7f8(0.635)
 
     @test N0f8(1.0) == reinterpret(N0f8, 0xff)
     @test N0f8(0.5) == reinterpret(N0f8, 0x80)
@@ -29,12 +32,14 @@ end
 
 UF2 = (Normed{UInt32,16}, Normed{UInt64,3}, Normed{UInt64,51}, Normed{UInt128,7}, Normed{UInt128,51})
 
+issigned(::Type{Normed{T,f}}) where {T,f} = T<:Signed
+
 @testset "limits and identities" begin
-    for T in (FixedPointNumbers.UF..., UF2...)
+    for T in (FixedPointNumbers.UF..., UF2..., S7f8)
         @test zero(T) == 0
         @test one(T) == 1
         @test one(T) * one(T) == one(T)
-        @test typemin(T) == 0
+        @test typemin(T) == (issigned(T) ? T(typemin(FixedPointNumbers.rawtype(T)), 0) : 0)
         @test floatmin(T) == eps(T)
         @test eps(zero(T)) == eps(typemax(T))
         @test sizeof(T) == sizeof(FixedPointNumbers.rawtype(T))
@@ -51,6 +56,7 @@ UF2 = (Normed{UInt32,16}, Normed{UInt64,3}, Normed{UInt64,51}, Normed{UInt128,7}
     @test typemax(Normed{UInt64,3}) == typemax(UInt64) // (2^3-1)
     @test typemax(Normed{UInt128,7}) == typemax(UInt128) // (2^7-1)
     @test typemax(Normed{UInt128,100}) == typemax(UInt128) // (UInt128(2)^100-1)
+    @test typemax(S7f8) == typemax(Int16)//(2^8-1)
 end
 
 @testset "inexactness" begin
@@ -65,6 +71,7 @@ end
     @test_throws ArgumentError convert(N0f16, typemax(N6f10))
     @test_throws ArgumentError convert(Normed{UInt128,100}, 10^9)
     @test_throws ArgumentError convert(Normed{UInt128,100}, 10.0^9)
+    @test_throws ArgumentError S0f15(2)
 end
 
 @testset "conversion" begin
@@ -79,6 +86,7 @@ end
     @test convert(N4f12, 1.1/typemax(UInt16)*16) == eps(N4f12)
     @test convert(N2f14, 1.1/typemax(UInt16)*4)  == eps(N2f14)
     @test convert(N0f16, 1.1/typemax(UInt16))    == eps(N0f16)
+    @test convert(S7f8,  1.1/typemax(UInt16)*256) == eps(S7f8)
     @test convert(Normed{UInt32,16}, 1.1/typemax(UInt32)*2^16) == eps(Normed{UInt32,16})
     @test convert(Normed{UInt64,3},  1.1/typemax(UInt64)*UInt64(2)^61)  == eps(Normed{UInt64,3})
     @test convert(Normed{UInt128,7}, 1.1/typemax(UInt128)*UInt128(2)^121) == eps(Normed{UInt128,7})
@@ -88,7 +96,7 @@ end
     @test convert(Float64, eps(N0f8)) == 1/typemax(UInt8)
     @test convert(Float32, eps(N0f8)) == 1.0f0/typemax(UInt8)
     @test convert(BigFloat, eps(N0f8)) == BigFloat(1)/typemax(UInt8)
-    for T in (FixedPointNumbers.UF..., UF2...)
+    for T in (FixedPointNumbers.UF..., UF2..., S7f8)
         @test convert(Bool, zero(T)) == false
         @test convert(Bool, one(T))  == true
         @test convert(Bool, convert(T, 0.2)) == true
@@ -106,7 +114,7 @@ end
     # issue 102
     for T in (UInt8, UInt16, UInt32, UInt64, UInt128)
         for Tf in (Float16, Float32, Float64)
-            @testset "Normed{$T,$f}(::$Tf)" for f = 1:sizeof(T)*8
+            @testset "Normed{$T,$f}(::$Tf)" for f = 1:sizeof(T)*8-(T<:Signed)
                 U = Normed{T,f}
                 r = FixedPointNumbers.rawone(U)
 
@@ -123,7 +131,7 @@ end
                 isinf(input_upper) && continue # for Julia v0.7
                 @test reinterpret(U(input_upper)) == T(min(round(BigFloat(input_upper) * r), typemax(T)))
 
-                input_exp2 = Tf(exp2(sizeof(T) * 8 - f))
+                input_exp2 = Tf(exp2(sizeof(T) * 8 - f - (T<:Signed)))
                 isinf(input_exp2) && continue
                 @test reinterpret(U(input_exp2)) == T(input_exp2) * r
             end
@@ -142,8 +150,8 @@ end
     end
 
     for Tf in (Float16, Float32, Float64)
-        @testset "$Tf(::Normed{$Ti})" for Ti in (UInt8, UInt16)
-            @testset "$Tf(::Normed{$Ti,$f})" for f = 1:(sizeof(Ti)*8)
+        @testset "$Tf(::Normed{$Ti})" for Ti in (UInt8, UInt16, Int16)
+            @testset "$Tf(::Normed{$Ti,$f})" for f = 1:(sizeof(Ti)*8-(Ti<:Signed))
                 T = Normed{Ti,f}
                 float_err = 0.0
                 for i = typemin(Ti):typemax(Ti)
@@ -156,7 +164,7 @@ end
             end
         end
         @testset "$Tf(::Normed{$Ti})" for Ti in (UInt32, UInt64, UInt128)
-            @testset "$Tf(::Normed{$Ti,$f})" for f = 1:(sizeof(Ti)*8)
+            @testset "$Tf(::Normed{$Ti,$f})" for f = 1:(sizeof(Ti)*8-(Ti<:Signed))
                 T = Normed{Ti,f}
                 error_count = 0
                 for i in vcat(Ti(0x00):Ti(0xFF), (typemax(Ti)-0xFF):typemax(Ti))

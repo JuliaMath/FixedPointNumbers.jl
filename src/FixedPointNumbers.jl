@@ -60,17 +60,24 @@ typemin(::Type{T}) where {T <: FixedPoint} = T(typemin(rawtype(T)), 0)
 floatmin(::Type{T}) where {T <: FixedPoint} = eps(T)
 floatmax(::Type{T}) where {T <: FixedPoint} = typemax(T)
 
-widen1(::Type{Int8})   = Int16
-widen1(::Type{UInt8})  = UInt16
-widen1(::Type{Int16})  = Int32
-widen1(::Type{UInt16}) = UInt32
-widen1(::Type{Int32})  = Int64
-widen1(::Type{UInt32}) = UInt64
-widen1(::Type{Int64})  = Int128
-widen1(::Type{UInt64}) = UInt128
-widen1(::Type{Int128}) = Int128
+widen1(::Type{Int8})    = Int16
+widen1(::Type{UInt8})   = UInt16
+widen1(::Type{Int16})   = Int32
+widen1(::Type{UInt16})  = UInt32
+widen1(::Type{Int32})   = Int64
+widen1(::Type{UInt32})  = UInt64
+widen1(::Type{Int64})   = Int128
+widen1(::Type{UInt64})  = UInt128
+widen1(::Type{Int128})  = Int128
 widen1(::Type{UInt128}) = UInt128
 widen1(x::Integer) = x % widen1(typeof(x))
+
+signedwiden1(::Type{UInt8})   = Int16
+signedwiden1(::Type{UInt16})  = Int32
+signedwiden1(::Type{UInt32})  = Int64
+signedwiden1(::Type{UInt64})  = Int128
+signedwiden1(::Type{UInt128}) = Int128
+signedwiden1(x::Integer) = x % signedwiden1(typeof(x))
 
 const ShortInts = Union{Int8,UInt8,Int16,UInt16}
 const LongInts = Union{UInt64, UInt128, Int64, Int128, BigInt}

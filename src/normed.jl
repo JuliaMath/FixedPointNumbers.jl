@@ -159,10 +159,10 @@ function Base.Float32(x::Normed{UInt32,f}) where f
     f == 1 && return Float32(x.i)
     i32 = unsafe_trunc(Int32, x.i)
     if f == 32
-        rh, rl = Float32(i32>>>16), Float32((i32&0xFFFF)<<8 | (i32>>>24))
+        rh, rl = Float32(i32>>>0x10), Float32((i32&0xFFFF)<<0x8 | i32>>>0x18)
         return muladd(rh, @f32(0x1p-16), rl * @f32(0x1p-40))
     elseif f >= 25
-        rh, rl = Float32(i32>>>16),Float32(((i32&0xFFFF)<<14) + (i32>>>(f-14)))
+        rh, rl = Float32(i32>>>0x10), Float32((i32&0xFFFF)<<0xE + i32>>>UInt8(f-14))
         return muladd(rh, Float32(@exp2(16-f)), rl * Float32(@exp2(-14-f)))
     end
     # FIXME: avoid the branch in native x86_64 (non-SIMD) codes
@@ -179,37 +179,37 @@ end
 function Base.Float64(x::Normed{UInt32,f}) where f
     f64 = Float64(x.i)
     f ==  1 && return f64
-    f ==  2 && return (f64 * 0x040001) * 0x15555000015555p-72
-    f ==  3 && return (f64 * 0x108421) * 0x11b6db76924929p-75
-    f ==  4 && return (f64 * 0x010101) * 0x11000011000011p-72
-    f ==  5 && return (f64 * 0x108421) * 0x04000002000001p-75
-    f ==  6 && return (f64 * 0x09dfb1) * 0x1a56b8e38e6d91p-78
-    f ==  7 && return (f64 * 0x000899) * 0x0f01480001e029p-70
-    f ==  8 && return (f64 * 0x0a5a5b) * 0x18d300000018d3p-80
-    f ==  9 && return (f64 * 0x001001) * 0x080381c8e3f201p-72
-    f == 10 && return (f64 * 0x100001) * 0x04010000000401p-80
-    f == 11 && return (f64 * 0x000009) * 0x0e3aaae3955639p-66
-    f == 12 && return (f64 * 0x0a8055) * 0x186246e46e4cfdp-84
-    f == 13 && return (f64 * 0x002001) * 0x10000004000001p-78
-    f == 14 && return (f64 * 0x03400d) * 0x13b13b14ec4ec5p-84
-    f == 15 && return (f64 * 0x000259) * 0x06d0c5a4f3a5e9p-75
-    f == 16 && return (f64 * 0x011111) * 0x00f000ff00fff1p-80
-    f == 18 && return (f64 * 0x0b06d1) * 0x17377445dd1231p-90
-    f == 19 && return (f64 * 0x080001) * 0x00004000000001p-76
-    f == 20 && return (f64 * 0x000101) * 0x0ff010ef10ff01p-80
-    f == 21 && return (f64 * 0x004001) * 0x01fff8101fc001p-84
-    f == 22 && return (f64 * 0x002945) * 0x18d0000000018dp-88
-    f == 23 && return (f64 * 0x044819) * 0x07794a23729429p-92
-    f == 27 && return (f64 * 0x000a21) * 0x0006518c7df9e1p-81
-    f == 28 && return (f64 * 0x00000d) * 0x13b13b14ec4ec5p-84
-    f == 30 && return (f64 * 0x001041) * 0x00fc003f03ffc1p-90
-    f == 32 && return (f64 * 0x010101) * 0x00ff0000ffff01p-96
+    f ==  2 && return (f64 * 0x040001p0) * 0x15555000015555p-72
+    f ==  3 && return (f64 * 0x108421p0) * 0x11b6db76924929p-75
+    f ==  4 && return (f64 * 0x010101p0) * 0x11000011000011p-72
+    f ==  5 && return (f64 * 0x108421p0) * 0x04000002000001p-75
+    f ==  6 && return (f64 * 0x09dfb1p0) * 0x1a56b8e38e6d91p-78
+    f ==  7 && return (f64 * 0x000899p0) * 0x0f01480001e029p-70
+    f ==  8 && return (f64 * 0x0a5a5bp0) * 0x18d300000018d3p-80
+    f ==  9 && return (f64 * 0x001001p0) * 0x080381c8e3f201p-72
+    f == 10 && return (f64 * 0x100001p0) * 0x04010000000401p-80
+    f == 11 && return (f64 * 0x000009p0) * 0x0e3aaae3955639p-66
+    f == 12 && return (f64 * 0x0a8055p0) * 0x186246e46e4cfdp-84
+    f == 13 && return (f64 * 0x002001p0) * 0x10000004000001p-78
+    f == 14 && return (f64 * 0x03400dp0) * 0x13b13b14ec4ec5p-84
+    f == 15 && return (f64 * 0x000259p0) * 0x06d0c5a4f3a5e9p-75
+    f == 16 && return (f64 * 0x011111p0) * 0x00f000ff00fff1p-80
+    f == 18 && return (f64 * 0x0b06d1p0) * 0x17377445dd1231p-90
+    f == 19 && return (f64 * 0x080001p0) * 0x00004000000001p-76
+    f == 20 && return (f64 * 0x000101p0) * 0x0ff010ef10ff01p-80
+    f == 21 && return (f64 * 0x004001p0) * 0x01fff8101fc001p-84
+    f == 22 && return (f64 * 0x002945p0) * 0x18d0000000018dp-88
+    f == 23 && return (f64 * 0x044819p0) * 0x07794a23729429p-92
+    f == 27 && return (f64 * 0x000a21p0) * 0x0006518c7df9e1p-81
+    f == 28 && return (f64 * 0x00000dp0) * 0x13b13b14ec4ec5p-84
+    f == 30 && return (f64 * 0x001041p0) * 0x00fc003f03ffc1p-90
+    f == 32 && return (f64 * 0x010101p0) * 0x00ff0000ffff01p-96
     f64 / rawone(x)
 end
 function Base.Float64(x::Normed{UInt64,f}) where f
     f == 1 && return Float64(x.i)
     if f >= 53
-        rh = Float64(unsafe_trunc(Int64, x.i >> 16)) * @exp2(16-f) # upper 48 bits
+        rh = Float64(unsafe_trunc(Int64, x.i>>0x10)) * @exp2(16-f) # upper 48 bits
         rl = Float64(unsafe_trunc(Int32, x.i&0xFFFF)) * @exp2(-f)  # lower 16 bits
         return rh + muladd(rh, @exp2(-f), rl)
     end
@@ -217,11 +217,11 @@ function Base.Float64(x::Normed{UInt64,f}) where f
 end
 function Base.Float64(x::Normed{UInt128,f}) where f
     f == 1 && return Float64(x.i)
-    ih, il = unsafe_trunc(Int64, x.i>>64), unsafe_trunc(Int64, x.i)
-    rh = Float64(ih>>>16) * @exp2(f <= 53 ? 80 : 80 - f) # upper 48 bits
+    ih, il = unsafe_trunc(Int64, x.i>>0x40), unsafe_trunc(Int64, x.i)
+    rh = Float64(ih>>>0x10) * @exp2(f <= 53 ? 80 : 80 - f) # upper 48 bits
     km = @exp2(f <= 53 ? 48 : 48 - f) # for middle 32 bits
     rm = Float64(unsafe_trunc(Int32, ih&0xFFFF)) * (0x1p16 * km) +
-         Float64(unsafe_trunc(Int32, il>>>48)) * km
+         Float64(unsafe_trunc(Int32, il>>>0x30)) * km
     rl = Float64(il&0xFFFFFFFFFFFF) * @exp2(f <= 53 ? 0 : -f) # lower 48 bits
     if f <= 53
         return (rh + (rm + rl)) / unsafe_trunc(Int64, rawone(x))

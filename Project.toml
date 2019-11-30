@@ -2,8 +2,12 @@ name = "FixedPointNumbers"
 uuid = "53c48c17-4a7d-5ca2-90c5-79b7896eea93"
 version = "0.6.1"
 
+[deps]
+CheckedArithmetic = "2c4a1fb8-30c1-4c71-8b84-dff8d59868ee"
+
 [compat]
 julia = "1"
+CheckedArithmetic = "0.1"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"

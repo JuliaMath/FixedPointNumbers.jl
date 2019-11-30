@@ -1,4 +1,4 @@
-using FixedPointNumbers, Test
+using FixedPointNumbers, CheckedArithmetic, Test
 
 @testset "reinterpret" begin
     @test reinterpret(N0f8, 0xa2).i  === 0xa2
@@ -367,6 +367,22 @@ end
     @test 1.0*a == bd*ad
 end
 
+function sum_naive(A::AbstractArray)
+    s = zero(eltype(A))
+    for a in A
+        s += a
+    end
+    return s
+end
+
+function sumsquares(A::AbstractArray)
+    s = zero(accumulatortype(eltype(A)))
+    for a in A
+        s += acc(a)^2
+    end
+    return s
+end
+
 @testset "reductions" begin
     a = N0f8[reinterpret(N0f8, 0xff), reinterpret(N0f8, 0xff)]
     @test sum(a) == 2.0
@@ -376,6 +392,10 @@ end
     acmp = Float64(a[1])*Float64(a[2])
     @test prod(a) == acmp
     @test prod(a, dims=1) == [acmp]
+
+    a = reinterpret(N0f8, [0x01:0xff;])
+    @test_throws ArgumentError @check sum_naive(a) atol=1e-4
+    @check sumsquares(a) atol=1e-4
 end
 
 @testset "rand" begin

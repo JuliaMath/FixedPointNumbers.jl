@@ -12,6 +12,8 @@ import Base: ==, <, <=, -, +, *, /, ~, isapprox,
 
 using Base: @pure
 
+using CheckedArithmetic
+
 # T => BaseType
 # f => Number of bits reserved for fractional part
 abstract type FixedPoint{T <: Integer, f} <: Real end
@@ -198,5 +200,7 @@ end
 
 rand(::Type{T}) where {T <: FixedPoint} = reinterpret(T, rand(rawtype(T)))
 rand(::Type{T}, sz::Dims) where {T <: FixedPoint} = reinterpret(T, rand(rawtype(T), sz))
+
+CheckedArithmetic.safearg_type(::Type{T}) where T<:FixedPoint = Float64
 
 end # module

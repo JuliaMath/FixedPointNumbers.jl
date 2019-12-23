@@ -116,6 +116,13 @@ floattype(::Type{X}) where {T <: LongInts, X <: FixedPoint{T}} = BigFloat
 
 float(x::FixedPoint) = convert(floattype(x), x)
 
+function minmax(x::X, y::X) where {X <: FixedPoint}
+    a, b = minmax(reinterpret(x), reinterpret(y))
+    X(a,0), X(b,0)
+end
+
+bswap(x::X) where {X <: FixedPoint} = sizeof(X) == 1 ? x : X(bswap(x.i), 0)
+
 for f in (:zero, :oneunit, :one, :eps, :rawone, :rawtype, :floattype)
     @eval begin
         $f(x::FixedPoint) = $f(typeof(x))

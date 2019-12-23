@@ -190,6 +190,11 @@ end
     end
 end
 
+@testset "low-level arithmetic" begin
+    @test bswap(Q0f7(0.5)) === Q0f7(0.5)
+    @test bswap(Q0f15(0.5)) === reinterpret(Q0f15, signed(0x0040))
+end
+
 @testset "Promotion within Fixed" begin
     @test @inferred(promote(Q0f7(0.25), Q0f7(0.75))) ===
         (Q0f7(0.25), Q0f7(0.75))

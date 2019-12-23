@@ -269,14 +269,6 @@ isfinite(x::Normed) = true
 isnan(x::Normed) = false
 isinf(x::Normed) = false
 
-bswap(x::Normed{UInt8,f}) where {f} = x
-bswap(x::Normed)  = typeof(x)(bswap(reinterpret(x)),0)
-
-function minmax(x::T, y::T) where {T <: Normed}
-    a, b = minmax(reinterpret(x), reinterpret(y))
-    T(a,0), T(b,0)
-end
-
 # Iteration
 # The main subtlety here is that iterating over N0f8(0):N0f8(1) will wrap around
 # unless we iterate using a wider type

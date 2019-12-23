@@ -25,8 +25,9 @@ typechar(::Type{X}) where {X <: Normed} = 'N'
 signbits(::Type{X}) where {X <: Normed} = 0
 
 for T in (UInt8, UInt16, UInt32, UInt64)
+    io = IOBuffer()
     for f in 1:sizeof(T)*8
-        sym = Symbol(String(take!(showtype(_iotypealias, Normed{T,f}))))
+        sym = Symbol(String(take!(showtype(io, Normed{T,f}))))
         @eval begin
             const $sym = Normed{$T,$f}
             export $sym

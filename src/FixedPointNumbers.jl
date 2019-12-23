@@ -119,9 +119,6 @@ rawtype(::Type{FixedPoint{T,f}}) where {T <: Integer,f} = T
 rawtype(::Type{F}) where {F <: FixedPoint} = rawtype(supertype(F))
 rawtype(x::FixedPoint) = rawtype(typeof(x))
 
-# This IOBuffer is used during module definition to generate typealias names
-_iotypealias = IOBuffer()
-
 # Printing. These are used to generate type-symbols, so we need them
 # before we include any files.
 function showtype(io::IO, ::Type{X}) where {X <: FixedPoint}
@@ -132,10 +129,10 @@ function showtype(io::IO, ::Type{X}) where {X <: FixedPoint}
     io
 end
 function show(io::IO, x::FixedPoint{T,f}) where {T,f}
-    show(io, round(convert(Float64,x), digits=ceil(Int,f/_log2_10)))
+    log10_2 = 0.3010299956639812
+    show(io, round(convert(Float64,x), digits=ceil(Int, f * log10_2)))
     get(io, :compact, false) || showtype(io, typeof(x))
 end
-const _log2_10 = 3.321928094887362
 
 function Base.showarg(io::IO, a::Array{T}, toplevel) where {T<:FixedPoint}
     toplevel || print(io, "::")

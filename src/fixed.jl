@@ -31,8 +31,9 @@ typechar(::Type{X}) where {X <: Fixed} = 'Q'
 signbits(::Type{X}) where {X <: Fixed} = 1
 
 for T in (Int8, Int16, Int32, Int64)
+    io = IOBuffer()
     for f in 0:sizeof(T)*8-1
-        sym = Symbol(String(take!(showtype(_iotypealias, Fixed{T,f}))))
+        sym = Symbol(String(take!(showtype(io, Fixed{T,f}))))
         @eval begin
             const $sym = Fixed{$T,$f}
             export $sym

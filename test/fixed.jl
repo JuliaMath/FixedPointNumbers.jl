@@ -17,7 +17,6 @@ function test_fixed(::Type{T}, f) where {T}
         if !(typemin(T) < x <= typemax(T))
             continue
         end
-        # isinteger(x) && @show x
         fx = convert(T,x)
         @test convert(T,convert(Float64, fx)) == fx
         @test convert(T,convert(Float64, -fx)) == -fx
@@ -241,6 +240,38 @@ end
     @test isa(float(one(Fixed{Int8,6})),   Float32)
     @test isa(float(one(Fixed{Int32,18})), Float64)
     @test isa(float(one(Fixed{Int32,25})), Float64)
+end
+
+@testset "predicates" begin
+    @test isfinite(1Q7f8)
+    @test !isnan(1Q7f8)
+    @test !isinf(1Q7f8)
+
+    @testset "isinteger" begin
+        for T in (Int8, Int16)
+            @testset "isinteger(::Fixed{$T,$f})" for f = 0:bitwidth(T)-1
+                F = Fixed{T,f}
+                xs = typemin(F):eps(F):typemax(F)
+                @test all(x -> isinteger(x) == isinteger(float(x)), xs)
+            end
+        end
+        for T in (Int32, Int64)
+            @testset "isinteger(::Fixed{$T,$f})" for f = 0:bitwidth(T)-1
+                F = Fixed{T,f}
+                fzero, fmax, fmin = zero(F), typemax(F), typemin(F)
+                if f == 0
+                    @test isinteger(fzero) & isinteger(fmax) & isinteger(fmin)
+                else
+                    @test isinteger(fzero) & !isinteger(fmax) & isinteger(fmin)
+                end
+            end
+        end
+        @testset "isinteger(::Fixed{Int8,8})" begin # TODO: remove this testset
+            @test !isinteger(Fixed{Int8,8}(-0.5))
+            @test isinteger(Fixed{Int8,8}(0.0))
+            @test !isinteger(Fixed{Int8,8}(127/256))
+        end
+    end
 end
 
 @testset "Show" begin

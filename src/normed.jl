@@ -268,10 +268,6 @@ function round(::Type{Ti}, x::Normed) where {Ti <: Integer}
     convert(Ti, r > (rawone(x) >> 0x1) ? d + oneunit(rawtype(x)) : d)
 end
 
-isfinite(x::Normed) = true
-isnan(x::Normed) = false
-isinf(x::Normed) = false
-
 # Iteration
 # The main subtlety here is that iterating over N0f8(0):N0f8(1) will wrap around
 # unless we iterate using a wider type

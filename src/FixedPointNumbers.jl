@@ -62,7 +62,10 @@ function isapprox(x::FixedPoint, y::FixedPoint; rtol=0, atol=max(eps(x), eps(y))
 end
 
 # predicates
-isinteger(x::FixedPoint{T,f}) where {T,f} = (x.i&(1<<f-1)) == 0
+isinteger(x::FixedPoint) = x == trunc(x) # TODO: use floor(x) when dropping support for Fixed{Int8,8}
+isfinite(x::FixedPoint) = true
+isnan(x::FixedPoint) = false
+isinf(x::FixedPoint) = false
 
 # identities
 zero(::Type{X}) where {X <: FixedPoint} = X(zero(rawtype(X)), 0)

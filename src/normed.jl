@@ -37,15 +37,9 @@ end
 
 reinterpret(::Type{Normed{T,f}}, x::T) where {T <: Unsigned,f} = Normed{T,f}(x, 0)
 
-zero(::Type{Normed{T,f}}) where {T,f} = Normed{T,f}(zero(T),0)
-function oneunit(::Type{T}) where {T <: Normed}
-    T(typemax(rawtype(T)) >> (bitwidth(T)-nbitsfrac(T)), 0)
+function rawone(::Type{Normed{T,f}}) where {T <: Unsigned, f}
+    typemax(T) >> (bitwidth(T) - f)
 end
-one(::Type{T}) where {T <: Normed} = oneunit(T)
-zero(x::Normed) = zero(typeof(x))
-oneunit(x::Normed) =  one(typeof(x))
-one(x::Normed) = oneunit(x)
-rawone(v) = reinterpret(one(v))
 
 # Conversions
 function Normed{T,f}(x::Normed{T2}) where {T <: Unsigned,T2 <: Unsigned,f}
@@ -113,8 +107,6 @@ rem(x::Float16, ::Type{T}) where {T <: Normed} = rem(Float32(x), T)  # avoid ove
 
 float(x::Normed) = convert(floattype(x), x)
 
-# for Julia v1.0, which does not fold `div_float` before inlining
-inv_rawone(x) = (@generated) ? (y = 1.0 / rawone(x); :($y)) : 1.0 / rawone(x)
 
 function (::Type{T})(x::Normed) where {T <: AbstractFloat}
     # The following optimization for constant division may cause rounding errors.

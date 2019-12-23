@@ -50,6 +50,14 @@ function test_fixed(::Type{T}, f) where {T}
     end
 end
 
+@testset "inexactness" begin
+    @test_throws InexactError Q0f7(-2)
+    # TODO: change back to InexactError when it allows message strings
+    @test_throws ArgumentError one(Q0f15)
+    @test_throws ArgumentError oneunit(Q0f31)
+    @test_throws ArgumentError one(Fixed{Int8,8})
+end
+
 @testset "conversion" begin
     @test isapprox(convert(Fixed{Int8,7}, 0.8), 0.797, atol=0.001)
     @test isapprox(convert(Fixed{Int8,7}, 0.9), 0.898, atol=0.001)

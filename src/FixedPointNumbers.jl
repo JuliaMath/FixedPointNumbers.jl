@@ -37,6 +37,10 @@ include("utilities.jl")
 reinterpret(x::FixedPoint) = x.i
 reinterpret(::Type{T}, x::FixedPoint{T,f}) where {T,f} = x.i
 
+# static parameters
+nbitsfrac(::Type{X}) where {T, f, X <: FixedPoint{T,f}} = f
+rawtype(::Type{X}) where {T, X <: FixedPoint{T}} = T
+
 # construction using the (approximate) intended value, i.e., N0f8
 *(x::Real, ::Type{X}) where {X<:FixedPoint} = X(x)
 
@@ -61,7 +65,17 @@ end
 # predicates
 isinteger(x::FixedPoint{T,f}) where {T,f} = (x.i&(1<<f-1)) == 0
 
+# identities
+zero(::Type{X}) where {X <: FixedPoint} = X(zero(rawtype(X)), 0)
+oneunit(::Type{X}) where {X <: FixedPoint} = X(rawone(X), 0)
+one(::Type{X}) where {X <: FixedPoint} = oneunit(X)
+
+# for Julia v1.0, which does not fold `div_float` before inlining
+inv_rawone(x) = (@generated) ? (y = 1.0 / rawone(x); :($y)) : 1.0 / rawone(x)
+
 # traits
+sizeof(::Type{X}) where {X <: FixedPoint} = sizeof(rawtype(X))
+eps(::Type{X}) where {X <: FixedPoint} = X(oneunit(rawtype(X)), 0)
 typemax(::Type{T}) where {T <: FixedPoint} = T(typemax(rawtype(T)), 0)
 typemin(::Type{T}) where {T <: FixedPoint} = T(typemin(rawtype(T)), 0)
 floatmin(::Type{T}) where {T <: FixedPoint} = eps(T)
@@ -95,18 +109,25 @@ floattype(::Type{T}) where {T <: Real} = T # fallback
 floattype(::Type{T}) where {T <: Union{ShortInts, Bool}} = Float32
 floattype(::Type{T}) where {T <: Integer} = Float64
 floattype(::Type{T}) where {T <: LongInts} = BigFloat
-floattype(::Type{FixedPoint{T,f}}) where {T <: ShortInts,f} = Float32
-floattype(::Type{FixedPoint{T,f}}) where {T <: Integer,f} = Float64
-floattype(::Type{FixedPoint{T,f}}) where {T <: LongInts,f} = BigFloat
-floattype(::Type{F}) where {F <: FixedPoint} = floattype(supertype(F))
-floattype(x::FixedPoint) = floattype(typeof(x))
+floattype(::Type{X}) where {T <: ShortInts, X <: FixedPoint{T}} = Float32
+floattype(::Type{X}) where {T <: Integer, X <: FixedPoint{T}} = Float64
+floattype(::Type{X}) where {T <: LongInts, X <: FixedPoint{T}} = BigFloat
 
-nbitsfrac(::Type{FixedPoint{T,f}}) where {T <: Integer,f} = f
-nbitsfrac(::Type{F}) where {F <: FixedPoint} = nbitsfrac(supertype(F))
-
-rawtype(::Type{FixedPoint{T,f}}) where {T <: Integer,f} = T
-rawtype(::Type{F}) where {F <: FixedPoint} = rawtype(supertype(F))
-rawtype(x::FixedPoint) = rawtype(typeof(x))
+for f in (:zero, :oneunit, :one, :eps, :rawone, :rawtype, :floattype)
+    @eval begin
+        $f(x::FixedPoint) = $f(typeof(x))
+    end
+end
+for f in (:div, :fld, :fld1)
+    @eval begin
+        $f(x::X, y::X) where {X <: FixedPoint} = $f(x.i, y.i)
+    end
+end
+for f in (:rem, :mod, :mod1, :min, :max)
+    @eval begin
+        $f(x::X, y::X) where {X <: FixedPoint} = X($f(x.i, y.i), 0)
+    end
+end
 
 # Printing. These are used to generate type-symbols, so we need them
 # before we include any files.
@@ -136,10 +157,6 @@ include("normed.jl")
 include("deprecations.jl")
 const UF = (N0f8, N6f10, N4f12, N2f14, N0f16)
 
-eps(::Type{T}) where {T <: FixedPoint} = T(oneunit(rawtype(T)),0)
-eps(::T) where {T <: FixedPoint} = eps(T)
-sizeof(::Type{T}) where {T <: FixedPoint} = sizeof(rawtype(T))
-
 # Promotions for reductions
 const Treduce = Float64
 Base.add_sum(x::FixedPoint, y::FixedPoint) = Treduce(x) + Treduce(y)
@@ -149,17 +166,6 @@ Base.mul_prod(x::FixedPoint, y::FixedPoint) = Treduce(x) * Treduce(y)
 Base.reduce_empty(::typeof(Base.mul_prod), ::Type{F}) where {F<:FixedPoint} = one(Treduce)
 Base.reduce_first(::typeof(Base.mul_prod), x::FixedPoint)  = Treduce(x)
 
-
-for f in (:div, :fld, :fld1)
-    @eval begin
-        $f(x::T, y::T) where {T <: FixedPoint} = $f(reinterpret(x),reinterpret(y))
-    end
-end
-for f in (:rem, :mod, :mod1, :min, :max)
-    @eval begin
-        $f(x::T, y::T) where {T <: FixedPoint} = T($f(reinterpret(x),reinterpret(y)),0)
-    end
-end
 
 """
     sd, ad = scaledual(s::Number, a)

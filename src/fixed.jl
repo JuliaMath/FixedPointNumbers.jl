@@ -41,6 +41,11 @@ for T in (Int8, Int16, Int32, Int64)
     end
 end
 
+function rawone(::Type{Fixed{T,f}}) where {T, f}
+    f >= bitwidth(T)-1 && throw_converterror(Fixed{T,f}, 1)
+    oneunit(T) << f
+end
+
 # basic operators
 -(x::Fixed{T,f}) where {T,f} = Fixed{T,f}(-x.i,0)
 abs(x::Fixed{T,f}) where {T,f} = Fixed{T,f}(abs(x.i),0)

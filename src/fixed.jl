@@ -44,12 +44,7 @@ function rawone(::Type{Fixed{T,f}}) where {T, f}
     oneunit(T) << f
 end
 
-# basic operators
--(x::Fixed{T,f}) where {T,f} = Fixed{T,f}(-x.i,0)
-abs(x::Fixed{T,f}) where {T,f} = Fixed{T,f}(abs(x.i),0)
-
-+(x::Fixed{T,f}, y::Fixed{T,f}) where {T,f} = Fixed{T,f}(x.i+y.i,0)
--(x::Fixed{T,f}, y::Fixed{T,f}) where {T,f} = Fixed{T,f}(x.i-y.i,0)
+# unchecked arithmetic
 
 # with truncation:
 #*(x::Fixed{T,f}, y::Fixed{T,f}) = Fixed{T,f}(Base.widemul(x.i,y.i)>>f,0)

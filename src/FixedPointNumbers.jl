@@ -45,10 +45,6 @@ rawtype(::Type{X}) where {T, X <: FixedPoint{T}} = T
 # construction using the (approximate) intended value, i.e., N0f8
 *(x::Real, ::Type{X}) where {X<:FixedPoint} = X(x)
 
-# comparison
-==(x::T, y::T) where {T <: FixedPoint} = x.i == y.i
- <(x::T, y::T) where {T <: FixedPoint} = x.i  < y.i
-<=(x::T, y::T) where {T <: FixedPoint} = x.i <= y.i
 """
     isapprox(x::FixedPoint, y::FixedPoint; rtol=0, atol=max(eps(x), eps(y)))
 
@@ -128,12 +124,17 @@ for f in (:zero, :oneunit, :one, :eps, :rawone, :rawtype, :floattype)
         $f(x::FixedPoint) = $f(typeof(x))
     end
 end
-for f in (:div, :fld, :fld1)
+for f in (:(==), :<, :<=, :div, :fld, :fld1)
     @eval begin
         $f(x::X, y::X) where {X <: FixedPoint} = $f(x.i, y.i)
     end
 end
-for f in (:rem, :mod, :mod1, :min, :max)
+for f in (:-, :~, :abs)
+    @eval begin
+        $f(x::X) where {X <: FixedPoint} = X($f(x.i), 0)
+    end
+end
+for f in (:+, :-, :rem, :mod, :mod1, :min, :max)
     @eval begin
         $f(x::X, y::X) where {X <: FixedPoint} = X($f(x.i, y.i), 0)
     end

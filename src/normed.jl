@@ -228,14 +228,9 @@ Base.Integer(x::Normed) = convert(Integer, x*1.0)
 Base.Rational{Ti}(x::Normed) where {Ti <: Integer} = convert(Ti, reinterpret(x))//convert(Ti, rawone(x))
 Base.Rational(x::Normed) = reinterpret(x)//rawone(x)
 
-# Traits
 abs(x::Normed) = x
 
-(-)(x::T) where {T <: Normed} = T(-reinterpret(x), 0)
-(~)(x::T) where {T <: Normed} = T(~reinterpret(x), 0)
-
-+(x::Normed{T,f}, y::Normed{T,f}) where {T,f} = Normed{T,f}(convert(T, x.i+y.i),0)
--(x::Normed{T,f}, y::Normed{T,f}) where {T,f} = Normed{T,f}(convert(T, x.i-y.i),0)
+# unchecked arithmetic
 *(x::T, y::T) where {T <: Normed} = convert(T,convert(floattype(T), x)*convert(floattype(T), y))
 /(x::T, y::T) where {T <: Normed} = convert(T,convert(floattype(T), x)/convert(floattype(T), y))
 

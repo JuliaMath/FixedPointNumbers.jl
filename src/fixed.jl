@@ -25,8 +25,6 @@ Fixed{T,f}(x::Integer) where {T,f} = Fixed{T,f}(round(T, convert(widen1(T),x)<<f
 Fixed{T,f}(x::AbstractFloat) where {T,f} = Fixed{T,f}(round(T, trunc(widen1(T),x)<<f + rem(x,1)*(one(widen1(T))<<f)),0)
 Fixed{T,f}(x::Rational) where {T,f} = Fixed{T,f}(x.num)/Fixed{T,f}(x.den)
 
-reinterpret(::Type{Fixed{T,f}}, x::T) where {T <: Signed,f} = Fixed{T,f}(x, 0)
-
 typechar(::Type{X}) where {X <: Fixed} = 'Q'
 signbits(::Type{X}) where {X <: Fixed} = 1
 
@@ -73,7 +71,6 @@ end
 rem(x::Integer, ::Type{Fixed{T,f}}) where {T,f} = Fixed{T,f}(rem(x,T)<<f,0)
 rem(x::Real,    ::Type{Fixed{T,f}}) where {T,f} = Fixed{T,f}(rem(Integer(trunc(x)),T)<<f + rem(Integer(round(rem(x,1)*(one(widen1(T))<<f))),T),0)
 
-float(x::Fixed) = convert(floattype(x), x)
 
 Base.BigFloat(x::Fixed{T,f}) where {T,f} =
     BigFloat(x.i>>f) + BigFloat(x.i&(one(widen1(T))<<f - 1))/BigFloat(one(widen1(T))<<f)

@@ -14,6 +14,8 @@ using FixedPointNumbers: bitwidth
     @test reinterpret(reinterpret(N2f14, 0x00a2)) === 0x00a2
     @test reinterpret(reinterpret(N0f16, 0x00a2)) === 0x00a2
 
+    @test reinterpret(UInt8, 1N0f8) === 0xff
+
     @test 0.635N0f8   == N0f8(0.635)
     @test 0.635N6f10 == N6f10(0.635)
     @test 0.635N4f12 == N4f12(0.635)

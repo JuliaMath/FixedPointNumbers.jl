@@ -50,6 +50,16 @@ function test_fixed(::Type{T}, f) where {T}
     end
 end
 
+@testset "reinterpret" begin
+    @test reinterpret(Q0f7, signed(0xa2)) === -0.734375Q0f7
+    @test reinterpret(Q5f10, signed(0x00a2)) === 0.158203125Q5f10
+
+    @test reinterpret(reinterpret(Q0f7, signed(0xa2))) === signed(0xa2)
+    @test reinterpret(reinterpret(Q5f10, signed(0x00a2))) === signed(0x00a2)
+
+    @test reinterpret(Int8, 0.5Q0f7) === signed(0x40)
+end
+
 @testset "inexactness" begin
     @test_throws InexactError Q0f7(-2)
     # TODO: change back to InexactError when it allows message strings

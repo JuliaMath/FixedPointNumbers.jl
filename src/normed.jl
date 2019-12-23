@@ -35,8 +35,6 @@ for T in (UInt8, UInt16, UInt32, UInt64)
     end
 end
 
-reinterpret(::Type{Normed{T,f}}, x::T) where {T <: Unsigned,f} = Normed{T,f}(x, 0)
-
 function rawone(::Type{Normed{T,f}}) where {T <: Unsigned, f}
     typemax(T) >> (bitwidth(T) - f)
 end
@@ -104,8 +102,6 @@ rem(x::T, ::Type{T}) where {T <: Normed} = x
 rem(x::Normed, ::Type{T}) where {T <: Normed} = reinterpret(T, _unsafe_trunc(rawtype(T), round((rawone(T)/rawone(x))*reinterpret(x))))
 rem(x::Real, ::Type{T}) where {T <: Normed} = reinterpret(T, _unsafe_trunc(rawtype(T), round(rawone(T)*x)))
 rem(x::Float16, ::Type{T}) where {T <: Normed} = rem(Float32(x), T)  # avoid overflow
-
-float(x::Normed) = convert(floattype(x), x)
 
 
 function (::Type{T})(x::Normed) where {T <: AbstractFloat}

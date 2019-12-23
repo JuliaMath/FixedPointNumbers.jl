@@ -36,6 +36,7 @@ include("utilities.jl")
 # reinterpretation
 reinterpret(x::FixedPoint) = x.i
 reinterpret(::Type{T}, x::FixedPoint{T,f}) where {T,f} = x.i
+reinterpret(::Type{X}, x::T) where {T <: Integer, X <: FixedPoint{T}} = X(x, 0)
 
 # static parameters
 nbitsfrac(::Type{X}) where {T, f, X <: FixedPoint{T,f}} = f
@@ -112,6 +113,8 @@ floattype(::Type{T}) where {T <: LongInts} = BigFloat
 floattype(::Type{X}) where {T <: ShortInts, X <: FixedPoint{T}} = Float32
 floattype(::Type{X}) where {T <: Integer, X <: FixedPoint{T}} = Float64
 floattype(::Type{X}) where {T <: LongInts, X <: FixedPoint{T}} = BigFloat
+
+float(x::FixedPoint) = convert(floattype(x), x)
 
 for f in (:zero, :oneunit, :one, :eps, :rawone, :rawtype, :floattype)
     @eval begin

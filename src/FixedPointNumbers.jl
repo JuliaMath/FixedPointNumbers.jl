@@ -31,6 +31,9 @@ export
 # Functions
     scaledual
 
+include("utilities.jl")
+
+# reinterpretation
 reinterpret(x::FixedPoint) = x.i
 reinterpret(::Type{T}, x::FixedPoint{T,f}) where {T,f} = x.i
 
@@ -64,20 +67,6 @@ typemin(::Type{T}) where {T <: FixedPoint} = T(typemin(rawtype(T)), 0)
 floatmin(::Type{T}) where {T <: FixedPoint} = eps(T)
 floatmax(::Type{T}) where {T <: FixedPoint} = typemax(T)
 
-widen1(::Type{Int8})   = Int16
-widen1(::Type{UInt8})  = UInt16
-widen1(::Type{Int16})  = Int32
-widen1(::Type{UInt16}) = UInt32
-widen1(::Type{Int32})  = Int64
-widen1(::Type{UInt32}) = UInt64
-widen1(::Type{Int64})  = Int128
-widen1(::Type{UInt64}) = UInt128
-widen1(::Type{Int128}) = Int128
-widen1(::Type{UInt128}) = UInt128
-widen1(x::Integer) = x % widen1(typeof(x))
-
-const ShortInts = Union{Int8,UInt8,Int16,UInt16}
-const LongInts = Union{UInt64, UInt128, Int64, Int128, BigInt}
 
 """
     floattype(::Type{T})
@@ -124,7 +113,7 @@ rawtype(x::FixedPoint) = rawtype(typeof(x))
 function showtype(io::IO, ::Type{X}) where {X <: FixedPoint}
     print(io, typechar(X))
     f = nbitsfrac(X)
-    m = sizeof(X)*8-f-signbits(X)
+    m = bitwidth(X)-f-signbits(X)
     print(io, m, 'f', f)
     io
 end
@@ -188,13 +177,13 @@ scaledual(::Type{Tdual}, x::FixedPoint) where Tdual = convert(Tdual, 1/rawone(x)
 scaledual(::Type{Tdual}, x::AbstractArray{T}) where {Tdual, T <: FixedPoint} =
     convert(Tdual, 1/rawone(T)), reinterpret(rawtype(T), x)
 
-@noinline function throw_converterror(::Type{T}, x) where {T <: FixedPoint}
-    n = 2^(8*sizeof(T))
-    bitstring = sizeof(T) == 1 ? "an 8-bit" : "a $(8*sizeof(T))-bit"
+@noinline function throw_converterror(::Type{X}, x) where {X <: FixedPoint}
+    n = 2^bitwidth(X)
+    bitstring = bitwidth(X) == 8 ? "an 8-bit" : "a $(bitwidth(X))-bit"
     io = IOBuffer()
-    show(IOContext(io, :compact=>true), typemin(T)); Tmin = String(take!(io))
-    show(IOContext(io, :compact=>true), typemax(T)); Tmax = String(take!(io))
-    throw(ArgumentError("$T is $bitstring type representing $n values from $Tmin to $Tmax; cannot represent $x"))
+    show(IOContext(io, :compact=>true), typemin(X)); Xmin = String(take!(io))
+    show(IOContext(io, :compact=>true), typemax(X)); Xmax = String(take!(io))
+    throw(ArgumentError("$X is $bitstring type representing $n values from $Xmin to $Xmax; cannot represent $x"))
 end
 
 rand(::Type{T}) where {T <: FixedPoint} = reinterpret(T, rand(rawtype(T)))

@@ -1,4 +1,5 @@
 using FixedPointNumbers, Test
+using FixedPointNumbers: bitwidth
 
 function test_op(fun::F, ::Type{T}, fx, fy, fxf, fyf, tol) where {F,T}
     # Make sure that the result is representable
@@ -164,7 +165,7 @@ end
                  (Int64, 63))
         tmax = typemax(Fixed{T, f})
         @test tmax == BigInt(typemax(T)) / BigInt(2)^f
-        tol = (tmax + BigFloat(1.0)) / (sizeof(T) * 8)
+        tol = (tmax + BigFloat(1.0)) / bitwidth(T)
         for x in range(-1, stop=BigFloat(tmax)-tol, length=50)
             @test abs(Fixed{T, f}(x) - x) <= tol
         end

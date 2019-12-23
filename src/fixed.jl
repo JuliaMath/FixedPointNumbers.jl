@@ -32,7 +32,7 @@ signbits(::Type{X}) where {X <: Fixed} = 1
 
 for T in (Int8, Int16, Int32, Int64)
     io = IOBuffer()
-    for f in 0:sizeof(T)*8-1
+    for f in 0:bitwidth(T)-1
         sym = Symbol(String(take!(showtype(io, Fixed{T,f}))))
         @eval begin
             const $sym = Fixed{$T,$f}
@@ -96,13 +96,13 @@ promote_rule(::Type{Fixed{T,f}}, ::Type{Rational{TR}}) where {T,f,TR} = Rational
     f = max(f1, f2)  # ensure we have enough precision
     T = promote_type(T1, T2)
     # make sure we have enough integer bits
-    i1, i2 = 8*sizeof(T1)-f1, 8*sizeof(T2)-f2  # number of integer bits for each
-    i = 8*sizeof(T)-f
+    i1, i2 = bitwidth(T1)-f1, bitwidth(T2)-f2  # number of integer bits for each
+    i = bitwidth(T)-f
     while i < max(i1, i2)
         Tw = widen1(T)
         T == Tw && break
         T = Tw
-        i = 8*sizeof(T)-f
+        i = bitwidth(T)-f
     end
     :(Fixed{$T,$f})
 end

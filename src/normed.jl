@@ -26,7 +26,7 @@ signbits(::Type{X}) where {X <: Normed} = 0
 
 for T in (UInt8, UInt16, UInt32, UInt64)
     io = IOBuffer()
-    for f in 1:sizeof(T)*8
+    for f in 1:bitwidth(T)
         sym = Symbol(String(take!(showtype(io, Normed{T,f}))))
         @eval begin
             const $sym = Normed{$T,$f}
@@ -39,7 +39,7 @@ reinterpret(::Type{Normed{T,f}}, x::T) where {T <: Unsigned,f} = Normed{T,f}(x, 
 
 zero(::Type{Normed{T,f}}) where {T,f} = Normed{T,f}(zero(T),0)
 function oneunit(::Type{T}) where {T <: Normed}
-    T(typemax(rawtype(T)) >> (8*sizeof(T)-nbitsfrac(T)), 0)
+    T(typemax(rawtype(T)) >> (bitwidth(T)-nbitsfrac(T)), 0)
 end
 one(::Type{T}) where {T <: Normed} = oneunit(T)
 zero(x::Normed) = zero(typeof(x))
@@ -76,36 +76,34 @@ function _convert(::Type{U}, x::Float16) where {T, f, U <: Normed{T,f}}
     end
     return _convert(U, Float32(x))
 end
-function _convert(::Type{U}, x::Tf) where {T, f, U <: Normed{T,f}, Tf <: Union{Float32, Float64}}
-    if T == UInt128 && f == 53
-        0 <= x <= Tf(3.777893186295717e22) || throw_converterror(U, x)
+function _convert(::Type{N}, x::Tf) where {T, f, N <: Normed{T,f}, Tf <: Union{Float32, Float64}}
+    if T === UInt128 && f == 53
+        0 <= x <= Tf(3.777893186295717e22) || throw_converterror(N, x)
     else
-        0 <= x <= Tf((typemax(T)-rawone(U))/rawone(U)+1) || throw_converterror(U, x)
+        0 <= x <= Tf((typemax(T)-rawone(N))/rawone(N)+1) || throw_converterror(N, x)
     end
 
-    significand_bits = Tf == Float64 ? 52 : 23
-    if f <= (significand_bits + 1) && sizeof(T) * 8 < significand_bits
-        return reinterpret(U, unsafe_trunc(T, round(rawone(U) * x)))
+    if f <= (significand_bits(Tf) + 1) && bitwidth(T) < significand_bits(Tf)
+        return reinterpret(N, unsafe_trunc(T, round(rawone(N) * x)))
     end
     # cf. the implementation of `frexp`
-    Tw = f < sizeof(T) * 8 ? T : widen1(T)
-    bits = sizeof(Tw) * 8 - 1
-    xu = reinterpret(Tf == Float64 ? UInt64 : UInt32, x)
-    k = Int(xu >> significand_bits)
-    k == 0 && return zero(U) # neglect subnormal numbers
-    significand = xu | (one(xu) << significand_bits)
-    yh = unsafe_trunc(Tw, significand) << (bits - significand_bits)
-    exponent_bias = Tf == Float64 ? 1023 : 127
-    ex = exponent_bias - k + bits - f
+    Tw = f < bitwidth(T) ? T : widen1(T)
+    bits = bitwidth(Tw) - 1
+    xu = reinterpret(Unsigned, x)
+    k = Int(xu >> significand_bits(Tf))
+    k == 0 && return zero(N) # neglect subnormal numbers
+    significand = xu | (oneunit(xu) << significand_bits(Tf))
+    yh = unsafe_trunc(Tw, significand) << (bits - significand_bits(Tf))
+    ex = exponent_bias(Tf) - k + bits - f
     yi = bits >= f ? yh - (yh >> f) : yh
     if ex <= 0
-        ex == 0 && return reinterpret(U, unsafe_trunc(T, yi))
-        ex != -1 || signbit(signed(yi)) && return typemax(U)
-        return reinterpret(U, unsafe_trunc(T, yi + yi))
+        ex == 0 && return reinterpret(N, unsafe_trunc(T, yi))
+        ex != -1 || signbit(signed(yi)) && return typemax(N)
+        return reinterpret(N, unsafe_trunc(T, yi + yi))
     end
-    ex > bits && return reinterpret(U, ex == bits + 1 ? one(T) : zero(T))
-    yi += one(Tw)<<((ex - 1) & bits) # RoundNearestTiesUp
-    return reinterpret(U, unsafe_trunc(T, yi >> (ex & bits)))
+    ex > bits && return reinterpret(N, ex == bits + 1 ? oneunit(T) : zero(T))
+    yi += oneunit(Tw)<<((ex - 1) & bits) # RoundNearestTiesUp
+    return reinterpret(N, unsafe_trunc(T, yi >> (ex & bits)))
 end
 
 rem(x::T, ::Type{T}) where {T <: Normed} = x
@@ -114,14 +112,6 @@ rem(x::Real, ::Type{T}) where {T <: Normed} = reinterpret(T, _unsafe_trunc(rawty
 rem(x::Float16, ::Type{T}) where {T <: Normed} = rem(Float32(x), T)  # avoid overflow
 
 float(x::Normed) = convert(floattype(x), x)
-
-macro f32(x::Float64) # just for hexadecimal floating-point literals
-    :(Float32($x))
-end
-macro exp2(n)
-     :(_exp2(Val($(esc(n)))))
-end
-_exp2(::Val{N}) where {N} = exp2(N)
 
 # for Julia v1.0, which does not fold `div_float` before inlining
 inv_rawone(x) = (@generated) ? (y = 1.0 / rawone(x); :($y)) : 1.0 / rawone(x)
@@ -275,7 +265,7 @@ function round(x::Normed{T,f}) where {T,f}
             Normed{T,f}(y+oneunit(Normed{T,f})) : y
 end
 function ceil(x::Normed{T,f}) where {T,f}
-    k = 8*sizeof(T)-f
+    k = bitwidth(T)-f
     mask = (typemax(T)<<k)>>k
     y = trunc(x)
     return convert(T, reinterpret(x)-reinterpret(y)) & (mask)>0 ?
@@ -324,13 +314,13 @@ end
     f = max(f1, f2)  # ensure we have enough precision
     T = promote_type(T1, T2)
     # make sure we have enough integer bits
-    i1, i2 = 8*sizeof(T1)-f1, 8*sizeof(T2)-f2  # number of integer bits for each
-    i = 8*sizeof(T)-f
+    i1, i2 = bitwidth(T1)-f1, bitwidth(T2)-f2  # number of integer bits for each
+    i = bitwidth(T)-f
     while i < max(i1, i2)
         Tw = widen1(T)
         T == Tw && break
         T = Tw
-        i = 8*sizeof(T)-f
+        i = bitwidth(T)-f
     end
     :(Normed{$T,$f})
 end

@@ -1,4 +1,5 @@
 using FixedPointNumbers, Test
+using FixedPointNumbers: bitwidth
 
 @testset "reinterpret" begin
     @test reinterpret(N0f8, 0xa2).i  === 0xa2
@@ -106,7 +107,7 @@ end
     # issue 102
     for T in (UInt8, UInt16, UInt32, UInt64, UInt128)
         for Tf in (Float16, Float32, Float64)
-            @testset "Normed{$T,$f}(::$Tf)" for f = 1:sizeof(T)*8
+            @testset "Normed{$T,$f}(::$Tf)" for f = 1:bitwidth(T)
                 U = Normed{T,f}
                 r = FixedPointNumbers.rawone(U)
 
@@ -123,7 +124,7 @@ end
                 isinf(input_upper) && continue # for Julia v0.7
                 @test reinterpret(U(input_upper)) == T(min(round(BigFloat(input_upper) * r), typemax(T)))
 
-                input_exp2 = Tf(exp2(sizeof(T) * 8 - f))
+                input_exp2 = Tf(exp2(bitwidth(T) - f))
                 isinf(input_exp2) && continue
                 @test reinterpret(U(input_exp2)) == T(input_exp2) * r
             end
@@ -143,7 +144,7 @@ end
 
     for Tf in (Float16, Float32, Float64)
         @testset "$Tf(::Normed{$Ti})" for Ti in (UInt8, UInt16)
-            @testset "$Tf(::Normed{$Ti,$f})" for f = 1:(sizeof(Ti)*8)
+            @testset "$Tf(::Normed{$Ti,$f})" for f = 1:bitwidth(Ti)
                 T = Normed{Ti,f}
                 float_err = 0.0
                 for i = typemin(Ti):typemax(Ti)
@@ -156,7 +157,7 @@ end
             end
         end
         @testset "$Tf(::Normed{$Ti})" for Ti in (UInt32, UInt64, UInt128)
-            @testset "$Tf(::Normed{$Ti,$f})" for f = 1:(sizeof(Ti)*8)
+            @testset "$Tf(::Normed{$Ti,$f})" for f = 1:bitwidth(Ti)
                 T = Normed{Ti,f}
                 error_count = 0
                 for i in vcat(Ti(0x00):Ti(0xFF), (typemax(Ti)-0xFF):typemax(Ti))

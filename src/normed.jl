@@ -239,10 +239,6 @@ abs(x::Normed) = x
 *(x::T, y::T) where {T <: Normed} = convert(T,convert(floattype(T), x)*convert(floattype(T), y))
 /(x::T, y::T) where {T <: Normed} = convert(T,convert(floattype(T), x)/convert(floattype(T), y))
 
-# Comparisons
- <(x::T, y::T) where {T <: Normed} = reinterpret(x) < reinterpret(y)
-<=(x::T, y::T) where {T <: Normed} = reinterpret(x) <= reinterpret(y)
-
 # Functions
 trunc(x::T) where {T <: Normed} = T(div(reinterpret(x), rawone(T))*rawone(T),0)
 floor(x::T) where {T <: Normed} = trunc(x)

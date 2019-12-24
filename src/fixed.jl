@@ -50,6 +50,9 @@ function rawone(::Type{Fixed{T,f}}) where {T, f}
     oneunit(T) << f
 end
 
+intmask(::Fixed{T,f}) where {T, f} = -oneunit(T) << f # Signed
+fracmask(x::Fixed{T,f}) where {T, f} = ~intmask(x) # Signed
+
 # unchecked arithmetic
 
 # with truncation:
@@ -90,6 +93,73 @@ end
 
 (::Type{TR})(x::Fixed{T,f}) where {TR <: Rational,T,f} =
     TR(x.i>>f + (x.i&(1<<f-1))//(one(widen1(T))<<f))
+
+function trunc(x::Fixed{T,f}) where {T, f}
+    f == 0 && return x
+    f == bitwidth(T) && return zero(x) # TODO: remove this line
+    f == bitwidth(T) - 1 && return x.i == typemin(T) ? x : zero(x)
+    t = x.i & intmask(x)
+    r = x.i & fracmask(x)
+    _rawone = oneunit(T) << f
+    reinterpret(Fixed{T,f}, (x.i < 0) & (r != 0) ? t + _rawone : t)
+end
+function floor(x::Fixed{T,f}) where {T, f}
+    f == bitwidth(T) && x.i < 0 && throw_converterror(Fixed{T,f}, -1) # TODO: remove this line
+    Fixed{T,f}(x.i & intmask(x), 0)
+end
+function ceil(x::Fixed{T,f}) where {T, f}
+    f == 0 && return x
+    upper = typemax(T) & intmask(x)
+    x.i > upper && throw_converterror(Fixed{T,f}, ceil(float(x)))
+    reinterpret(Fixed{T,f}, (x.i + fracmask(x)) & intmask(x))
+end
+function round(x::Fixed{T,f}) where {T, f}
+    f == 0 && return x
+    f == bitwidth(T) && return zero(x) # TODO: remove this line
+    upper = intmask(x) >>> 0x1
+    lower = intmask(x) >> 0x1
+    if f == bitwidth(T) - 1
+        x.i > upper && throw_converterror(Fixed{T,f}, @exp2(bitwidth(T)-f-1))
+        return x.i < lower ? typemin(x) : zero(x)
+    end
+    x.i >= upper && throw_converterror(Fixed{T,f}, @exp2(bitwidth(T)-f-1))
+    y = oneunit(T) << UInt8(f - 1) + x.i
+    m = oneunit(T) << UInt8(f + 1) - oneunit(T)
+    z = y & intmask(x)
+    reinterpret(Fixed{T,f}, z - T(y & m == rawone(x)) << f)
+end
+
+function trunc(::Type{Ti}, x::Fixed{T,f}) where {Ti <: Integer, T, f}
+    f == 0 && return convert(Ti, x.i)
+    f == bitwidth(T) && return zero(Ti) # TODO: remove this line
+    f == bitwidth(T) - 1 && return x.i == typemin(T) ? convert(Ti, -1) : zero(Ti)
+    t = x.i >> f
+    r = x.i & fracmask(x)
+    convert(Ti, (x.i < 0) & (r != 0) ? t + oneunit(T) : t)
+end
+function floor(::Type{Ti}, x::Fixed{T,f}) where {Ti <: Integer, T, f}
+    f == bitwidth(T) && return x.i < 0 ? convert(Ti, -1) : zero(Ti) # TODO: remove this line
+    convert(Ti, x.i >> f)
+end
+function ceil(::Type{Ti}, x::Fixed{T,f}) where {Ti <: Integer, T, f}
+    f == bitwidth(T) && return x.i > 0 ? oneunit(Ti) : zero(Ti) # TODO: remove this line
+    y = x.i + fracmask(x)
+    convert(Ti, x.i >= 0 ? y >>> f : y >> f)
+end
+function round(::Type{Ti}, x::Fixed{T,f}) where {Ti <: Integer, T, f}
+    f == 0 && return convert(Ti, x.i)
+    f == bitwidth(T) && return zero(Ti) # TODO: remove this line
+    upper = intmask(x) >>> 0x1
+    lower = intmask(x) >> 0x1
+    if f == bitwidth(T) - 1
+        x.i < lower && return convert(Ti, -1)
+        return x.i > upper ? oneunit(Ti) : zero(Ti)
+    end
+    y = oneunit(T) << UInt8(f - 1) + x.i
+    m = oneunit(T) << UInt8(f + 1) - oneunit(T)
+    z = x.i >= 0 ? y >>> f : y >> f
+    convert(Ti, z - Ti(y & m == rawone(x)))
+end
 
 promote_rule(ft::Type{Fixed{T,f}}, ::Type{TI}) where {T,f,TI <: Integer} = Fixed{T,f}
 promote_rule(::Type{Fixed{T,f}}, ::Type{TF}) where {T,f,TF <: AbstractFloat} = TF

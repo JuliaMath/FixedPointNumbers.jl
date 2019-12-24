@@ -240,41 +240,29 @@ end
     end
 end
 
-function testtrunc(inc::T) where {T}
-    incf = convert(Float64, inc)
-    tm = reinterpret(typemax(T))/reinterpret(one(T))
-    local x = zero(T)
-    for i = 0 : min(1e6, reinterpret(typemax(T))-1)
-        xf = incf*i
-        try
-            @test typeof(trunc(x)) == T
-            @test trunc(x) == trunc(xf)
-            @test typeof(round(x)) == T
-            @test round(x) == round(xf)
-            cxf = ceil(xf)
-            if cxf < tm
-                @test typeof(ceil(x)) == T
-                @test ceil(x) == ceil(xf)
-            end
-            @test typeof(floor(x)) == T
-            @test floor(x) == floor(xf)
-            @test trunc(Int,x) == trunc(Int,xf)
-            @test round(Int,x) == round(Int,xf)
-            @test floor(Int,x) == floor(Int,xf)
-            if cxf < tm
-                @test ceil(Int,x) == ceil(Int,xf)
-            end
-        catch err
-            println("Failed on x = ", x, ", xf = ", xf)
-            rethrow(err)
+@testset "rounding" begin
+    for T in (UInt8, UInt16, UInt32, UInt64)
+        rs = vcat([ oneunit(T) << b - oneunit(T) << 1 for b = 1:bitwidth(T)],
+                  [ oneunit(T) << b - oneunit(T)      for b = 1:bitwidth(T)],
+                  [ oneunit(T) << b                   for b = 2:bitwidth(T)-1])
+        @testset "rounding Normed{$T,$f}" for f = 1:bitwidth(T)
+            N = Normed{T,f}
+            xs = (reinterpret(N, r) for r in rs)
+            @test all(x -> trunc(x) == trunc(float(x)), xs)
+            @test all(x -> floor(x) == floor(float(x)), xs)
+            # force `Normed` comparison avoiding rounding errors
+            @test all(x -> ceil(float(x)) > typemax(N) || ceil(x) == N(ceil(float(x))), xs)
+            @test all(x -> round(x) == round(float(x)), xs)
+            @test all(x -> trunc(UInt64, x) === trunc(UInt64, float(x)), xs)
+            @test all(x -> floor(UInt64, x) === floor(UInt64, float(x)), xs)
+            @test all(x ->  ceil(UInt64, x) ===  ceil(UInt64, float(x)), xs)
+            @test all(x -> round(UInt64, x) === round(UInt64, float(x)), xs)
         end
-        x = convert(T, x+inc)
     end
-end
-
-@testset "trunc" begin
-    for T in (FixedPointNumbers.UF..., UF2...)
-        testtrunc(eps(T))
+    @testset "rounding Normed{Int16,$f} with overflow" for f in filter(x->!ispow2(x), 1:16)
+        N = Normed{UInt16,f}
+        @test_throws ArgumentError ceil(typemax(N))
+        @test_throws ArgumentError ceil(floor(typemax(N)) + eps(N))
     end
 end
 

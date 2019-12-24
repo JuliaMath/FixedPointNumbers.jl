@@ -238,26 +238,35 @@ abs(x::Normed) = x
 /(x::T, y::T) where {T <: Normed} = convert(T,convert(floattype(T), x)/convert(floattype(T), y))
 
 # Functions
-trunc(x::T) where {T <: Normed} = T(div(reinterpret(x), rawone(T))*rawone(T),0)
-floor(x::T) where {T <: Normed} = trunc(x)
-function round(x::Normed{T,f}) where {T,f}
-    mask = convert(T, 1<<(f-1))
-    y = trunc(x)
-    return convert(T, reinterpret(x)-reinterpret(y)) & mask>0 ?
-            Normed{T,f}(y+oneunit(Normed{T,f})) : y
+trunc(x::N) where {N <: Normed} = floor(x)
+floor(x::N) where {N <: Normed} = reinterpret(N, x.i - x.i % rawone(N))
+function ceil(x::Normed{T,f}) where {T, f}
+    f == 1 && return x
+    if typemax(T) % rawone(x) != 0
+        upper = typemax(T) - typemax(T) % rawone(x)
+        x.i > upper && throw_converterror(Normed{T,f}, ceil(T, typemax(x)))
+    end
+    r = x.i % rawone(x)
+    reinterpret(Normed{T,f}, x.i - r + (r > 0 ? rawone(x) : zero(T)))
 end
-function ceil(x::Normed{T,f}) where {T,f}
-    k = bitwidth(T)-f
-    mask = (typemax(T)<<k)>>k
-    y = trunc(x)
-    return convert(T, reinterpret(x)-reinterpret(y)) & (mask)>0 ?
-            Normed{T,f}(y+oneunit(Normed{T,f})) : y
+function round(x::Normed{T,f}) where {T, f}
+    r = x.i % rawone(x)
+    q = rawone(x) - r
+    reinterpret(Normed{T,f}, r > q ? x.i + q : x.i - r)
 end
 
-trunc(::Type{T}, x::Normed) where {T <: Integer} = convert(T, div(reinterpret(x), rawone(x)))
-round(::Type{T}, x::Normed) where {T <: Integer} = round(T, reinterpret(x)/rawone(x))
-floor(::Type{T}, x::Normed) where {T <: Integer} = trunc(T, x)
- ceil(::Type{T}, x::Normed) where {T <: Integer} =  ceil(T, reinterpret(x)/rawone(x))
+trunc(::Type{Ti}, x::Normed) where {Ti <: Integer} = floor(Ti, x)
+function floor(::Type{Ti}, x::Normed) where {Ti <: Integer}
+    convert(Ti, reinterpret(x) ÷ rawone(x))
+end
+function ceil(::Type{Ti}, x::Normed) where {Ti <: Integer}
+    d, r = divrem(x.i, rawone(x))
+    convert(Ti, r > 0 ? d + oneunit(rawtype(x)) : d)
+end
+function round(::Type{Ti}, x::Normed) where {Ti <: Integer}
+    d, r = divrem(x.i, rawone(x))
+    convert(Ti, r > (rawone(x) >> 0x1) ? d + oneunit(rawtype(x)) : d)
+end
 
 isfinite(x::Normed) = true
 isnan(x::Normed) = false

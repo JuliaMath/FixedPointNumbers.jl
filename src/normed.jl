@@ -239,9 +239,6 @@ end
 
 Base.BigFloat(x::Normed) = reinterpret(x)*(1/BigFloat(rawone(x)))
 
-Base.Bool(x::Normed) = x == zero(x) ? false : true
-Base.Integer(x::Normed) = convert(Integer, x*1.0)
-(::Type{T})(x::Normed) where {T <: Integer} = convert(T, x*(1/oneunit(T)))
 Base.Rational{Ti}(x::Normed) where {Ti <: Integer} = convert(Ti, reinterpret(x))//convert(Ti, rawone(x))
 Base.Rational(x::Normed) = reinterpret(x)//rawone(x)
 

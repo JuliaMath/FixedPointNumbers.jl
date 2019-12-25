@@ -98,7 +98,7 @@ end
     for T in (FixedPointNumbers.UF..., UF2...)
         @test convert(Bool, zero(T)) == false
         @test convert(Bool, one(T))  == true
-        @test convert(Bool, convert(T, 0.2)) == true
+        @test_throws InexactError convert(Bool, convert(T, 0.2))
         @test convert(Int, one(T)) == 1
         @test convert(Integer, one(T)) == 1
         @test convert(Rational, one(T)) == 1
@@ -107,6 +107,14 @@ end
     @test convert(N0f16, one(N0f8)) === one(N0f16)
     @test convert(N0f16, N0f8(0.5)).i === 0x8080
     @test convert(Normed{UInt16,7}, Normed{UInt8,7}(0.504)) === Normed{UInt16,7}(0.504)
+end
+
+@testset "integer conversions" begin
+    @test convert(UInt, 1N1f7) === UInt(1)
+    @test convert(Integer, 1N1f7) === 0x01
+    @test convert(Int, 1N1f7) === 1
+    @test_throws InexactError convert(Integer, 0.5N1f7)
+    @test_throws InexactError convert(Int8, 256N8f8)
 end
 
 @testset "conversion from float" begin

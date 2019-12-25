@@ -231,9 +231,20 @@ end
     end
 end
 
+@testset "bool conversions" begin
+    @test convert(Bool, 0.0Q1f6) === false
+    @test convert(Bool, 1.0Q1f6) === true
+    @test_throws InexactError convert(Bool, 0.5Q1f6)
+    @test_throws InexactError convert(Bool, -1Q1f6)
+    @test_broken convert(Bool, Fixed{Int8,8}(0.2)) # TODO: remove this
+end
+
 @testset "Integer conversions" begin
     @test convert(Int, Q1f6(1)) === 1
     @test convert(Integer, Q1f6(1)) === Int8(1)
+    @test convert(UInt, 1Q1f6) === UInt(1)
+    @test_throws InexactError convert(Integer, 0.5Q1f6)
+    @test_throws InexactError convert(Int8, 256Q9f6)
 end
 
 @testset "Floating-point conversions" begin

@@ -47,6 +47,15 @@ rawtype(::Type{X}) where {T, X <: FixedPoint{T}} = T
 # construction using the (approximate) intended value, i.e., N0f8
 *(x::Real, ::Type{X}) where {X<:FixedPoint} = X(x)
 
+# conversions
+function Base.Bool(x::FixedPoint)
+    x == zero(x) ? false : x == oneunit(x) ? true : throw(InexactError(:Bool, Bool, x))
+end
+function (::Type{Ti})(x::FixedPoint) where {Ti <: Integer}
+    isinteger(x) || throw(InexactError(:Integer, typeof(x), x))
+    floor(Ti, x)
+end
+
 """
     isapprox(x::FixedPoint, y::FixedPoint; rtol=0, atol=max(eps(x), eps(y)))
 

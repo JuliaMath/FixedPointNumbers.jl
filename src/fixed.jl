@@ -81,16 +81,6 @@ Base.BigFloat(x::Fixed{T,f}) where {T,f} =
 (::Type{TF})(x::Fixed{T,f}) where {TF <: AbstractFloat,T,f} =
     TF(x.i>>f) + TF(x.i&(one(widen1(T))<<f - 1))/TF(one(widen1(T))<<f)
 
-Base.Bool(x::Fixed{T,f}) where {T,f} = x.i!=0
-function Base.Integer(x::Fixed{T,f}) where {T,f}
-    isinteger(x) || throw(InexactError())
-    Integer(x.i>>f)
-end
-function (::Type{TI})(x::Fixed{T,f}) where {TI <: Integer,T,f}
-    isinteger(x) || throw(InexactError())
-    TI(x.i>>f)
-end
-
 (::Type{TR})(x::Fixed{T,f}) where {TR <: Rational,T,f} =
     TR(x.i>>f + (x.i&(1<<f-1))//(one(widen1(T))<<f))
 

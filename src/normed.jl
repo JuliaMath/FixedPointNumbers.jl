@@ -239,7 +239,6 @@ end
 
 Base.BigFloat(x::Normed) = reinterpret(x)*(1/BigFloat(rawone(x)))
 
-Base.Rational{Ti}(x::Normed) where {Ti <: Integer} = convert(Ti, reinterpret(x))//convert(Ti, rawone(x))
 Base.Rational(x::Normed) = reinterpret(x)//rawone(x)
 
 abs(x::Normed) = x

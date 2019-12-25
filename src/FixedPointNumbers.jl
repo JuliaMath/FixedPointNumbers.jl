@@ -55,6 +55,7 @@ function (::Type{Ti})(x::FixedPoint) where {Ti <: Integer}
     isinteger(x) || throw(InexactError(:Integer, typeof(x), x))
     floor(Ti, x)
 end
+Base.Rational{Ti}(x::FixedPoint) where {Ti <: Integer} = Rational{Ti}(Rational(x))
 
 """
     isapprox(x::FixedPoint, y::FixedPoint; rtol=0, atol=max(eps(x), eps(y)))

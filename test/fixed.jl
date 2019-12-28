@@ -102,6 +102,11 @@ end
     @test_broken convert(Q1f6, Rational{Int8}(-3//4)) === -0.75Q1f6
     @test_broken convert(Q0f7, Rational{Int16}(-3//4)) === -0.75Q0f7
     @test_broken convert(Q0f7, Rational{UInt8}(3//4)) === 0.75Q0f7
+
+    @test convert(Q0f7, Base.TwicePrecision(0.5)) === 0.5Q0f7
+    @test_throws InexactError convert(Q7f8, Base.TwicePrecision(0x80, 0x01))
+    tp = Base.TwicePrecision(0xFFFFFFFFp-32, 0xFFFFFFFEp-64)
+    @test convert(Q0f63, tp) === reinterpret(Q0f63, typemax(Int64))
 end
 
 @testset "test_fixed" begin

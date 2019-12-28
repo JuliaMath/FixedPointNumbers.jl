@@ -19,11 +19,6 @@ struct Normed{T <: Unsigned, f} <: FixedPoint{T, f}
     end
 end
 
-Normed{T, f}(x::AbstractChar) where {T,f} = throw(ArgumentError("Normed cannot be constructed from a Char"))
-Normed{T, f}(x::Complex) where {T,f} = Normed{T, f}(convert(real(typeof(x)), x))
-Normed{T, f}(x::Base.TwicePrecision) where {T,f} = Normed{T, f}(convert(Float64, x))
-Normed{T1,f}(x::Normed{T2,f}) where {T1 <: Unsigned,T2 <: Unsigned,f} = Normed{T1,f}(convert(T1, x.i), 0)
-
 typechar(::Type{X}) where {X <: Normed} = 'N'
 signbits(::Type{X}) where {X <: Normed} = 0
 
@@ -42,34 +37,38 @@ function rawone(::Type{Normed{T,f}}) where {T <: Unsigned, f}
     typemax(T) >> (bitwidth(T) - f)
 end
 
-# Conversions
-function Normed{T,f}(x::Normed{T2}) where {T <: Unsigned,T2 <: Unsigned,f}
-    U = Normed{T,f}
-    y = round((rawone(U)/rawone(x))*reinterpret(x))
-    (0 <= y) & (y <= typemax(T)) || throw_converterror(U, x)
-    reinterpret(U, _unsafe_trunc(T, y))
+# constructor-style conversions
+function _convert(::Type{N}, x::Normed{T2,f}) where {T, T2, f, N <: Normed{T,f}}
+    reinterpret(N, convert(T, x.i)) # TODO: input range checking
 end
-N0f16(x::N0f8) = reinterpret(N0f16, convert(UInt16, 0x0101*reinterpret(x)))
 
-(::Type{U})(x::Real) where {U <: Normed} = _convert(U, x)
+function _convert(::Type{N}, x::Normed{T2,f2}) where {T, T2, f, f2, N <: Normed{T,f}}
+    y = round((rawone(N)/rawone(x))*reinterpret(x))
+    (0 <= y) & (y <= typemax(T)) || throw_converterror(N, x)
+    reinterpret(N, _unsafe_trunc(T, y))
+end
 
-function _convert(::Type{U}, x) where {T, f, U <: Normed{T,f}}
+function _convert(::Type{N}, x::Normed{UInt8,8}) where {N <: Normed{UInt16,16}} # TODO: generalization
+    reinterpret(N0f16, convert(UInt16, 0x0101*reinterpret(x)))
+end
+
+function _convert(::Type{N}, x::Real) where {T, f, N <: Normed{T,f}}
     if T == UInt128 # for UInt128, we can't widen
         # the upper limit is not exact
-        (0 <= x) & (x <= (typemax(T)/rawone(U))) || throw_converterror(U, x)
-        y = round(rawone(U)*x)
+        (0 <= x) & (x <= (typemax(T)/rawone(N))) || throw_converterror(N, x)
+        y = round(rawone(N)*x)
     else
-        y = round(widen1(rawone(U))*x)
-        (0 <= y) & (y <= typemax(T)) || throw_converterror(U, x)
+        y = round(widen1(rawone(N))*x)
+        (0 <= y) & (y <= typemax(T)) || throw_converterror(N, x)
     end
-    reinterpret(U, _unsafe_trunc(T, y))
+    reinterpret(N, _unsafe_trunc(T, y))
 end
 # Prevent overflow (https://discourse.julialang.org/t/saving-greater-than-8-bit-images/6057)
-function _convert(::Type{U}, x::Float16) where {T, f, U <: Normed{T,f}}
-    if Float16(typemax(T)/rawone(U)) > Float32(typemax(T)/rawone(U))
-        x == Float16(typemax(T)/rawone(U)) && return typemax(U)
+function _convert(::Type{N}, x::Float16) where {T, f, N <: Normed{T,f}}
+    if Float16(typemax(T)/rawone(N)) > Float32(typemax(T)/rawone(N))
+        x == Float16(typemax(T)/rawone(N)) && return typemax(N)
     end
-    return _convert(U, Float32(x))
+    return _convert(N, Float32(x))
 end
 function _convert(::Type{N}, x::Tf) where {T, f, N <: Normed{T,f}, Tf <: Union{Float32, Float64}}
     if T === UInt128 && f == 53

@@ -96,6 +96,8 @@ end
     @test_broken convert(N0f8, Rational{Int8}(3//5)) === N0f8(3/5)
     @test_broken convert(N0f8, Rational{UInt8}(3//5)) === N0f8(3/5)
 
+    @test convert(N0f8, Base.TwicePrecision(1.0)) === 1N0f8
+
     @test convert(Float64, eps(N0f8)) == 1/typemax(UInt8)
     @test convert(Float32, eps(N0f8)) == 1.0f0/typemax(UInt8)
     @test convert(BigFloat, eps(N0f8)) == BigFloat(1)/typemax(UInt8)
@@ -126,25 +128,25 @@ end
     for T in (UInt8, UInt16, UInt32, UInt64, UInt128)
         for Tf in (Float16, Float32, Float64)
             @testset "Normed{$T,$f}(::$Tf)" for f = 1:bitwidth(T)
-                U = Normed{T,f}
-                r = FixedPointNumbers.rawone(U)
+                N = Normed{T,f}
+                r = FixedPointNumbers.rawone(N)
 
-                @test reinterpret(U(zero(Tf))) == 0x0
+                @test reinterpret(N(zero(Tf))) == 0x0
 
-                input_typemax = Tf(typemax(U))
+                input_typemax = Tf(typemax(N))
                 if isinf(input_typemax)
-                    @test reinterpret(U(floatmax(Tf))) >= round(T, floatmax(Tf))
+                    @test reinterpret(N(floatmax(Tf))) >= round(T, floatmax(Tf))
                 else
-                    @test reinterpret(U(input_typemax)) >= (typemax(T)>>1) # overflow check
+                    @test reinterpret(N(input_typemax)) >= (typemax(T)>>1) # overflow check
                 end
 
                 input_upper = Tf(BigFloat(typemax(T)) / r, RoundDown)
                 isinf(input_upper) && continue # for Julia v0.7
-                @test reinterpret(U(input_upper)) == T(min(round(BigFloat(input_upper) * r), typemax(T)))
+                @test reinterpret(N(input_upper)) == T(min(round(BigFloat(input_upper) * r), typemax(T)))
 
                 input_exp2 = Tf(exp2(bitwidth(T) - f))
                 isinf(input_exp2) && continue
-                @test reinterpret(U(input_exp2)) == T(input_exp2) * r
+                @test reinterpret(N(input_exp2)) == T(input_exp2) * r
             end
         end
     end
@@ -161,27 +163,27 @@ end
     end
 
     for Tf in (Float16, Float32, Float64)
-        @testset "$Tf(::Normed{$Ti})" for Ti in (UInt8, UInt16)
-            @testset "$Tf(::Normed{$Ti,$f})" for f = 1:bitwidth(Ti)
-                T = Normed{Ti,f}
+        @testset "$Tf(::Normed{$T})" for T in (UInt8, UInt16)
+            @testset "$Tf(::Normed{$T,$f})" for f = 1:bitwidth(T)
+                N = Normed{T,f}
                 float_err = 0.0
-                for i = typemin(Ti):typemax(Ti)
-                    f_expected = Tf(i / BigFloat(FixedPointNumbers.rawone(T)))
+                for i = typemin(T):typemax(T)
+                    f_expected = Tf(i / BigFloat(FixedPointNumbers.rawone(N)))
                     isinf(f_expected) && break # for Float16(::Normed{UInt16,1})
-                    f_actual = Tf(reinterpret(T, i))
+                    f_actual = Tf(reinterpret(N, i))
                     float_err += abs(f_actual - f_expected)
                 end
                 @test float_err == 0.0
             end
         end
-        @testset "$Tf(::Normed{$Ti})" for Ti in (UInt32, UInt64, UInt128)
-            @testset "$Tf(::Normed{$Ti,$f})" for f = 1:bitwidth(Ti)
-                T = Normed{Ti,f}
+        @testset "$Tf(::Normed{$T})" for T in (UInt32, UInt64, UInt128)
+            @testset "$Tf(::Normed{$T,$f})" for f = 1:bitwidth(T)
+                N = Normed{T,f}
                 error_count = 0
-                for i in vcat(Ti(0x00):Ti(0xFF), (typemax(Ti)-0xFF):typemax(Ti))
-                    f_expected = Tf(i / BigFloat(FixedPointNumbers.rawone(T)))
+                for i in vcat(T(0x00):T(0xFF), (typemax(T)-0xFF):typemax(T))
+                    f_expected = Tf(i / BigFloat(FixedPointNumbers.rawone(N)))
                     isinf(f_expected) && break # for Float16() and Float32()
-                    f_actual = Tf(reinterpret(T, i))
+                    f_actual = Tf(reinterpret(N, i))
                     f_actual == f_expected && continue
                     f_actual == prevfloat(f_expected) && continue
                     f_actual == nextfloat(f_expected) && continue

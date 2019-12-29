@@ -92,9 +92,10 @@ end
 
     @test convert(N0f8,  1.1f0/typemax(UInt8)) == eps(N0f8)
 
-    @test_broken convert(N0f8, 1//255) === eps(N0f8)
-    @test_broken convert(N0f8, Rational{Int8}(3//5)) === N0f8(3/5)
-    @test_broken convert(N0f8, Rational{UInt8}(3//5)) === N0f8(3/5)
+    @test convert(N0f8, 1//255) === eps(N0f8)
+    @test convert(N0f8, Rational{Int8}(3//5)) === N0f8(3/5)
+    @test convert(N0f8, Rational{UInt8}(3//5)) === N0f8(3/5)
+    @test_throws ArgumentError convert(N0f8, typemax(Rational{UInt8}))
 
     @test convert(N0f8, Base.TwicePrecision(1.0)) === 1N0f8
 

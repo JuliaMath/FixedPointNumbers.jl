@@ -62,7 +62,13 @@ function _convert(::Type{F}, x::AbstractFloat) where {T, f, F <: Fixed{T,f}}
 end
 
 function _convert(::Type{F}, x::Rational) where {T, f, F <: Fixed{T,f}}
-    F(x.num)/F(x.den) # TODO: optimization and input range checking
+    xmin = widemul(denominator(x), widen1(T)(typemin(T)) << 0x1 - 0x1)
+    xmax = widemul(denominator(x), oneunit(widen1(T)) << bitwidth(T) - 0x1)
+    if xmin <= (widen1(numerator(x)) << UInt8(f + 1)) < xmax
+        reinterpret(F, round(T, convert(floattype(T), x) * @exp2(f)))
+    else
+        throw_converterror(F, x)
+    end
 end
 
 # unchecked arithmetic

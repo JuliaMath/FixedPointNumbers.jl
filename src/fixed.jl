@@ -1,5 +1,16 @@
-# 32-bit fixed point; parameter `f` is the number of fraction bits
-struct Fixed{T <: Signed,f} <: FixedPoint{T,  f}
+"""
+    Fixed{T <: Signed, f} <: FixedPoint{T, f}
+
+`Fixed{T,f}` maps `Signed` integers from `-2^f` to `2^f` to the range
+[-1.0, 1.0]. For example, `Fixed{Int8,7}` maps `-128` to `-1.0` and `127` to
+`127/128 ≈ 0.992`.
+
+There are the typealiases for `Fixed` in the `QXfY` notation, where `Y` is
+the number of fractional bits (i.e. `f`), and `X+Y+1` equals the number of
+underlying bits used (`+1` means the sign bit). For example, `Q0f7` is aliased
+to `Fixed{Int8,7}` and `Q3f12` is aliased to `Fixed{Int16,12}`.
+"""
+struct Fixed{T <: Signed, f} <: FixedPoint{T, f}
     i::T
 
     # constructor for manipulating the representation;
@@ -14,14 +25,13 @@ Fixed{T,f}(x::Integer) where {T,f} = Fixed{T,f}(round(T, convert(widen1(T),x)<<f
 Fixed{T,f}(x::AbstractFloat) where {T,f} = Fixed{T,f}(round(T, trunc(widen1(T),x)<<f + rem(x,1)*(one(widen1(T))<<f)),0)
 Fixed{T,f}(x::Rational) where {T,f} = Fixed{T,f}(x.num)/Fixed{T,f}(x.den)
 
-reinterpret(::Type{Fixed{T,f}}, x::T) where {T <: Signed,f} = Fixed{T,f}(x, 0)
-
 typechar(::Type{X}) where {X <: Fixed} = 'Q'
 signbits(::Type{X}) where {X <: Fixed} = 1
 
 for T in (Int8, Int16, Int32, Int64)
-    for f in 0:sizeof(T)*8-1
-        sym = Symbol(String(take!(showtype(_iotypealias, Fixed{T,f}))))
+    io = IOBuffer()
+    for f in 0:bitwidth(T)-1
+        sym = Symbol(String(take!(showtype(io, Fixed{T,f}))))
         @eval begin
             const $sym = Fixed{$T,$f}
             export $sym
@@ -29,15 +39,15 @@ for T in (Int8, Int16, Int32, Int64)
     end
 end
 
-# basic operators
--(x::Fixed{T,f}) where {T,f} = Fixed{T,f}(-x.i,0)
-abs(x::Fixed{T,f}) where {T,f} = Fixed{T,f}(abs(x.i),0)
+function rawone(::Type{Fixed{T,f}}) where {T, f}
+    f >= bitwidth(T)-1 && throw_converterror(Fixed{T,f}, 1)
+    oneunit(T) << f
+end
 
-+(x::Fixed{T,f}, y::Fixed{T,f}) where {T,f} = Fixed{T,f}(x.i+y.i,0)
--(x::Fixed{T,f}, y::Fixed{T,f}) where {T,f} = Fixed{T,f}(x.i-y.i,0)
+# unchecked arithmetic
 
 # with truncation:
-#*{f}(x::Fixed32{f}, y::Fixed32{f}) = Fixed32{f}(Base.widemul(x.i,y.i)>>f,0)
+#*(x::Fixed{T,f}, y::Fixed{T,f}) = Fixed{T,f}(Base.widemul(x.i,y.i)>>f,0)
 # with rounding up:
 *(x::Fixed{T,f}, y::Fixed{T,f}) where {T,f} = Fixed{T,f}((Base.widemul(x.i,y.i) + (one(widen(T)) << (f-1)))>>f,0)
 
@@ -56,7 +66,6 @@ end
 rem(x::Integer, ::Type{Fixed{T,f}}) where {T,f} = Fixed{T,f}(rem(x,T)<<f,0)
 rem(x::Real,    ::Type{Fixed{T,f}}) where {T,f} = Fixed{T,f}(rem(Integer(trunc(x)),T)<<f + rem(Integer(round(rem(x,1)*(one(widen1(T))<<f))),T),0)
 
-float(x::Fixed) = convert(floattype(x), x)
 
 Base.BigFloat(x::Fixed{T,f}) where {T,f} =
     BigFloat(x.i>>f) + BigFloat(x.i&(one(widen1(T))<<f - 1))/BigFloat(one(widen1(T))<<f)
@@ -84,13 +93,13 @@ promote_rule(::Type{Fixed{T,f}}, ::Type{Rational{TR}}) where {T,f,TR} = Rational
     f = max(f1, f2)  # ensure we have enough precision
     T = promote_type(T1, T2)
     # make sure we have enough integer bits
-    i1, i2 = 8*sizeof(T1)-f1, 8*sizeof(T2)-f2  # number of integer bits for each
-    i = 8*sizeof(T)-f
+    i1, i2 = bitwidth(T1)-f1, bitwidth(T2)-f2  # number of integer bits for each
+    i = bitwidth(T)-f
     while i < max(i1, i2)
         Tw = widen1(T)
         T == Tw && break
         T = Tw
-        i = 8*sizeof(T)-f
+        i = bitwidth(T)-f
     end
     :(Fixed{$T,$f})
 end

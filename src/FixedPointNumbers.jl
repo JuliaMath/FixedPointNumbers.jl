@@ -10,8 +10,14 @@ import Base: ==, <, <=, -, +, *, /, ~, isapprox,
 
 using Base: @pure
 
-# T => BaseType
-# f => Number of bits reserved for fractional part
+"""
+    FixedPoint{T <: Integer, f} <: Real
+
+Supertype of the two fixed-point number types: `Fixed{T, f}` and `Normed{T, f}`.
+
+The parameter `T` is the underlying machine representation and `f` is the number
+of fraction bits.
+"""
 abstract type FixedPoint{T <: Integer, f} <: Real end
 
 
@@ -25,16 +31,20 @@ export
 # Functions
     scaledual
 
+include("utilities.jl")
+
+# reinterpretation
 reinterpret(x::FixedPoint) = x.i
 reinterpret(::Type{T}, x::FixedPoint{T,f}) where {T,f} = x.i
+reinterpret(::Type{X}, x::T) where {T <: Integer, X <: FixedPoint{T}} = X(x, 0)
+
+# static parameters
+nbitsfrac(::Type{X}) where {T, f, X <: FixedPoint{T,f}} = f
+rawtype(::Type{X}) where {T, X <: FixedPoint{T}} = T
 
 # construction using the (approximate) intended value, i.e., N0f8
 *(x::Real, ::Type{X}) where {X<:FixedPoint} = X(x)
 
-# comparison
-==(x::T, y::T) where {T <: FixedPoint} = x.i == y.i
- <(x::T, y::T) where {T <: FixedPoint} = x.i  < y.i
-<=(x::T, y::T) where {T <: FixedPoint} = x.i <= y.i
 """
     isapprox(x::FixedPoint, y::FixedPoint; rtol=0, atol=max(eps(x), eps(y)))
 
@@ -52,26 +62,22 @@ end
 # predicates
 isinteger(x::FixedPoint{T,f}) where {T,f} = (x.i&(1<<f-1)) == 0
 
+# identities
+zero(::Type{X}) where {X <: FixedPoint} = X(zero(rawtype(X)), 0)
+oneunit(::Type{X}) where {X <: FixedPoint} = X(rawone(X), 0)
+one(::Type{X}) where {X <: FixedPoint} = oneunit(X)
+
+# for Julia v1.0, which does not fold `div_float` before inlining
+inv_rawone(x) = (@generated) ? (y = 1.0 / rawone(x); :($y)) : 1.0 / rawone(x)
+
 # traits
+sizeof(::Type{X}) where {X <: FixedPoint} = sizeof(rawtype(X))
+eps(::Type{X}) where {X <: FixedPoint} = X(oneunit(rawtype(X)), 0)
 typemax(::Type{T}) where {T <: FixedPoint} = T(typemax(rawtype(T)), 0)
 typemin(::Type{T}) where {T <: FixedPoint} = T(typemin(rawtype(T)), 0)
 floatmin(::Type{T}) where {T <: FixedPoint} = eps(T)
 floatmax(::Type{T}) where {T <: FixedPoint} = typemax(T)
 
-widen1(::Type{Int8})   = Int16
-widen1(::Type{UInt8})  = UInt16
-widen1(::Type{Int16})  = Int32
-widen1(::Type{UInt16}) = UInt32
-widen1(::Type{Int32})  = Int64
-widen1(::Type{UInt32}) = UInt64
-widen1(::Type{Int64})  = Int128
-widen1(::Type{UInt64}) = UInt128
-widen1(::Type{Int128}) = Int128
-widen1(::Type{UInt128}) = UInt128
-widen1(x::Integer) = x % widen1(typeof(x))
-
-const ShortInts = Union{Int8,UInt8,Int16,UInt16}
-const LongInts = Union{UInt64, UInt128, Int64, Int128, BigInt}
 
 """
     floattype(::Type{T})
@@ -100,36 +106,54 @@ floattype(::Type{T}) where {T <: Real} = T # fallback
 floattype(::Type{T}) where {T <: Union{ShortInts, Bool}} = Float32
 floattype(::Type{T}) where {T <: Integer} = Float64
 floattype(::Type{T}) where {T <: LongInts} = BigFloat
-floattype(::Type{FixedPoint{T,f}}) where {T <: ShortInts,f} = Float32
-floattype(::Type{FixedPoint{T,f}}) where {T <: Integer,f} = Float64
-floattype(::Type{FixedPoint{T,f}}) where {T <: LongInts,f} = BigFloat
-floattype(::Type{F}) where {F <: FixedPoint} = floattype(supertype(F))
-floattype(x::FixedPoint) = floattype(typeof(x))
+floattype(::Type{X}) where {T <: ShortInts, X <: FixedPoint{T}} = Float32
+floattype(::Type{X}) where {T <: Integer, X <: FixedPoint{T}} = Float64
+floattype(::Type{X}) where {T <: LongInts, X <: FixedPoint{T}} = BigFloat
 
-nbitsfrac(::Type{FixedPoint{T,f}}) where {T <: Integer,f} = f
-nbitsfrac(::Type{F}) where {F <: FixedPoint} = nbitsfrac(supertype(F))
+float(x::FixedPoint) = convert(floattype(x), x)
 
-rawtype(::Type{FixedPoint{T,f}}) where {T <: Integer,f} = T
-rawtype(::Type{F}) where {F <: FixedPoint} = rawtype(supertype(F))
-rawtype(x::FixedPoint) = rawtype(typeof(x))
+function minmax(x::X, y::X) where {X <: FixedPoint}
+    a, b = minmax(reinterpret(x), reinterpret(y))
+    X(a,0), X(b,0)
+end
 
-# This IOBuffer is used during module definition to generate typealias names
-_iotypealias = IOBuffer()
+bswap(x::X) where {X <: FixedPoint} = sizeof(X) == 1 ? x : X(bswap(x.i), 0)
+
+for f in (:zero, :oneunit, :one, :eps, :rawone, :rawtype, :floattype)
+    @eval begin
+        $f(x::FixedPoint) = $f(typeof(x))
+    end
+end
+for f in (:(==), :<, :<=, :div, :fld, :fld1)
+    @eval begin
+        $f(x::X, y::X) where {X <: FixedPoint} = $f(x.i, y.i)
+    end
+end
+for f in (:-, :~, :abs)
+    @eval begin
+        $f(x::X) where {X <: FixedPoint} = X($f(x.i), 0)
+    end
+end
+for f in (:+, :-, :rem, :mod, :mod1, :min, :max)
+    @eval begin
+        $f(x::X, y::X) where {X <: FixedPoint} = X($f(x.i, y.i), 0)
+    end
+end
 
 # Printing. These are used to generate type-symbols, so we need them
 # before we include any files.
 function showtype(io::IO, ::Type{X}) where {X <: FixedPoint}
     print(io, typechar(X))
     f = nbitsfrac(X)
-    m = sizeof(X)*8-f-signbits(X)
+    m = bitwidth(X)-f-signbits(X)
     print(io, m, 'f', f)
     io
 end
 function show(io::IO, x::FixedPoint{T,f}) where {T,f}
-    show(io, round(convert(Float64,x), digits=ceil(Int,f/_log2_10)))
+    log10_2 = 0.3010299956639812
+    show(io, round(convert(Float64,x), digits=ceil(Int, f * log10_2)))
     get(io, :compact, false) || showtype(io, typeof(x))
 end
-const _log2_10 = 3.321928094887362
 
 function Base.showarg(io::IO, a::Array{T}, toplevel) where {T<:FixedPoint}
     toplevel || print(io, "::")
@@ -144,10 +168,6 @@ include("normed.jl")
 include("deprecations.jl")
 const UF = (N0f8, N6f10, N4f12, N2f14, N0f16)
 
-eps(::Type{T}) where {T <: FixedPoint} = T(oneunit(rawtype(T)),0)
-eps(::T) where {T <: FixedPoint} = eps(T)
-sizeof(::Type{T}) where {T <: FixedPoint} = sizeof(rawtype(T))
-
 # Promotions for reductions
 const Treduce = Float64
 Base.add_sum(x::FixedPoint, y::FixedPoint) = Treduce(x) + Treduce(y)
@@ -157,17 +177,6 @@ Base.mul_prod(x::FixedPoint, y::FixedPoint) = Treduce(x) * Treduce(y)
 Base.reduce_empty(::typeof(Base.mul_prod), ::Type{F}) where {F<:FixedPoint} = one(Treduce)
 Base.reduce_first(::typeof(Base.mul_prod), x::FixedPoint)  = Treduce(x)
 
-
-for f in (:div, :fld, :fld1)
-    @eval begin
-        $f(x::T, y::T) where {T <: FixedPoint} = $f(reinterpret(x),reinterpret(y))
-    end
-end
-for f in (:rem, :mod, :mod1, :min, :max)
-    @eval begin
-        $f(x::T, y::T) where {T <: FixedPoint} = T($f(reinterpret(x),reinterpret(y)),0)
-    end
-end
 
 """
     sd, ad = scaledual(s::Number, a)
@@ -185,13 +194,13 @@ scaledual(::Type{Tdual}, x::FixedPoint) where Tdual = convert(Tdual, 1/rawone(x)
 scaledual(::Type{Tdual}, x::AbstractArray{T}) where {Tdual, T <: FixedPoint} =
     convert(Tdual, 1/rawone(T)), reinterpret(rawtype(T), x)
 
-@noinline function throw_converterror(::Type{T}, x) where {T <: FixedPoint}
-    n = 2^(8*sizeof(T))
-    bitstring = sizeof(T) == 1 ? "an 8-bit" : "a $(8*sizeof(T))-bit"
+@noinline function throw_converterror(::Type{X}, x) where {X <: FixedPoint}
+    n = 2^bitwidth(X)
+    bitstring = bitwidth(X) == 8 ? "an 8-bit" : "a $(bitwidth(X))-bit"
     io = IOBuffer()
-    show(IOContext(io, :compact=>true), typemin(T)); Tmin = String(take!(io))
-    show(IOContext(io, :compact=>true), typemax(T)); Tmax = String(take!(io))
-    throw(ArgumentError("$T is $bitstring type representing $n values from $Tmin to $Tmax; cannot represent $x"))
+    show(IOContext(io, :compact=>true), typemin(X)); Xmin = String(take!(io))
+    show(IOContext(io, :compact=>true), typemax(X)); Xmax = String(take!(io))
+    throw(ArgumentError("$X is $bitstring type representing $n values from $Xmin to $Xmax; cannot represent $x"))
 end
 
 rand(::Type{T}) where {T <: FixedPoint} = reinterpret(T, rand(rawtype(T)))

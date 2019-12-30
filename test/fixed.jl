@@ -1,4 +1,5 @@
 using FixedPointNumbers, Test
+using FixedPointNumbers: bitwidth
 
 function test_op(fun::F, ::Type{T}, fx, fy, fxf, fyf, tol) where {F,T}
     # Make sure that the result is representable
@@ -47,6 +48,24 @@ function test_fixed(::Type{T}, f) where {T}
             @assert isequal(fx,fy) == isequal(hash(fx),hash(fy))
         end
     end
+end
+
+@testset "reinterpret" begin
+    @test reinterpret(Q0f7, signed(0xa2)) === -0.734375Q0f7
+    @test reinterpret(Q5f10, signed(0x00a2)) === 0.158203125Q5f10
+
+    @test reinterpret(reinterpret(Q0f7, signed(0xa2))) === signed(0xa2)
+    @test reinterpret(reinterpret(Q5f10, signed(0x00a2))) === signed(0x00a2)
+
+    @test reinterpret(Int8, 0.5Q0f7) === signed(0x40)
+end
+
+@testset "inexactness" begin
+    @test_throws InexactError Q0f7(-2)
+    # TODO: change back to InexactError when it allows message strings
+    @test_throws ArgumentError one(Q0f15)
+    @test_throws ArgumentError oneunit(Q0f31)
+    @test_throws ArgumentError one(Fixed{Int8,8})
 end
 
 @testset "conversion" begin
@@ -164,11 +183,16 @@ end
                  (Int64, 63))
         tmax = typemax(Fixed{T, f})
         @test tmax == BigInt(typemax(T)) / BigInt(2)^f
-        tol = (tmax + BigFloat(1.0)) / (sizeof(T) * 8)
+        tol = (tmax + BigFloat(1.0)) / bitwidth(T)
         for x in range(-1, stop=BigFloat(tmax)-tol, length=50)
             @test abs(Fixed{T, f}(x) - x) <= tol
         end
     end
+end
+
+@testset "low-level arithmetic" begin
+    @test bswap(Q0f7(0.5)) === Q0f7(0.5)
+    @test bswap(Q0f15(0.5)) === reinterpret(Q0f15, signed(0x0040))
 end
 
 @testset "Promotion within Fixed" begin

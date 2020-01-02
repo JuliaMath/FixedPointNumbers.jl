@@ -1,6 +1,13 @@
 using FixedPointNumbers, Test
 using FixedPointNumbers: bitwidth
 
+@testset "domain of f" begin
+    @test_throws DomainError zero(Normed{UInt8,-1})
+    @test_throws DomainError zero(Normed{UInt8,0})
+    @test_throws DomainError zero(Normed{UInt8,9})
+    @test_throws DomainError zero(Normed{UInt16,17})
+end
+
 @testset "reinterpret" begin
     @test reinterpret(N0f8, 0xa2).i  === 0xa2
     @test reinterpret(N6f10, 0x1fa2).i === 0x1fa2

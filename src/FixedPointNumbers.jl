@@ -206,7 +206,9 @@ end
 rand(::Type{T}) where {T <: FixedPoint} = reinterpret(T, rand(rawtype(T)))
 rand(::Type{T}, sz::Dims) where {T <: FixedPoint} = reinterpret(T, rand(rawtype(T), sz))
 
-include("precompile.jl")
-_precompile_()
+if VERSION >= v"1.1" # work around https://github.com/JuliaLang/julia/issues/34121
+    include("precompile.jl")
+    _precompile_()
+end
 
 end # module

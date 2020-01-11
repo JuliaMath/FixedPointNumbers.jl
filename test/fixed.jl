@@ -50,6 +50,16 @@ function test_fixed(::Type{T}, f) where {T}
     end
 end
 
+@testset "domain of f" begin
+    # TODO: change the upper limit
+    @test_logs (:warn, r"`f=8` with raw type `T=Int8` will be removed") zero(Fixed{Int8,8})
+    @test_throws DomainError zero(Fixed{Int8,-1})
+    # @test_throws DomainError zero(Fixed{Int8,8})
+    @test_throws DomainError zero(Fixed{Int8,9})
+    # @test_throws DomainError zero(Fixed{Int16,16})
+    @test_throws DomainError zero(Fixed{Int16,17})
+end
+
 @testset "reinterpret" begin
     @test reinterpret(Q0f7, signed(0xa2)) === -0.734375Q0f7
     @test reinterpret(Q5f10, signed(0x00a2)) === 0.158203125Q5f10
@@ -65,7 +75,7 @@ end
     # TODO: change back to InexactError when it allows message strings
     @test_throws ArgumentError one(Q0f15)
     @test_throws ArgumentError oneunit(Q0f31)
-    @test_throws ArgumentError one(Fixed{Int8,8})
+    @test_throws ArgumentError one(Fixed{Int8,8}) # TODO: remove this at end of its support
 end
 
 @testset "conversion" begin
@@ -79,7 +89,7 @@ end
 end
 
 @testset "test_fixed" begin
-    for (TI, f) in [(Int8, 8), (Int16, 8), (Int16, 10), (Int32, 16)]
+    for (TI, f) in [(Int8, 7), (Int16, 8), (Int16, 10), (Int32, 16)]
         T = Fixed{TI,f}
         # println("  Testing $T")
         test_fixed(T, f)
@@ -112,8 +122,7 @@ end
 end
 
 @testset "reductions" begin
-    F8 = Fixed{Int8,8}
-    a = F8[0.498, 0.1]
+    a = Q0f7[0.75, 0.5]
     acmp = Float64(a[1]) + Float64(a[2])
     @test sum(a) == acmp
     @test sum(a, dims=1) == [acmp]
@@ -126,7 +135,7 @@ end
 end
 
 @testset "convert result type" begin
-    x = Fixed{Int8,8}(0.3)
+    x = Fixed{Int8,7}(0.75)
     for T in (Float16, Float32, Float64, BigFloat)
         y = convert(T, x)
         @test isa(y, T)
@@ -154,11 +163,10 @@ end
 end
 
 @testset "rand" begin
-    for T in (Fixed{Int8,8}, Fixed{Int16,8}, Fixed{Int16,10}, Fixed{Int32,16})
-        a = rand(T)
-        @test isa(a, T)
-        a = rand(T, (3, 5))
-        @test ndims(a) == 2 && eltype(a) == T
+    for F in (Fixed{Int8,7}, Fixed{Int16,8}, Fixed{Int16,10}, Fixed{Int32,16})
+        @test isa(rand(F), F)
+        a = rand(F, (3, 5))
+        @test ndims(a) == 2 && eltype(a) == F
         @test size(a) == (3,5)
     end
 end

@@ -15,7 +15,13 @@ struct Fixed{T <: Signed, f} <: FixedPoint{T, f}
 
     # constructor for manipulating the representation;
     # selected by passing an extra dummy argument
-    Fixed{T, f}(i::Integer, _) where {T,f} = new{T, f}(i % T)
+    function Fixed{T, f}(i::Integer, _) where {T, f}
+        if f == bitwidth(T)
+            Base.depwarn("`Fixed` reserves one bit for the sign. Support for `f=$f` with raw type `T=$T` will be removed in a future release.", :Fixed)
+        end
+        0 <= f <= bitwidth(T) || throw(DomainError(f, "f must be between 0 and $(bitwidth(T)-1) (i.e. the number of non-sign bits of `T=$T`)")) # TODO: change the upper limit
+        new{T, f}(i % T)
+    end
 end
 
 Fixed{T, f}(x::AbstractChar) where {T,f} = throw(ArgumentError("Fixed cannot be constructed from a Char"))

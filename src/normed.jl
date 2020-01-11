@@ -13,7 +13,10 @@ underlying bits used. For example, `N0f8` is aliased to `Normed{UInt8,8}` and
 struct Normed{T <: Unsigned, f} <: FixedPoint{T, f}
     i::T
 
-    Normed{T, f}(i::Integer,_) where {T,f} = new{T, f}(i%T)   # for setting by raw representation
+    function Normed{T, f}(i::Integer, _) where {T, f}
+        1 <= f <= bitwidth(T) || throw(DomainError(f, "f must be between 1 and $(bitwidth(T)) (i.e. the number of bits of `T=$T`)"))
+        new{T, f}(i % T)
+    end
 end
 
 Normed{T, f}(x::AbstractChar) where {T,f} = throw(ArgumentError("Normed cannot be constructed from a Char"))

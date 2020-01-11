@@ -70,6 +70,18 @@ end
     @test reinterpret(Int8, 0.5Q0f7) === signed(0x40)
 end
 
+@testset "masks" begin
+    @test FixedPointNumbers.intmask(0Q7f0) === signed(0xFF)
+    @test FixedPointNumbers.intmask(0Q6f1) === signed(0xFE)
+    @test FixedPointNumbers.intmask(0Q1f6) === signed(0xC0)
+    @test FixedPointNumbers.intmask(0Q0f7) === signed(0x80)
+
+    @test FixedPointNumbers.fracmask(0Q7f0) === signed(0x00)
+    @test FixedPointNumbers.fracmask(0Q6f1) === signed(0x01)
+    @test FixedPointNumbers.fracmask(0Q1f6) === signed(0x3F)
+    @test FixedPointNumbers.fracmask(0Q0f7) === signed(0x7F)
+end
+
 @testset "inexactness" begin
     @test_throws InexactError Q0f7(-2)
     # TODO: change back to InexactError when it allows message strings
@@ -94,6 +106,56 @@ end
         # println("  Testing $T")
         test_fixed(T, f)
     end
+end
+
+@testset "rounding" begin
+    for T in (Int8, Int16, Int32, Int64)
+        rs = vcat([ oneunit(T) << b - oneunit(T) for b = 0:bitwidth(T)-1],
+                  [ oneunit(T) << b              for b = 1:bitwidth(T)-2],
+                  [ oneunit(T) << b + oneunit(T) for b = 2:bitwidth(T)-2],
+                  [-oneunit(T) << b - oneunit(T) for b = 2:bitwidth(T)-2],
+                  [-oneunit(T) << b              for b = 1:bitwidth(T)-1],
+                  [-oneunit(T) << b + oneunit(T) for b = 1:bitwidth(T)-1])
+        @testset "rounding Fixed{$T,$f}" for f = 0:bitwidth(T)-1
+            F = Fixed{T,f}
+            xs = (reinterpret(F, r) for r in rs)
+            @test all(x -> trunc(x) == trunc(float(x)), xs)
+            @test all(x -> floor(float(x)) < typemin(F) || floor(x) == floor(float(x)), xs)
+            @test all(x ->  ceil(float(x)) > typemax(F) ||  ceil(x) ==  ceil(float(x)), xs)
+            @test all(x -> round(float(x)) > typemax(F) || round(x) == round(float(x)), xs)
+            @test all(x -> trunc(Int64, x) === trunc(Int64, float(x)), xs)
+            @test all(x -> floor(Int64, x) === floor(Int64, float(x)), xs)
+            @test all(x ->  ceil(Int64, x) ===  ceil(Int64, float(x)), xs)
+            @test all(x -> round(Int64, x) === round(Int64, float(x)), xs)
+        end
+    end
+    @testset "rounding Fixed{Int16,$f} with overflow" for f = 1:16 # TODO: drop 16
+        F = Fixed{Int16,f}
+        @test_throws ArgumentError ceil(typemax(F))
+        if f == 16
+            @test_throws ArgumentError ceil(eps(F))
+        elseif f == 15
+            @test_throws ArgumentError ceil(eps(F))
+            @test_throws ArgumentError round(typemax(F))
+            @test_throws ArgumentError round(F(0.5) + eps(F))
+        else
+            @test_throws ArgumentError ceil(typemin(F) - oneunit(F) + eps(F))
+            @test_throws ArgumentError round(typemax(F))
+            @test_throws ArgumentError round(typemax(F) - F(0.5) + eps(F))
+        end
+    end
+    @testset "rounding mode" begin
+        @test round(-1.5Q1f6, RoundNearest) === -2Q1f6
+        @test round(-1.5Q1f6, RoundToZero) === -1Q1f6
+        @test round(-1.5Q1f6, RoundUp) === -1Q1f6
+        @test round(-1.5Q1f6, RoundDown) === -2Q1f6
+        @test round(Int, -1.5Q1f6, RoundNearest) === -2
+        @test round(Int, -1.5Q1f6, RoundToZero) === -1
+        @test round(Int, -1.5Q1f6, RoundUp) === -1
+        @test round(Int, -1.5Q1f6, RoundDown) === -2
+    end
+    @test_throws InexactError trunc(UInt, typemin(Q0f7))
+    @test_throws InexactError floor(UInt, -eps(Q0f7))
 end
 
 @testset "modulus" begin

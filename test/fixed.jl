@@ -194,6 +194,20 @@ end
     @test_throws OverflowError length(typemin(QInt1):typemax(QInt1))
 end
 
+@testset "step range" begin
+    r = typemin(Q0f7):eps(Q0f7):typemax(Q0f7)
+    counter = 0
+    for x in r
+        counter += 1
+    end
+    @test counter == 256
+    @test length(r) == 256
+    QInt1 = Fixed{Int,1}
+    @test length(QInt1(0):eps(QInt1):typemax(QInt1)-eps(QInt1)) == typemax(Int)
+    @test Base.unsafe_length(typemin(QInt1):eps(QInt1):typemax(QInt1)-eps(QInt1)) == -1
+    @test_throws OverflowError length(QInt1(-1):eps(QInt1):typemax(QInt1)-eps(QInt1))
+end
+
 @testset "reductions" begin
     a = Q0f7[0.75, 0.5]
     acmp = Float64(a[1]) + Float64(a[2])

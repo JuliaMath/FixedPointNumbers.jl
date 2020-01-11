@@ -323,8 +323,11 @@ end
     end
     @test counter == 256
     @test length(N0f8(0):eps(N0f8):N0f8(1)) == 256
-    r = reinterpret(N0f8, 0x01):reinterpret(N0f8, 0x01):reinterpret(N0f8, convert(UInt8, 48))
+    r = reinterpret(N0f8, 0x01):reinterpret(N0f8, 0x01):reinterpret(N0f8, UInt8(48))
     @test length(r) == 48
+    NInt1 = Normed{UInt,1}
+    @test length(NInt1(0):NInt1(1):typemax(NInt1)-oneunit(NInt1)) == typemax(UInt)
+    @test_throws OverflowError length(NInt1(0):NInt1(1):typemax(NInt1))
 end
 
 @testset "Promotion within Normed" begin

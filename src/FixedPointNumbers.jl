@@ -8,7 +8,7 @@ import Base: ==, <, <=, -, +, *, /, ~, isapprox,
              div, fld, rem, mod, mod1, fld1, min, max, minmax,
              rand
 
-using Base.Checked: checked_add, checked_sub
+using Base.Checked: checked_add, checked_sub, checked_div
 
 using Base: @pure
 
@@ -150,6 +150,26 @@ for (m, f) in ((:(:Nearest), :round),
         round(::Type{Ti}, x::FixedPoint, ::RoundingMode{$m}) where {Ti <: Integer} = $f(Ti, x)
     end
 end
+
+function Base.unsafe_length(r::StepRange{X,X}) where {X <: FixedPoint{<:ShorterThanInt}}
+    start, step, stop = reinterpret(r.start), reinterpret(r.step), reinterpret(r.stop)
+    return div(Int(stop) - Int(start) + Int(step), Int(step))
+end
+function Base.unsafe_length(r::StepRange{X,X}) where {X <: FixedPoint}
+    start, step, stop = reinterpret(r.start), reinterpret(r.step), reinterpret(r.stop)
+    return div((stop - start) + step, step)
+end
+function Base.unsafe_length(r::StepRange{<:FixedPoint})
+    start, step, stop = float(r.start), r.step, float(r.stop)
+    return div((stop - start) + step, step)
+end
+Base.length(r::StepRange{X,X}) where {X <: FixedPoint{<:ShorterThanInt}} =
+    Base.unsafe_length(r)
+function Base.length(r::StepRange{X,X}) where {X <: FixedPoint}
+    start, step, stop = reinterpret(r.start), reinterpret(r.step), reinterpret(r.stop)
+    return checked_div(checked_add(checked_sub(stop, start), step), step)
+end
+Base.length(r::StepRange{<:FixedPoint}) = Base.unsafe_length(r)
 
 # Printing. These are used to generate type-symbols, so we need them
 # before we include any files.

@@ -16,6 +16,11 @@ widen1(x::Integer) = x % widen1(typeof(x))
 const ShortInts = Union{Int8, UInt8, Int16, UInt16}
 const LongInts = Union{Int64, UInt64, Int128, UInt128, BigInt}
 
+const ShorterThanInt = Int === Int32 ? ShortInts : Union{ShortInts, Int32, UInt32}
+const NotBiggerThanInt = Union{ShorterThanInt, Int, UInt}
+const SShorterThanInt = typeintersect(ShorterThanInt, Signed)
+const UShorterThanInt = typeintersect(ShorterThanInt, Unsigned)
+
 macro f32(x::Float64) # just for hexadecimal floating-point literals
     :(Float32($x))
 end

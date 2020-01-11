@@ -287,6 +287,16 @@ function decompose(x::Normed)
     div(reinterpret(x),g), 0, div(rawone(x),g)
 end
 
+# Range lengths
+Base.unsafe_length(r::AbstractUnitRange{N}) where {N <: Normed{<:UShorterThanInt}} =
+    floor(Int, last(r) - first(r)) + 1
+Base.unsafe_length(r::AbstractUnitRange{N}) where {N <: Normed{T,f}} where {T<:Unsigned,f} =
+    floor(T, last(r) - first(r)) + oneunit(T)
+Base.length(r::AbstractUnitRange{N}) where {N <: Normed{<:UShorterThanInt}} =
+    Base.unsafe_length(r)
+Base.length(r::AbstractUnitRange{N}) where {N <: Normed{T}} where {T<:Unsigned} =
+    checked_add(floor(T, last(r) - first(r)), oneunit(T))
+
 # Promotions
 promote_rule(::Type{T}, ::Type{Tf}) where {T <: Normed,Tf <: AbstractFloat} = promote_type(floattype(T), Tf)
 promote_rule(::Type{T}, ::Type{R}) where {T <: Normed,R <: Rational} = R

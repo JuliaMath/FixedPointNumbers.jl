@@ -8,6 +8,8 @@ import Base: ==, <, <=, -, +, *, /, ~, isapprox,
              div, fld, rem, mod, mod1, fld1, min, max, minmax,
              rand
 
+using Base.Checked: checked_add, checked_sub
+
 using Base: @pure
 
 """

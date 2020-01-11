@@ -300,17 +300,31 @@ end
     @test bswap(N0f8(0.5)) === N0f8(0.5)
     @test bswap(N0f16(0.5)) === reinterpret(N0f16, 0x0080)
     @test minmax(N0f8(0.8), N0f8(0.2)) === (N0f8(0.2), N0f8(0.8))
+end
 
-    r = reinterpret(N0f8, 0x01):reinterpret(N0f8, 0x01):reinterpret(N0f8, convert(UInt8, 48))
-    @test length(r) == 48
-    end
+@testset "unit range" begin
+    @test length(N0f8(0):N0f8(1)) == 2
+    @test collect(N0f8(0):N0f8(1)) == N0f8[0, 1]
+    @test length(N7f1(0):N7f1(255)) == 256
+    NIntW = Normed{UInt,bitwidth(UInt)}
+    @test length(NIntW(0):NIntW(1)) == 2
+    NInt1 = Normed{UInt,1}
+    @test length(NInt1(0):typemax(NInt1)-oneunit(NInt1)) == typemax(UInt)
+    @test_throws OverflowError length(NInt1(0):typemax(NInt1))
+    @test Base.unsafe_length(NInt1(0):typemax(NInt1)) == 0  # overflow
+    N64f64 = Normed{UInt128,64}
+    @test_broken length(N64f64(0):typemax(N64f64)) == UInt128(typemax(UInt64)) + 1
+end
 
-    @testset "step range" begin
+@testset "step range" begin
     counter = 0
     for x in N0f8(0):eps(N0f8):N0f8(1)
         counter += 1
     end
     @test counter == 256
+    @test length(N0f8(0):eps(N0f8):N0f8(1)) == 256
+    r = reinterpret(N0f8, 0x01):reinterpret(N0f8, 0x01):reinterpret(N0f8, convert(UInt8, 48))
+    @test length(r) == 48
 end
 
 @testset "Promotion within Normed" begin

@@ -264,6 +264,16 @@ end
         @test_throws ArgumentError ceil(typemax(N))
         @test_throws ArgumentError ceil(floor(typemax(N)) + eps(N))
     end
+    @testset "rounding mode" begin
+        @test round(1.504N1f7, RoundNearest) === 2N1f7
+        @test round(1.504N1f7, RoundToZero) === 1N1f7
+        @test round(1.504N1f7, RoundUp) === 2N1f7
+        @test round(1.504N1f7, RoundDown) === 1N1f7
+        @test round(Int, 1.504N1f7, RoundNearest) === 2
+        @test round(Int, 1.504N1f7, RoundToZero) === 1
+        @test round(Int, 1.504N1f7, RoundUp) === 2
+        @test round(Int, 1.504N1f7, RoundDown) === 1
+    end
 end
 
 @testset "approx" begin

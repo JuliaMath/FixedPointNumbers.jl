@@ -139,6 +139,15 @@ for f in (:+, :-, :rem, :mod, :mod1, :min, :max)
         $f(x::X, y::X) where {X <: FixedPoint} = X($f(x.i, y.i), 0)
     end
 end
+for (m, f) in ((:(:Nearest), :round),
+               (:(:ToZero), :trunc),
+               (:(:Up), :ceil),
+               (:(:Down), :floor))
+    @eval begin
+        round(x::FixedPoint, ::RoundingMode{$m}) = $f(x)
+        round(::Type{Ti}, x::FixedPoint, ::RoundingMode{$m}) where {Ti <: Integer} = $f(Ti, x)
+    end
+end
 
 # Printing. These are used to generate type-symbols, so we need them
 # before we include any files.

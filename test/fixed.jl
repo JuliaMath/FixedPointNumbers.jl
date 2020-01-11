@@ -144,6 +144,16 @@ end
             @test_throws ArgumentError round(typemax(F) - F(0.5) + eps(F))
         end
     end
+    @testset "rounding mode" begin
+        @test round(-1.5Q1f6, RoundNearest) === -2Q1f6
+        @test round(-1.5Q1f6, RoundToZero) === -1Q1f6
+        @test round(-1.5Q1f6, RoundUp) === -1Q1f6
+        @test round(-1.5Q1f6, RoundDown) === -2Q1f6
+        @test round(Int, -1.5Q1f6, RoundNearest) === -2
+        @test round(Int, -1.5Q1f6, RoundToZero) === -1
+        @test round(Int, -1.5Q1f6, RoundUp) === -1
+        @test round(Int, -1.5Q1f6, RoundDown) === -2
+    end
     @test_throws InexactError trunc(UInt, typemin(Q0f7))
     @test_throws InexactError floor(UInt, -eps(Q0f7))
 end

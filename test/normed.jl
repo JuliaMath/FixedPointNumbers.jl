@@ -304,7 +304,10 @@ end
 
 @testset "unit range" begin
     @test length(N0f8(0):N0f8(1)) == 2
+    @test length(N0f8(1):N0f8(0)) == 0
+    @test isempty(N0f8(1):N0f8(0))
     @test collect(N0f8(0):N0f8(1)) == N0f8[0, 1]
+    @test length(0.5N1f7:1.504N1f7) == 2
     @test length(N7f1(0):N7f1(255)) == 256
     NIntW = Normed{UInt,bitwidth(UInt)}
     @test length(NIntW(0):NIntW(1)) == 2
@@ -314,6 +317,7 @@ end
     @test Base.unsafe_length(NInt1(0):typemax(NInt1)) == 0  # overflow
     N64f64 = Normed{UInt128,64}
     @test_broken length(N64f64(0):typemax(N64f64)) == UInt128(typemax(UInt64)) + 1
+    @test length(N1f63(2):N1f63(0)) == 0
 end
 
 @testset "step range" begin

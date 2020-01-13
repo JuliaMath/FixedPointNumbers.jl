@@ -185,6 +185,7 @@ end
 
 @testset "unit range" begin
     @test length(Q1f6(-1):Q1f6(0)) == 2
+    @test length(Q1f6(0):Q1f6(-1)) == 0
     @test collect(Q1f6(-1):Q1f6(0)) == Q1f6[-1, 0]
     @test length(Q6f1(-64):Q6f1(63)) == 128
     QIntW = Fixed{Int,bitwidth(Int)-1}
@@ -192,6 +193,8 @@ end
     QInt1 = Fixed{Int,1}
     @test length(typemin(QInt1):typemax(QInt1)-oneunit(QInt1)) == typemax(Int)
     @test_throws OverflowError length(typemin(QInt1):typemax(QInt1))
+    @test length(-127Q7f0:127Q7f0) == 255
+    @test length(Q1f62(0):Q1f62(-2)) == 0
 end
 
 @testset "step range" begin

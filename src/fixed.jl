@@ -161,6 +161,16 @@ function round(::Type{Ti}, x::Fixed{T,f}) where {Ti <: Integer, T, f}
     convert(Ti, z - Ti(y & m == rawone(x)))
 end
 
+# Range construction
+Base.unitrange_last(start::F, stop::F) where {F<:Fixed} =
+    stop >= start ? convert(F, start+floor(stop-start)) : convert(F, start+F(-1))
+
+# Range lengths
+length(r::AbstractUnitRange{F}) where {F <: Fixed{<:SShorterThanInt,f}} where {f} =
+    ((Int(reinterpret(last(r))) - Int(reinterpret(first(r)))) >> f) + 1
+length(r::AbstractUnitRange{F}) where {F <: Fixed{T}} where {T <: Signed} =
+    checked_add(checked_sub(floor(T, last(r)), floor(T, first(r))), oneunit(T))
+
 promote_rule(ft::Type{Fixed{T,f}}, ::Type{TI}) where {T,f,TI <: Integer} = Fixed{T,f}
 promote_rule(::Type{Fixed{T,f}}, ::Type{TF}) where {T,f,TF <: AbstractFloat} = TF
 promote_rule(::Type{Fixed{T,f}}, ::Type{Rational{TR}}) where {T,f,TR} = Rational{TR}

@@ -80,9 +80,6 @@ end
 @testset "conversion" begin
     x = N0f8(0.5)
     @test convert(N0f8, x) === x
-    @test isfinite(x) == true
-    @test isnan(x) == false
-    @test isinf(x) == false
 
     @test convert(N0f8,  1.1/typemax(UInt8)) == eps(N0f8)
     @test convert(N6f10, 1.1/typemax(UInt16)*64) == eps(N6f10)
@@ -332,6 +329,32 @@ end
     NInt1 = Normed{UInt,1}
     @test length(NInt1(0):NInt1(1):typemax(NInt1)-oneunit(NInt1)) == typemax(UInt)
     @test_throws OverflowError length(NInt1(0):NInt1(1):typemax(NInt1))
+end
+
+@testset "predicates" begin
+    @test isfinite(1N8f8)
+    @test !isnan(1N8f8)
+    @test !isinf(1N8f8)
+
+    @testset "isinteger" begin
+        for T in (UInt8, UInt16)
+            @testset "isinteger(::Normed{$T,$f})" for f = 1:bitwidth(T)
+                N = Normed{T,f}
+                xs = typemin(N):eps(N):typemax(N)
+                @test all(x -> isinteger(x) == isinteger(float(x)), xs)
+            end
+        end
+        for T in (UInt32, UInt64)
+            @testset "isinteger(::Normed{$T,$f})" for f = 1:bitwidth(T)
+                N = Normed{T,f}
+                if f == 1
+                    @test isinteger(zero(N)) & isinteger(oneunit(N))
+                else
+                    @test !isinteger(oneunit(N) - eps(N)) & isinteger(oneunit(N))
+                end
+            end
+        end
+    end
 end
 
 @testset "Promotion within Normed" begin

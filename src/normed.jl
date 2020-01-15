@@ -101,10 +101,24 @@ function _convert(::Type{N}, x::Tf) where {T, f, N <: Normed{T,f}, Tf <: Union{F
     return reinterpret(N, unsafe_trunc(T, yi >> (ex & bits)))
 end
 
-rem(x::T, ::Type{T}) where {T <: Normed} = x
-rem(x::Normed, ::Type{T}) where {T <: Normed} = reinterpret(T, _unsafe_trunc(rawtype(T), round((rawone(T)/rawone(x))*reinterpret(x))))
-rem(x::Real, ::Type{T}) where {T <: Normed} = reinterpret(T, _unsafe_trunc(rawtype(T), round(rawone(T)*x)))
-rem(x::Float16, ::Type{T}) where {T <: Normed} = rem(Float32(x), T)  # avoid overflow
+rem(x::N, ::Type{N}) where {N <: Normed} = x
+rem(x::Normed, ::Type{N}) where {T, N <: Normed{T}} = reinterpret(N, _unsafe_trunc(T, round((rawone(N)/rawone(x))*reinterpret(x))))
+rem(x::Real, ::Type{N}) where {T, N <: Normed{T}} = reinterpret(N, _unsafe_trunc(T, round(rawone(N)*x)))
+rem(x::Float16, ::Type{N}) where {N <: Normed} = rem(Float32(x), N)  # avoid overflow
+# Float32 and Float64 cannot exactly represent `rawone(N)` with `f` greater than
+# the number of their significand bits, resulting in rounding errors (issue #150).
+# So, we use another strategy for the large `f`s explained in:
+# https://github.com/JuliaMath/FixedPointNumbers.jl/pull/166#issuecomment-574135643
+function rem(x::Float32, ::Type{N}) where {f, N <: Normed{UInt32,f}}
+    f <= 24 && return reinterpret(N, _unsafe_trunc(UInt32, round(rawone(N) * x)))
+    r = _unsafe_trunc(UInt32, round(x * @f32(0x1p24)))
+    reinterpret(N, r << UInt8(f - 24) - unsigned(signed(r) >> 0x18))
+end
+function rem(x::Float64, ::Type{N}) where {f, N <: Normed{UInt64,f}}
+    f <= 53 && return reinterpret(N, _unsafe_trunc(UInt64, round(rawone(N) * x)))
+    r = _unsafe_trunc(UInt64, round(x * 0x1p53))
+    reinterpret(N, r << UInt8(f - 53) - unsigned(signed(r) >> 0x35))
+end
 
 
 function (::Type{T})(x::Normed) where {T <: AbstractFloat}

@@ -24,13 +24,6 @@ struct Fixed{T <: Signed, f} <: FixedPoint{T, f}
     end
 end
 
-Fixed{T, f}(x::AbstractChar) where {T,f} = throw(ArgumentError("Fixed cannot be constructed from a Char"))
-Fixed{T, f}(x::Complex) where {T,f} = Fixed{T, f}(convert(real(typeof(x)), x))
-Fixed{T, f}(x::Base.TwicePrecision) where {T,f} = Fixed{T, f}(convert(Float64, x))
-Fixed{T,f}(x::Integer) where {T,f} = Fixed{T,f}(round(T, convert(widen1(T),x)<<f),0)
-Fixed{T,f}(x::AbstractFloat) where {T,f} = Fixed{T,f}(round(T, trunc(widen1(T),x)<<f + rem(x,1)*(one(widen1(T))<<f)),0)
-Fixed{T,f}(x::Rational) where {T,f} = Fixed{T,f}(x.num)/Fixed{T,f}(x.den)
-
 typechar(::Type{X}) where {X <: Fixed} = 'Q'
 signbits(::Type{X}) where {X <: Fixed} = 1
 
@@ -53,6 +46,25 @@ end
 intmask(::Fixed{T,f}) where {T, f} = -oneunit(T) << f # Signed
 fracmask(x::Fixed{T,f}) where {T, f} = ~intmask(x) # Signed
 
+# constructor-style conversions
+function _convert(::Type{F}, x::Fixed{T2,f2}) where {T, T2, f, f2, F <: Fixed{T,f}}
+    y = round(((1<<f)/(1<<f2))*reinterpret(x)) # FIXME: avoid overflow
+    (typemin(T) <= y) & (y <= typemax(T)) || throw_converterror(F, x)
+    reinterpret(F, _unsafe_trunc(T, y))
+end
+
+function _convert(::Type{F}, x::Integer) where {T, f, F <: Fixed{T,f}}
+    reinterpret(F, round(T, convert(widen1(T),x)<<f)) # TODO: optimization and input range checking
+end
+
+function _convert(::Type{F}, x::AbstractFloat) where {T, f, F <: Fixed{T,f}}
+    reinterpret(F, round(T, trunc(widen1(T),x)<<f + rem(x,1)*(one(widen1(T))<<f))) # TODO: optimization and input range checking
+end
+
+function _convert(::Type{F}, x::Rational) where {T, f, F <: Fixed{T,f}}
+    F(x.num)/F(x.den) # TODO: optimization and input range checking
+end
+
 # unchecked arithmetic
 
 # with truncation:
@@ -63,15 +75,6 @@ fracmask(x::Fixed{T,f}) where {T, f} = ~intmask(x) # Signed
 /(x::Fixed{T,f}, y::Fixed{T,f}) where {T,f} = Fixed{T,f}(div(convert(widen(T), x.i) << f, y.i), 0)
 
 
-# # conversions and promotions
-function Fixed{T,f}(x::Fixed{T2,f2}) where {T <: Integer,T2 <: Integer,f,f2}
-#    reinterpret(Fixed{T,f},T(reinterpret(x)<<(f-f2)))
-    U = Fixed{T,f}
-    y = round(((1<<f)/(1<<f2))*reinterpret(x))
-    (typemin(T) <= y) & (y <= typemax(T)) || throw_converterror(U, x)
-    reinterpret(U, _unsafe_trunc(T, y))
-end
-
 rem(x::Integer, ::Type{Fixed{T,f}}) where {T,f} = Fixed{T,f}(rem(x,T)<<f,0)
 rem(x::Real,    ::Type{Fixed{T,f}}) where {T,f} = Fixed{T,f}(rem(Integer(trunc(x)),T)<<f + rem(Integer(round(rem(x,1)*(one(widen1(T))<<f))),T),0)
 
@@ -81,18 +84,9 @@ Base.BigFloat(x::Fixed{T,f}) where {T,f} =
 (::Type{TF})(x::Fixed{T,f}) where {TF <: AbstractFloat,T,f} =
     TF(x.i>>f) + TF(x.i&(one(widen1(T))<<f - 1))/TF(one(widen1(T))<<f)
 
-Base.Bool(x::Fixed{T,f}) where {T,f} = x.i!=0
-function Base.Integer(x::Fixed{T,f}) where {T,f}
-    isinteger(x) || throw(InexactError())
-    Integer(x.i>>f)
+function Base.Rational(x::Fixed{T,f}) where {T, f}
+    f < bitwidth(T)-1 ? x.i//rawone(x) : x.i//(one(widen1(T))<<f)
 end
-function (::Type{TI})(x::Fixed{T,f}) where {TI <: Integer,T,f}
-    isinteger(x) || throw(InexactError())
-    TI(x.i>>f)
-end
-
-(::Type{TR})(x::Fixed{T,f}) where {TR <: Rational,T,f} =
-    TR(x.i>>f + (x.i&(1<<f-1))//(one(widen1(T))<<f))
 
 function trunc(x::Fixed{T,f}) where {T, f}
     f == 0 && return x

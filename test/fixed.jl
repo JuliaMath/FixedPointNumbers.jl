@@ -97,6 +97,16 @@ end
     @test_throws InexactError convert(Fixed{Int8, 7}, 1)
     @test_throws InexactError convert(Fixed{Int8, 7}, 2)
     @test_throws InexactError convert(Fixed{Int8, 7}, 128)
+
+    @test convert(Q2f5, -1//2) === -0.5Q2f5
+    @test_broken convert(Q1f6, Rational{Int8}(-3//4)) === -0.75Q1f6
+    @test_broken convert(Q0f7, Rational{Int16}(-3//4)) === -0.75Q0f7
+    @test_broken convert(Q0f7, Rational{UInt8}(3//4)) === 0.75Q0f7
+
+    @test convert(Q0f7, Base.TwicePrecision(0.5)) === 0.5Q0f7
+    @test_throws InexactError convert(Q7f8, Base.TwicePrecision(0x80, 0x01))
+    tp = Base.TwicePrecision(0xFFFFFFFFp-32, 0xFFFFFFFEp-64)
+    @test convert(Q0f63, tp) === reinterpret(Q0f63, typemax(Int64))
 end
 
 @testset "test_fixed" begin
@@ -231,9 +241,26 @@ end
     end
 end
 
+@testset "bool conversions" begin
+    @test convert(Bool, 0.0Q1f6) === false
+    @test convert(Bool, 1.0Q1f6) === true
+    @test_throws InexactError convert(Bool, 0.5Q1f6)
+    @test_throws InexactError convert(Bool, -1Q1f6)
+    @test_broken convert(Bool, Fixed{Int8,8}(0.2)) # TODO: remove this
+end
+
 @testset "Integer conversions" begin
     @test convert(Int, Q1f6(1)) === 1
     @test convert(Integer, Q1f6(1)) === Int8(1)
+    @test convert(UInt, 1Q1f6) === UInt(1)
+    @test_throws InexactError convert(Integer, 0.5Q1f6)
+    @test_throws InexactError convert(Int8, 256Q9f6)
+end
+
+@testset "rational conversions" begin
+    @test convert(Rational, -0.75Q1f6) === Rational{Int8}(-3//4)
+    @test convert(Rational, -0.75Q0f7) === Rational{Int16}(-3//4)
+    @test convert(Rational{Int}, -0.75Q0f7) === Rational(-3//4)
 end
 
 @testset "Floating-point conversions" begin

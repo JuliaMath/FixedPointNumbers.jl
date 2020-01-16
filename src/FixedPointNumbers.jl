@@ -45,7 +45,28 @@ nbitsfrac(::Type{X}) where {T, f, X <: FixedPoint{T,f}} = f
 rawtype(::Type{X}) where {T, X <: FixedPoint{T}} = T
 
 # construction using the (approximate) intended value, i.e., N0f8
-*(x::Real, ::Type{X}) where {X<:FixedPoint} = X(x)
+*(x::Real, ::Type{X}) where {X <: FixedPoint} = _convert(X, x)
+
+# constructor-style conversions
+(::Type{X})(x::Real) where {X <: FixedPoint} = _convert(X, x)
+
+function (::Type{<:FixedPoint})(x::AbstractChar)
+    throw(ArgumentError("FixedPoint (Fixed or Normed) cannot be constructed from a Char"))
+end
+(::Type{X})(x::Complex) where {X <: FixedPoint} = X(convert(real(typeof(x)), x))
+function (::Type{X})(x::Base.TwicePrecision) where {X <: FixedPoint}
+    floattype(X) === BigFloat ? X(big(x)) : X(convert(floattype(X), x))
+end
+
+# conversions
+function Base.Bool(x::FixedPoint)
+    x == zero(x) ? false : x == oneunit(x) ? true : throw(InexactError(:Bool, Bool, x))
+end
+function (::Type{Ti})(x::FixedPoint) where {Ti <: Integer}
+    isinteger(x) || throw(InexactError(:Integer, typeof(x), x))
+    floor(Ti, x)
+end
+Base.Rational{Ti}(x::FixedPoint) where {Ti <: Integer} = Rational{Ti}(Rational(x))
 
 """
     isapprox(x::FixedPoint, y::FixedPoint; rtol=0, atol=max(eps(x), eps(y)))

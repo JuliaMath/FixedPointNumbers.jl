@@ -99,9 +99,10 @@ end
     @test_throws InexactError convert(Fixed{Int8, 7}, 128)
 
     @test convert(Q2f5, -1//2) === -0.5Q2f5
-    @test_broken convert(Q1f6, Rational{Int8}(-3//4)) === -0.75Q1f6
-    @test_broken convert(Q0f7, Rational{Int16}(-3//4)) === -0.75Q0f7
-    @test_broken convert(Q0f7, Rational{UInt8}(3//4)) === 0.75Q0f7
+    @test convert(Q1f6, Rational{Int8}(-3//4)) === -0.75Q1f6
+    @test convert(Q0f7, Rational{Int16}(-3//4)) === -0.75Q0f7
+    @test convert(Q0f7, Rational{UInt8}(3//4)) === 0.75Q0f7
+    @test_throws ArgumentError convert(Q0f7, typemax(Rational{Int8}))
 
     @test convert(Q0f7, Base.TwicePrecision(0.5)) === 0.5Q0f7
     @test_throws InexactError convert(Q7f8, Base.TwicePrecision(0x80, 0x01))

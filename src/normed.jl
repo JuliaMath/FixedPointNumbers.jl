@@ -100,6 +100,14 @@ function _convert(::Type{N}, x::Tf) where {T, f, N <: Normed{T,f}, Tf <: Union{F
     return reinterpret(N, unsafe_trunc(T, yi >> (ex & bits)))
 end
 
+function _convert(::Type{N}, x::Rational) where {T, f, N <: Normed{T,f}}
+    if 0 <= x <= Rational(typemax(N))
+        reinterpret(N, round(T, convert(floattype(T), x) * rawone(N)))
+    else
+        throw_converterror(N, x)
+    end
+end
+
 rem(x::N, ::Type{N}) where {N <: Normed} = x
 rem(x::Normed, ::Type{N}) where {T, N <: Normed{T}} = reinterpret(N, _unsafe_trunc(T, round((rawone(N)/rawone(x))*reinterpret(x))))
 rem(x::Real, ::Type{N}) where {T, N <: Normed{T}} = reinterpret(N, _unsafe_trunc(T, round(rawone(N)*x)))

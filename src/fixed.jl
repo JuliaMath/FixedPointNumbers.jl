@@ -85,10 +85,10 @@ rem(x::Integer, ::Type{Fixed{T,f}}) where {T,f} = Fixed{T,f}(rem(x,T)<<f,0)
 rem(x::Real,    ::Type{Fixed{T,f}}) where {T,f} = Fixed{T,f}(rem(Integer(trunc(x)),T)<<f + rem(Integer(round(rem(x,1)*(one(widen1(T))<<f))),T),0)
 
 
-Base.BigFloat(x::Fixed{T,f}) where {T,f} =
-    BigFloat(x.i>>f) + BigFloat(x.i&(one(widen1(T))<<f - 1))/BigFloat(one(widen1(T))<<f)
-(::Type{TF})(x::Fixed{T,f}) where {TF <: AbstractFloat,T,f} =
-    TF(x.i>>f) + TF(x.i&(one(widen1(T))<<f - 1))/TF(one(widen1(T))<<f)
+(::Type{Tf})(x::Fixed{T,f}) where {Tf <: AbstractFloat, T, f} = Tf(Tf(x.i) * Tf(@exp2(-f)))
+Base.Float16(x::Fixed{T,f}) where {T, f} = Float16(Float32(x))
+Base.Float32(x::Fixed{T,f}) where {T, f} = Float32(x.i) * Float32(@exp2(-f))
+Base.Float64(x::Fixed{T,f}) where {T, f} = Float64(x.i) * @exp2(-f)
 
 function Base.Rational(x::Fixed{T,f}) where {T, f}
     f < bitwidth(T)-1 ? x.i//rawone(x) : x.i//(one(widen1(T))<<f)

@@ -270,6 +270,43 @@ end
     @test isa(float(one(Fixed{Int32,25})), Float64)
 end
 
+@testset "conversions to float" begin
+    for T in (Float16, Float32, Float64, BigFloat)
+        @test isa(convert(T, Q0f7(0.3)), T)
+    end
+
+    for Tf in (Float16, Float32, Float64)
+        @testset "$Tf(::Fixed{$T})" for T in (Int8, Int16)
+            @testset "$Tf(::Fixed{$T,$f})" for f = 0:bitwidth(T)-1
+                F = Fixed{T,f}
+                float_err = 0.0
+                for i = typemin(T):typemax(T)
+                    f_expected = Tf(i * BigFloat(2)^-f)
+                    f_actual = Tf(reinterpret(F, i))
+                    float_err += abs(f_actual - f_expected)
+                end
+                @test float_err == 0.0
+            end
+        end
+        @testset "$Tf(::Fixed{$T})" for T in (Int32, Int64, Int128)
+            @testset "$Tf(::Fixed{$T,$f})" for f = 0:bitwidth(T)-1
+                F = Fixed{T,f}
+                error_count = 0
+                for i in vcat(typemin(T):(typemin(T)+0xFF),
+                              -T(0xFF):T(0xFF),
+                              (typemax(T)-0xFF):typemax(T))
+                    f_expected = Tf(i * BigFloat(2)^-f)
+                    isinf(f_expected) && break # for Float16() and Float32()
+                    f_actual = Tf(reinterpret(F, i))
+                    f_actual == f_expected && continue
+                    error_count += 1
+                end
+                @test error_count == 0
+            end
+        end
+    end
+end
+
 @testset "predicates" begin
     @test isfinite(1Q7f8)
     @test !isnan(1Q7f8)

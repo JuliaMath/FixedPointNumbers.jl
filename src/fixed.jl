@@ -48,17 +48,39 @@ fracmask(x::Fixed{T,f}) where {T, f} = ~intmask(x) # Signed
 
 # constructor-style conversions
 function _convert(::Type{F}, x::Fixed{T2,f2}) where {T, T2, f, f2, F <: Fixed{T,f}}
-    y = round(((1<<f)/(1<<f2))*reinterpret(x)) # FIXME: avoid overflow
+    y = round(@exp2(f-f2) * reinterpret(x))
     (typemin(T) <= y) & (y <= typemax(T)) || throw_converterror(F, x)
     reinterpret(F, _unsafe_trunc(T, y))
 end
 
 function _convert(::Type{F}, x::Integer) where {T, f, F <: Fixed{T,f}}
-    reinterpret(F, round(T, convert(widen1(T),x)<<f)) # TODO: optimization and input range checking
+    if ((typemin(T) >> f) <= x) & (x <= (typemax(T) >> f))
+        reinterpret(F, unsafe_trunc(T, x) << f)
+    else
+        throw_converterror(F, x)
+    end
 end
 
 function _convert(::Type{F}, x::AbstractFloat) where {T, f, F <: Fixed{T,f}}
-    reinterpret(F, round(T, trunc(widen1(T),x)<<f + rem(x,1)*(one(widen1(T))<<f))) # TODO: optimization and input range checking
+    bigx = big(x)
+    bmin = BigFloat(typemin(F)) - @exp2(-f-1)
+    bmax = BigFloat(typemax(F)) + @exp2(-f-1)
+    if bmin <= bigx < bmax
+        reinterpret(F, round(T, bigx * @exp2(f)))
+    else
+        throw_converterror(F, x)
+    end
+end
+
+_convert(::Type{F}, x::Float16) where {T, f, F <: Fixed{T,f}} = F(Float32(x))
+
+function _convert(::Type{F}, x::Union{Float32, Float64}) where {T, f, F <: Fixed{T,f}}
+    Tf = typeof(x)
+    if Tf(typemin(F) - @exp2(-f-1)) <= x < Tf(typemax(F) + @exp2(-f-1))
+        reinterpret(F, round(T, x * @exp2(f)))
+    else
+        throw_converterror(F, x)
+    end
 end
 
 function _convert(::Type{F}, x::Rational) where {T, f, F <: Fixed{T,f}}

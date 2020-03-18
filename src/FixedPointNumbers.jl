@@ -156,6 +156,12 @@ floattype(::Type{X}) where {T <: Integer, X <: FixedPoint{T}} = Float64
 floattype(::Type{X}) where {T <: Integer, X <: Rational{T}} = typeof(zero(T)/oneunit(T))
 floattype(::Type{X}) where {T <: LongInts, X <: FixedPoint{T}} = BigFloat
 
+# Non-Real types
+floattype(::Type{Complex{T}}) where T = Complex{floattype(T)}
+floattype(::Type{<:Irrational}) = Float64
+floattype(::Type{Base.TwicePrecision{Float64}}) = Float64    # wider would be nice, but hardware support is paramount
+floattype(::Type{Base.TwicePrecision{T}}) where T<:Union{Float16,Float32} = widen(T)
+
 float(x::FixedPoint) = convert(floattype(x), x)
 
 function minmax(x::X, y::X) where {X <: FixedPoint}

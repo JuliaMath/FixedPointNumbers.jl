@@ -48,7 +48,8 @@ rawtype(::Type{X}) where {T, X <: FixedPoint{T}} = T
 *(x::Real, ::Type{X}) where {X <: FixedPoint} = _convert(X, x)
 
 # constructor-style conversions
-(::Type{X})(x::Real) where {X <: FixedPoint} = _convert(X, x)
+(::Type{X})(x::X) where {X <: FixedPoint}      = x
+(::Type{X})(x::Number) where {X <: FixedPoint} = _convert(X, x)
 
 function (::Type{<:FixedPoint})(x::AbstractChar)
     throw(ArgumentError("FixedPoint (Fixed or Normed) cannot be constructed from a Char"))
@@ -97,7 +98,6 @@ one(::Type{X}) where {X <: FixedPoint} = oneunit(X)
 inv_rawone(x) = (@generated) ? (y = 1.0 / rawone(x); :($y)) : 1.0 / rawone(x)
 
 # traits
-sizeof(::Type{X}) where {X <: FixedPoint} = sizeof(rawtype(X))
 eps(::Type{X}) where {X <: FixedPoint} = X(oneunit(rawtype(X)), 0)
 typemax(::Type{T}) where {T <: FixedPoint} = T(typemax(rawtype(T)), 0)
 typemin(::Type{T}) where {T <: FixedPoint} = T(typemin(rawtype(T)), 0)

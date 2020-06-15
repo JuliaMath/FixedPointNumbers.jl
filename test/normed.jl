@@ -1,4 +1,4 @@
-using FixedPointNumbers, Test
+using FixedPointNumbers, Statistics, Test
 using FixedPointNumbers: bitwidth
 
 @testset "domain of f" begin
@@ -447,6 +447,17 @@ end
     acmp = Float64(a[1])*Float64(a[2])
     @test prod(a) == acmp
     @test prod(a, dims=1) == [acmp]
+end
+
+@testset "reductions, Statistics" begin
+    a = N0f8[reinterpret(N0f8, 0x80), reinterpret(N0f8, 0x40)]
+    af = FixedPointNumbers.Treduce.(a)
+    @test mean(a) === mean(af)
+    @test std(a)  === std(af)
+    @test var(a)  === var(af)
+    m = mean(a)
+    @test stdm(a, m) === stdm(af, m)
+    @test varm(a, m) === varm(af, m)
 end
 
 @testset "rand" begin

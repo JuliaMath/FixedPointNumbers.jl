@@ -151,14 +151,14 @@ floattype(::Type{T}) where {T <: AbstractFloat} = T # fallback (we want a Method
 floattype(::Type{T}) where {T <: Union{ShortInts, Bool}} = Float32
 floattype(::Type{T}) where {T <: Integer} = Float64
 floattype(::Type{T}) where {T <: LongInts} = BigFloat
+floattype(::Type{T}) where {I <: Integer, T <: Rational{I}} = typeof(zero(I)/oneunit(I))
+floattype(::Type{<:AbstractIrrational}) = Float64
 floattype(::Type{X}) where {T <: ShortInts, X <: FixedPoint{T}} = Float32
 floattype(::Type{X}) where {T <: Integer, X <: FixedPoint{T}} = Float64
-floattype(::Type{X}) where {T <: Integer, X <: Rational{T}} = typeof(zero(T)/oneunit(T))
 floattype(::Type{X}) where {T <: LongInts, X <: FixedPoint{T}} = BigFloat
 
 # Non-Real types
 floattype(::Type{Complex{T}}) where T = Complex{floattype(T)}
-floattype(::Type{<:Irrational}) = Float64
 floattype(::Type{Base.TwicePrecision{Float64}}) = Float64    # wider would be nice, but hardware support is paramount
 floattype(::Type{Base.TwicePrecision{T}}) where T<:Union{Float16,Float32} = widen(T)
 

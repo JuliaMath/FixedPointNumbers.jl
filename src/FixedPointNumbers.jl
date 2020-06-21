@@ -106,35 +106,61 @@ floatmax(::Type{T}) where {T <: FixedPoint} = typemax(T)
 
 
 """
-    floattype(::Type{T})
+    floattype(::Type{T})::Type{<:AbstractFloat}
 
-Return the minimum float type that represents `T` without overflow to `Inf`.
+Return a minimal type suitable for performing computations with instances of type `T` without integer overflow.
 
-# Example
+The fallback definition of `floattype(T)` applies only to `T<:AbstractFloat`.
+However, it is permissible to extend `floattype` to return types that are not subtypes of
+`AbstractFloat`; the key characteristic is that the return type should support computation without integer overflow.
+
+In general the returned type should have the minimum bitwidth needed to encode the full precision of the input type.
+however, a priority should be placed on computational efficiency; consequently, types like `Float16` should be avoided
+except in scenarios where they are guaranteed to have hardware support.
+
+# Examples
 
 A classic usage is to avoid overflow behavior by promoting `FixedPoint` to `AbstractFloat`
 
-```julia
+```jldoctest
 julia> x = N0f8(1.0)
 1.0N0f8
 
 julia> x + x # overflow
 0.996N0f8
 
-julia> float_x = floattype(eltype(x))(x)
-1.0f0
+julia> T = floattype(x)
+Float32
 
-julia> float_x + float_x
+julia> T(x) + T(x)
 2.0f0
 ```
+
+The following represents a valid extension of `floattype` to non-AbstractFloats:
+
+```julia
+julia> using FixedPointNumbers, ColorTypes
+
+julia> floattype(RGB{N0f8})
+RGB{Float32}
+```
+
+`RGB` itself is not a subtype of `AbstractFloat`, but unlike `RGB{N0f8}` operations with `RGB{Float32}` are not subject to integer overflow.
 """
-floattype(::Type{T}) where {T <: Real} = T # fallback
+floattype(::Type{T}) where {T <: AbstractFloat} = T # fallback (we want a MethodError if no method producing AbstractFloat is defined)
 floattype(::Type{T}) where {T <: Union{ShortInts, Bool}} = Float32
 floattype(::Type{T}) where {T <: Integer} = Float64
 floattype(::Type{T}) where {T <: LongInts} = BigFloat
+floattype(::Type{T}) where {I <: Integer, T <: Rational{I}} = typeof(zero(I)/oneunit(I))
+floattype(::Type{<:AbstractIrrational}) = Float64
 floattype(::Type{X}) where {T <: ShortInts, X <: FixedPoint{T}} = Float32
 floattype(::Type{X}) where {T <: Integer, X <: FixedPoint{T}} = Float64
 floattype(::Type{X}) where {T <: LongInts, X <: FixedPoint{T}} = BigFloat
+
+# Non-Real types
+floattype(::Type{Complex{T}}) where T = Complex{floattype(T)}
+floattype(::Type{Base.TwicePrecision{Float64}}) = Float64    # wider would be nice, but hardware support is paramount
+floattype(::Type{Base.TwicePrecision{T}}) where T<:Union{Float16,Float32} = widen(T)
 
 float(x::FixedPoint) = convert(floattype(x), x)
 

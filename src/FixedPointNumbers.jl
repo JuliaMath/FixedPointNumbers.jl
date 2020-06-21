@@ -8,7 +8,7 @@ import Base: ==, <, <=, -, +, *, /, ~, isapprox,
              div, fld, rem, mod, mod1, fld1, min, max, minmax,
              rand, length
 
-import Statistics: _mean_promote
+import Statistics   # for _mean_promote
 
 using Base.Checked: checked_add, checked_sub, checked_div
 
@@ -227,7 +227,9 @@ Base.mul_prod(x::FixedPoint, y::FixedPoint) = Treduce(x) * Treduce(y)
 Base.reduce_empty(::typeof(Base.mul_prod), ::Type{F}) where {F<:FixedPoint} = one(Treduce)
 Base.reduce_first(::typeof(Base.mul_prod), x::FixedPoint)  = Treduce(x)
 
-_mean_promote(x::Real, y::FixedPoint) = Treduce(y)
+if isdefined(Statistics, :_mean_promote)
+    Statistics._mean_promote(x::Real, y::FixedPoint) = Treduce(y)
+end
 
 """
     sd, ad = scaledual(s::Number, a)

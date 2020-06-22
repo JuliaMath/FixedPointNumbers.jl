@@ -253,14 +253,6 @@ end
     @test varm(a, m) === varm(af, m)
 end
 
-@testset "convert result type" begin
-    x = Fixed{Int8,7}(0.75)
-    for T in (Float16, Float32, Float64, BigFloat)
-        y = convert(T, x)
-        @test isa(y, T)
-    end
-end
-
 @testset "bool conversions" begin
     @test convert(Bool, 0.0Q1f6) === false
     @test convert(Bool, 1.0Q1f6) === true
@@ -269,7 +261,7 @@ end
     @test_broken convert(Bool, Fixed{Int8,8}(0.2)) # TODO: remove this
 end
 
-@testset "Integer conversions" begin
+@testset "integer conversions" begin
     @test convert(Int, Q1f6(1)) === 1
     @test convert(Integer, Q1f6(1)) === Int8(1)
     @test convert(UInt, 1Q1f6) === UInt(1)
@@ -280,7 +272,19 @@ end
 @testset "rational conversions" begin
     @test convert(Rational, -0.75Q1f6) === Rational{Int8}(-3//4)
     @test convert(Rational, -0.75Q0f7) === Rational{Int16}(-3//4)
-    @test convert(Rational{Int}, -0.75Q0f7) === Rational(-3//4)
+    @test convert(Rational{Int}, -0.75Q0f7) === Rational{Int}(-3//4)
+
+    @test rationalize(-0.75Q3f4) === Rational{Int}(-3//4)
+    @test rationalize(Int16, 0.81Q3f4) === Rational{Int16}(13//16)
+    @test rationalize(-0.81Q3f4, tol=0.02) === Rational{Int}(-13//16)
+    @test rationalize(Int8, -0.81Q3f4, tol=0.07) === Rational{Int8}(-3//4)
+end
+
+@testset "BigFloat conversions" begin
+    @test convert(BigFloat, -0.75Q0f7)::BigFloat == big"-0.75"
+
+    @test big(Q7f0) === BigFloat # !== BigInt
+    @test big(0.75Q3f4)::BigFloat == big"0.75"
 end
 
 @testset "Floating-point conversions" begin
@@ -290,7 +294,7 @@ end
 end
 
 @testset "conversions to float" begin
-    for T in (Float16, Float32, Float64, BigFloat)
+    for T in (Float16, Float32, Float64)
         @test isa(convert(T, Q0f7(0.3)), T)
     end
 

@@ -244,7 +244,7 @@ function Base.Float64(x::Normed{UInt128,f}) where f
     end
 end
 
-Base.BigFloat(x::Normed) = reinterpret(x)*(1/BigFloat(rawone(x)))
+Base.BigFloat(x::Normed) = reinterpret(x) / BigFloat(rawone(x))
 
 Base.Rational(x::Normed) = reinterpret(x)//rawone(x)
 

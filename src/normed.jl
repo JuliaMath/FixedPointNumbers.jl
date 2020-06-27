@@ -20,7 +20,6 @@ struct Normed{T <: Unsigned, f} <: FixedPoint{T, f}
 end
 
 typechar(::Type{X}) where {X <: Normed} = 'N'
-signbits(::Type{X}) where {X <: Normed} = 0
 
 for T in (UInt8, UInt16, UInt32, UInt64)
     io = IOBuffer()
@@ -247,8 +246,6 @@ end
 Base.BigFloat(x::Normed) = reinterpret(x) / BigFloat(rawone(x))
 
 Base.Rational(x::Normed) = reinterpret(x)//rawone(x)
-
-abs(x::Normed) = x
 
 # unchecked arithmetic
 *(x::T, y::T) where {T <: Normed} = convert(T,convert(floattype(T), x)*convert(floattype(T), y))

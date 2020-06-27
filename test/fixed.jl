@@ -419,6 +419,23 @@ end
     @test clamp(1.5Q1f6, Q0f7) === 0.992Q0f7
 end
 
+@testset "sign-related functions" begin
+    @test_throws Exception signed(Q0f7)
+    @test_throws Exception signed(0.5Q0f7)
+    @test_throws Exception unsigned(Q0f7)
+    @test_throws Exception unsigned(0.5Q0f7)
+    @test copysign(0.5Q0f7, 0x1) === 0.5Q0f7
+    @test copysign(0.5Q0f7, -1) === -0.5Q0f7
+    @test flipsign(0.5Q0f7, 0x1) === 0.5Q0f7
+    @test flipsign(0.5Q0f7, -1) === -0.5Q0f7
+    @test_throws ArgumentError sign(0Q0f7)
+    @test sign(0Q1f6) === 0Q1f6
+    @test sign(0.5Q1f6) === 1Q1f6
+    @test sign(-0.5Q1f6) === -1Q1f6
+    @test signbit(0.5Q0f7) === false
+    @test signbit(-0.5Q0f7) === true
+end
+
 @testset "Promotion within Fixed" begin
     @test @inferred(promote(Q0f7(0.25), Q0f7(0.75))) ===
         (Q0f7(0.25), Q0f7(0.75))

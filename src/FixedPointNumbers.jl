@@ -6,6 +6,7 @@ import Base: ==, <, <=, -, +, *, /, ~, isapprox,
              zero, oneunit, one, typemin, typemax, floatmin, floatmax, eps, reinterpret,
              big, rationalize, float, trunc, round, floor, ceil, bswap, clamp,
              div, fld, rem, mod, mod1, fld1, min, max, minmax,
+             signed, unsigned, copysign, flipsign, signbit,
              rand, length
 
 import Statistics   # for _mean_promote
@@ -45,6 +46,9 @@ reinterpret(::Type{X}, x::T) where {T <: Integer, X <: FixedPoint{T}} = X(x, 0)
 # static parameters
 nbitsfrac(::Type{X}) where {T, f, X <: FixedPoint{T,f}} = f
 rawtype(::Type{X}) where {T, X <: FixedPoint{T}} = T
+
+# traits based on static parameters
+signbits(::Type{X}) where {T, X <: FixedPoint{T}} = T <: Unsigned ? 0 : 1
 
 # construction using the (approximate) intended value, i.e., N0f8
 *(x::Real, ::Type{X}) where {X <: FixedPoint} = _convert(X, x)
@@ -188,6 +192,30 @@ bswap(x::X) where {X <: FixedPoint} = sizeof(X) == 1 ? x : X(bswap(x.i), 0)
 clamp(x::X, lo::X, hi::X) where {X <: FixedPoint} = X(clamp(x.i, lo.i, hi.i), 0)
 
 clamp(x, ::Type{X}) where {X <: FixedPoint} = clamp(x, typemin(X), typemax(X)) % X
+
+# Since `FixedPoint` is not an integer type, it is not clear in what type
+# `signed` and `unsigned` for `FixedPoint` should return values. They should
+# currently throw errors in case we support "unsigned Fixed" or "signed Normed"
+# in the future. The following "incomplete" code is necessary for Julia v1.0
+# etc. to prevent accidental conversion to an integer type.
+signed(x::X) where {X <: FixedPoint} = signed(X)(signed(x.i), 0)
+unsigned(x::X) where {X <: FixedPoint} = unsigned(X)(unsigned(x.i), 0)
+
+function copysign(x::X, y::Real) where {T, X <: FixedPoint{T}}
+    T <: Signed ? X(copysign(x.i, y), 0) : throw_not_a_signed_number_error(x)
+end
+function flipsign(x::X, y::Real) where {T, X <: FixedPoint{T}}
+    T <: Signed ? X(flipsign(x.i, y), 0) : throw_not_a_signed_number_error(x)
+end
+if copysign(-1, 0x1) !== 1 # for Julia v1.0 and v1.1 (julia #30748)
+    copysign(x::X, y::Unsigned) where {T, X <: FixedPoint{T}} = copysign(x, signed(y))
+    flipsign(x::X, y::Unsigned) where {T, X <: FixedPoint{T}} = flipsign(x, signed(y))
+end
+@noinline function throw_not_a_signed_number_error(x)
+    throw(ArgumentError("$x is not a signed number."))
+end
+
+signbit(x::X) where {X <: FixedPoint} = signbit(x.i)
 
 for f in (:zero, :oneunit, :one, :eps, :rawone, :rawtype, :floattype)
     @eval begin

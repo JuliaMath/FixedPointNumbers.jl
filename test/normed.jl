@@ -351,6 +351,19 @@ end
     @test clamp(2.0N1f7, N0f8) === 1.0N0f8
 end
 
+@testset "sign-related functions" begin
+    @test_throws Exception signed(N0f8)
+    @test_throws Exception signed(1N0f8)
+    @test_throws Exception unsigned(N0f8)
+    @test_throws Exception unsigned(1N0f8)
+    @test_throws ArgumentError copysign(1N0f8, 0x1)
+    @test_throws ArgumentError copysign(1N0f8, -1)
+    @test_throws ArgumentError flipsign(1N0f8, 0x1)
+    @test_throws ArgumentError flipsign(1N0f8, -1)
+    @test_throws ArgumentError sign(0N0f8)
+    @test signbit(1N0f8) === false
+end
+
 @testset "unit range" begin
     @test length(N0f8(0):N0f8(1)) == 2
     @test length(N0f8(1):N0f8(0)) == 0

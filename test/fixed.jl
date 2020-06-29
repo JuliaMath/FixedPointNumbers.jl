@@ -1,4 +1,4 @@
-using FixedPointNumbers, Test
+using FixedPointNumbers, Statistics, Test
 using FixedPointNumbers: bitwidth
 
 function test_op(fun::F, ::Type{T}, fx, fy, fxf, fyf, tol) where {F,T}
@@ -240,6 +240,17 @@ end
     acmp = Float64(a[1])*Float64(a[2])
     @test prod(a) == acmp
     @test prod(a, dims=1) == [acmp]
+end
+
+@testset "reductions, Statistics" begin
+    a = Q1f6[0.75, 0.5]
+    af = FixedPointNumbers.Treduce.(a)
+    @test mean(a) === mean(af)
+    @test std(a)  === std(af)
+    @test var(a)  === var(af)
+    m = mean(a)
+    @test stdm(a, m) === stdm(af, m)
+    @test varm(a, m) === varm(af, m)
 end
 
 @testset "convert result type" begin

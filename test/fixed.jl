@@ -486,17 +486,17 @@ end
     @test String(take!(iob)) == "-21845.3"
 
     show(IOContext(iob, :typeinfo=>Q15f16), q15f16)
-    @test String(take!(iob)) == "-21845.33334Q15f16" # TODO: Consider removing suffix (issue #188)
+    @test String(take!(iob)) == "-21845.33334"
 
     show(IOContext(iob, :typeinfo=>Normed), q15f16)
     @test String(take!(iob)) == "-21845.33334Q15f16"
 
     show(iob, Fixed{Int128,64}(-1.2345e6))
-    @test_broken String(take!(iob)) == "Fixed{Int128,64}(-1.2345e6)" # "Q63f64" is not defined
+    @test String(take!(iob)) == "Fixed{Int128,64}(-1.2345e6)"
 
     # TODO: remove this test
     show(iob, reinterpret(Fixed{Int8,8}, signed(0xaa)))
-    @test_broken String(take!(iob)) == "Fixed{Int8,8}(-0.336)" # "Q-1f8" is invalid
+    @test String(take!(iob)) == "Fixed{Int8,8}(-0.336)"
 end
 
 @testset "summary" begin
@@ -504,12 +504,12 @@ end
     aa = Fixed[0.2Q0f7 0.4Q0f15]
 
     if VERSION >= v"1.6.0-DEV.356"
-        @test_broken summary(a) == "2-element Vector{Q0f7}"
-        @test_broken summary(view(a, 1:2)) == "2-element view(::Vector{Q0f7}, 1:2) with eltype Q0f7"
-        @test_broken summary(aa) == "1×2 Matrix{Fixed}"
+        @test summary(a) == "2-element Vector{Q0f7}"
+        @test summary(view(a, 1:2)) == "2-element view(::Vector{Q0f7}, 1:2) with eltype Q0f7"
+        @test summary(aa) == "1×2 Matrix{Fixed}"
     else
         @test summary(a) == "2-element Array{Q0f7,1} with eltype Fixed{Int8,7}"
         @test summary(view(a, 1:2)) == "2-element view(::Array{Q0f7,1}, 1:2) with eltype Fixed{Int8,7}"
-        @test_broken summary(aa) == "1×2 Array{Fixed,2}"
+        @test summary(aa) == "1×2 Array{Fixed,2}"
     end
 end

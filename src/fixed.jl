@@ -24,6 +24,9 @@ struct Fixed{T <: Signed, f} <: FixedPoint{T, f}
     end
 end
 
+# TODO: remove this
+hasalias(::Type{F}) where {F <: Union{Fixed{Int8,8},Fixed{Int16,16},Fixed{Int32,32},Fixed{Int64,64}}} = false
+
 typechar(::Type{X}) where {X <: Fixed} = 'Q'
 
 for T in (Int8, Int16, Int32, Int64)

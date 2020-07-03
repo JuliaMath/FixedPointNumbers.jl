@@ -20,6 +20,7 @@ const LongInts = Union{Int64, UInt64, Int128, UInt128, BigInt}
 
 const ShorterThanInt = Int === Int32 ? ShortInts : Union{ShortInts, Int32, UInt32}
 const NotBiggerThanInt = Union{ShorterThanInt, Int, UInt}
+const NotBiggerThanInt64 = Union{ShortInts, Int32, UInt32, Int64, UInt64}
 const SShorterThanInt = typeintersect(ShorterThanInt, Signed)
 const UShorterThanInt = typeintersect(ShorterThanInt, Unsigned)
 

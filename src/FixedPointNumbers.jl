@@ -12,7 +12,7 @@ import Base: ==, <, <=, -, +, *, /, ~, isapprox,
 import Statistics   # for _mean_promote
 import Random: Random, AbstractRNG, SamplerType, rand!
 
-import Base.Checked: checked_neg, checked_add, checked_sub, checked_div
+import Base.Checked: checked_neg, checked_add, checked_sub, checked_mul, checked_div
 
 using Base: @pure
 
@@ -36,8 +36,8 @@ export
     # Q and N typealiases are exported in separate source files
 # Functions
     scaledual,
-    wrapping_neg, wrapping_add, wrapping_sub,
-    saturating_neg, saturating_add, saturating_sub
+    wrapping_neg, wrapping_add, wrapping_sub, wrapping_mul,
+    saturating_neg, saturating_add, saturating_sub, saturating_mul
 
 include("utilities.jl")
 
@@ -56,6 +56,9 @@ nbitsint(::Type{X}) where {X <: FixedPoint} = bitwidth(X) - nbitsfrac(X) - signb
 
 # construction using the (approximate) intended value, i.e., N0f8
 *(x::Real, ::Type{X}) where {X <: FixedPoint} = _convert(X, x)
+wrapping_mul(x::Real, ::Type{X}) where {X <: FixedPoint} = x % X
+saturating_mul(x::Real, ::Type{X}) where {X <: FixedPoint} = clamp(x, X)
+checked_mul(x::Real, ::Type{X}) where {X <: FixedPoint} = _convert(X, x)
 
 # constructor-style conversions
 (::Type{X})(x::X) where {X <: FixedPoint}      = x

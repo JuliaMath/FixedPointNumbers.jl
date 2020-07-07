@@ -12,6 +12,23 @@ end
     @test_throws DomainError zero(Normed{UInt16,17})
 end
 
+@testset "construction using type suffix" begin
+    @test 0.635N0f8  ===  N0f8(0.635)
+    @test 0.635N6f10 === N6f10(0.635)
+    @test 0.635N4f12 === N4f12(0.635)
+    @test 0.635N2f14 === N2f14(0.635)
+    @test 0.635N0f16 === N0f16(0.635)
+
+    @test_throws ArgumentError 1.1N0f8
+
+    @test wrapping_mul(0.635, N0f8) === N0f8(0.635)
+    @test wrapping_mul(1.635, N0f8) === N0f8((1.635 * 255 - 256) / 255)
+    @test saturating_mul(0.635, N0f8) === N0f8(0.635)
+    @test saturating_mul(1.635, N0f8) === N0f8(1.0)
+    @test checked_mul(0.635, N0f8) === N0f8(0.635)
+    @test_throws ArgumentError checked_mul(1.635, N0f8)
+end
+
 @testset "reinterpret/bitstring" begin
     @test reinterpret(N0f8, 0xa2).i  === 0xa2
     @test reinterpret(N6f10, 0x1fa2).i === 0x1fa2
@@ -29,12 +46,6 @@ end
 
     @test bitstring(reinterpret(N0f8, 0xa2))    === "10100010"
     @test bitstring(reinterpret(N6f10, 0x00a2)) === "0000000010100010"
-
-    @test 0.635N0f8   == N0f8(0.635)
-    @test 0.635N6f10 == N6f10(0.635)
-    @test 0.635N4f12 == N4f12(0.635)
-    @test 0.635N2f14 == N2f14(0.635)
-    @test 0.635N0f16 == N0f16(0.635)
 
     @test N0f8(1.0) == reinterpret(N0f8, 0xff)
     @test N0f8(0.5) == reinterpret(N0f8, 0x80)

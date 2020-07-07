@@ -358,15 +358,6 @@ end
     end
 end
 
-@testset "Show" begin
-    x = Fixed{Int32,5}(0.25)
-    iob = IOBuffer()
-    show(iob, x)
-    str = String(take!(iob))
-    @test str == "0.25Q26f5"
-    @test eval(Meta.parse(str)) == x
-end
-
 @testset "rand" begin
     for F in (Fixed{Int8,7}, Fixed{Int16,8}, Fixed{Int16,10}, Fixed{Int32,16})
         @test isa(rand(F), F)
@@ -432,4 +423,56 @@ end
     @test promote_type(Float32,Int,Q0f7) == Float32
     @test promote_type(Float32,Q0f7,Int) == Float32
     @test promote_type(Q0f7,Q1f6,Q2f5,Q3f4,Q4f3,Q5f2) == Fixed{Int128,7}
+end
+
+@testset "show" begin
+    iob = IOBuffer()
+    q0f7 = reinterpret(Q0f7, signed(0xaa))
+    show(iob, q0f7)
+    str = String(take!(iob))
+    @test str == "-0.672Q0f7"
+    @test eval(Meta.parse(str)) === q0f7
+
+    q15f16 = reinterpret(Q15f16, signed(0xaaaaaaaa))
+    show(iob, q15f16)
+    str = String(take!(iob))
+    @test str == "-21845.33334Q15f16"
+    @test eval(Meta.parse(str)) === q15f16
+
+    show(IOContext(iob, :compact=>true), q15f16)
+    @test String(take!(iob)) == "-21845.3"
+
+    show(IOContext(iob, :compact=>true, :typeinfo=>Q15f16), q15f16)
+    @test String(take!(iob)) == "-21845.3"
+
+    show(IOContext(iob, :compact=>true, :typeinfo=>Fixed), q15f16)
+    @test String(take!(iob)) == "-21845.3"
+
+    show(IOContext(iob, :typeinfo=>Q15f16), q15f16)
+    @test String(take!(iob)) == "-21845.33334Q15f16" # TODO: Consider removing suffix (issue #188)
+
+    show(IOContext(iob, :typeinfo=>Normed), q15f16)
+    @test String(take!(iob)) == "-21845.33334Q15f16"
+
+    show(iob, Fixed{Int128,64}(-1.2345e6))
+    @test_broken String(take!(iob)) == "Fixed{Int128,64}(-1.2345e6)" # "Q63f64" is not defined
+
+    # TODO: remove this test
+    show(iob, reinterpret(Fixed{Int8,8}, signed(0xaa)))
+    @test_broken String(take!(iob)) == "Fixed{Int8,8}(-0.336)" # "Q-1f8" is invalid
+end
+
+@testset "summary" begin
+    a = Q0f7[0.2, 0.4]
+    aa = Fixed[0.2Q0f7 0.4Q0f15]
+
+    if VERSION >= v"1.6.0-DEV.356"
+        @test_broken summary(a) == "2-element Vector{Q0f7}"
+        @test_broken summary(view(a, 1:2)) == "2-element view(::Vector{Q0f7}, 1:2) with eltype Q0f7"
+        @test_broken summary(aa) == "1×2 Matrix{Fixed}"
+    else
+        @test summary(a) == "2-element Array{Q0f7,1} with eltype Fixed{Int8,7}"
+        @test summary(view(a, 1:2)) == "2-element view(::Array{Q0f7,1}, 1:2) with eltype Fixed{Int8,7}"
+        @test_broken summary(aa) == "1×2 Array{Fixed,2}"
+    end
 end

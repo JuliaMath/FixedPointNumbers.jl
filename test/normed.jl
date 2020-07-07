@@ -403,12 +403,51 @@ end
 end
 
 @testset "show" begin
-    x = reinterpret(N0f8, 0xaa)
     iob = IOBuffer()
-    show(iob, x)
+    n0f8 = reinterpret(N0f8, 0xaa)
+    show(iob, n0f8)
     str = String(take!(iob))
     @test str == "0.667N0f8"
-    @test eval(Meta.parse(str)) == x
+    @test eval(Meta.parse(str)) === n0f8
+
+    n16f16 = reinterpret(N16f16, 0xaaaaaaaa)
+    show(iob, n16f16)
+    str = String(take!(iob))
+    @test str == "43691.33333N16f16"
+    @test eval(Meta.parse(str)) === n16f16
+
+    show(IOContext(iob, :compact=>true), n16f16)
+    @test String(take!(iob)) == "43691.3"
+
+    show(IOContext(iob, :compact=>true, :typeinfo=>N16f16), n16f16)
+    @test String(take!(iob)) == "43691.3"
+
+    show(IOContext(iob, :compact=>true, :typeinfo=>Normed), n16f16)
+    @test String(take!(iob)) == "43691.3"
+
+    show(IOContext(iob, :typeinfo=>N16f16), n16f16)
+    @test String(take!(iob)) == "43691.33333N16f16" # TODO: Consider removing suffix (issue #188)
+
+    show(IOContext(iob, :typeinfo=>Normed), n16f16)
+    @test String(take!(iob)) == "43691.33333N16f16"
+
+    show(iob, Normed{UInt128,64}(1.2345e6))
+    @test_broken String(take!(iob)) == "Normed{UInt128,64}(1.2345e6)" # "N64f64" is not defined
+end
+
+@testset "summary" begin
+    a = N0f8[0.2, 0.4]
+    aa = Normed[0.2N0f8 0.4N0f16]
+
+    if VERSION >= v"1.6.0-DEV.356"
+        @test_broken summary(a) == "2-element Vector{N0f8}"
+        @test_broken summary(view(a, 1:2)) == "2-element view(::Vector{N0f8}, 1:2) with eltype N0f8"
+        @test_broken summary(aa) == "1×2 Matrix{Normed}"
+    else
+        @test summary(a) == "2-element Array{N0f8,1} with eltype Normed{UInt8,8}"
+        @test summary(view(a, 1:2)) == "2-element view(::Array{N0f8,1}, 1:2) with eltype Normed{UInt8,8}"
+        @test_broken summary(aa) == "1×2 Array{Normed,2}"
+    end
 end
 
 @testset "scaledual" begin
@@ -476,12 +515,6 @@ end
 @testset "Overflow with Float16" begin
     @test N0f16(Float16(1.0)) === N0f16(1.0)
     @test Float16(1.0) % N0f16 === N0f16(1.0)
-end
-
-@testset "summary" begin
-    a = N0f8[0.2, 0.4]
-    @test summary(a) == "2-element Array{N0f8,1} with eltype Normed{UInt8,8}"
-    @test summary(view(a, 1:2)) == "2-element view(::Array{N0f8,1}, 1:2) with eltype Normed{UInt8,8}"
 end
 
 @testset "disambiguation constructors" begin

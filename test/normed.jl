@@ -284,6 +284,81 @@ end
     end
 end
 
+@testset "neg" begin
+    for N in target(Normed; ex = :thin)
+        @test   wrapping_neg(typemin(N)) === zero(N)
+        @test saturating_neg(typemin(N)) === zero(N)
+        @test    checked_neg(typemin(N)) === zero(N)
+
+        @test   wrapping_neg(typemax(N)) === eps(N)
+        @test saturating_neg(typemax(N)) === zero(N)
+        @test_throws OverflowError checked_neg(typemax(N))
+
+        @test   wrapping_neg(eps(N)) === typemax(N)
+        @test saturating_neg(eps(N)) === zero(N)
+        @test_throws OverflowError checked_neg(eps(N))
+    end
+    for N in target(Normed, :i8; ex = :thin)
+        xs = typemin(N):eps(N):typemax(N)
+        fneg(x) = -float(x)
+        @test all(x -> wrapping_neg(wrapping_neg(x)) === x, xs)
+        @test all(x -> saturating_neg(x) === clamp(fneg(x), N), xs)
+        @test all(x -> !(typemin(N) < fneg(x) < typemax(N)) ||
+                       wrapping_neg(x) === checked_neg(x) === fneg(x) % N, xs)
+    end
+end
+
+@testset "add" begin
+    for N in target(Normed; ex = :thin)
+        @test   wrapping_add(typemin(N), typemin(N)) === zero(N)
+        @test saturating_add(typemin(N), typemin(N)) === zero(N)
+        @test    checked_add(typemin(N), typemin(N)) === zero(N)
+
+        @test   wrapping_add(typemax(N), eps(N)) ===   wrapping_add(eps(N), typemax(N)) === zero(N)
+        @test saturating_add(typemax(N), eps(N)) === saturating_add(eps(N), typemax(N)) === typemax(N)
+        @test_throws OverflowError checked_add(typemax(N), eps(N))
+        @test_throws OverflowError checked_add(eps(N), typemax(N))
+
+        @test   wrapping_add(zero(N), eps(N)) ===   wrapping_add(eps(N), zero(N)) === eps(N)
+        @test saturating_add(zero(N), eps(N)) === saturating_add(eps(N), zero(N)) === eps(N)
+        @test    checked_add(zero(N), eps(N)) ===    checked_add(eps(N), zero(N)) === eps(N)
+    end
+    for N in target(Normed, :i8; ex = :thin)
+        xs = typemin(N):eps(N):typemax(N)
+        xys = ((x, y) for x in xs, y in xs)
+        fadd(x, y) = float(x) + float(y)
+        @test all(((x, y),) -> wrapping_sub(wrapping_add(x, y), y) === x, xys)
+        @test all(((x, y),) -> saturating_add(x, y) === clamp(fadd(x, y), N), xys)
+        @test all(((x, y),) -> !(typemin(N) < fadd(x, y) < typemax(N)) ||
+                               wrapping_add(x, y) === checked_add(x, y) === fadd(x, y) % N, xys)
+    end
+end
+
+@testset "sub" begin
+    for N in target(Normed; ex = :thin)
+        @test   wrapping_sub(typemin(N), typemin(N)) === zero(N)
+        @test saturating_sub(typemin(N), typemin(N)) === zero(N)
+        @test    checked_sub(typemin(N), typemin(N)) === zero(N)
+
+        @test   wrapping_sub(typemin(N), eps(N)) === typemax(N)
+        @test saturating_sub(typemin(N), eps(N)) === typemin(N)
+        @test_throws OverflowError checked_sub(typemin(N), eps(N))
+
+        @test   wrapping_sub(eps(N), zero(N)) === eps(N)
+        @test saturating_sub(eps(N), zero(N)) === eps(N)
+        @test    checked_sub(eps(N), zero(N)) === eps(N)
+    end
+    for N in target(Normed, :i8; ex = :thin)
+        xs = typemin(N):eps(N):typemax(N)
+        xys = ((x, y) for x in xs, y in xs)
+        fsub(x, y) = float(x) - float(y)
+        @test all(((x, y),) -> wrapping_add(wrapping_sub(x, y), y) === x, xys)
+        @test all(((x, y),) -> saturating_sub(x, y) === clamp(fsub(x, y), N), xys)
+        @test all(((x, y),) -> !(typemin(N) < fsub(x, y) < typemax(N)) ||
+                               wrapping_sub(x, y) === checked_sub(x, y) === fsub(x, y) % N, xys)
+    end
+end
+
 @testset "div/fld1" begin
     @test div(reinterpret(N0f8, 0x10), reinterpret(N0f8, 0x02)) == fld(reinterpret(N0f8, 0x10), reinterpret(N0f8, 0x02)) == 8
     @test div(reinterpret(N0f8, 0x0f), reinterpret(N0f8, 0x02)) == fld(reinterpret(N0f8, 0x0f), reinterpret(N0f8, 0x02)) == 7

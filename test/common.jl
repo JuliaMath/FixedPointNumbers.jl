@@ -1,5 +1,6 @@
 using FixedPointNumbers, Statistics, Random, Test
 using FixedPointNumbers: bitwidth, rawtype, nbitsfrac
+using Base.Checked
 
 """
     target(X::Type, Ss...; ex = :default)

@@ -12,7 +12,7 @@ import Base: ==, <, <=, -, +, *, /, ~, isapprox,
 import Statistics   # for _mean_promote
 import Random: Random, AbstractRNG, SamplerType, rand!
 
-using Base.Checked: checked_add, checked_sub, checked_div
+import Base.Checked: checked_neg, checked_add, checked_sub, checked_div
 
 using Base: @pure
 
@@ -35,7 +35,9 @@ export
 # "special" typealiases
     # Q and N typealiases are exported in separate source files
 # Functions
-    scaledual
+    scaledual,
+    wrapping_neg, wrapping_add, wrapping_sub,
+    saturating_neg, saturating_add, saturating_sub
 
 include("utilities.jl")
 
@@ -180,6 +182,45 @@ floattype(::Type{Base.TwicePrecision{T}}) where T<:Union{Float16,Float32} = wide
 
 float(x::FixedPoint) = convert(floattype(x), x)
 
+# wrapping arithmetic
+wrapping_neg(x::X) where {X <: FixedPoint} = X(-x.i, 0)
+wrapping_add(x::X, y::X) where {X <: FixedPoint} = X(x.i + y.i, 0)
+wrapping_sub(x::X, y::X) where {X <: FixedPoint} = X(x.i - y.i, 0)
+
+# saturating arithmetic
+saturating_neg(x::X) where {X <: FixedPoint} = X(~min(x.i - true, x.i), 0)
+saturating_neg(x::X) where {X <: FixedPoint{<:Unsigned}} = zero(X)
+
+saturating_add(x::X, y::X) where {X <: FixedPoint} =
+    X(x.i + ifelse(x.i < 0, max(y.i, typemin(x.i) - x.i), min(y.i, typemax(x.i) - x.i)), 0)
+saturating_add(x::X, y::X) where {X <: FixedPoint{<:Unsigned}} = X(x.i + min(~x.i, y.i), 0)
+
+saturating_sub(x::X, y::X) where {X <: FixedPoint} =
+    X(x.i - ifelse(x.i < 0, min(y.i, x.i - typemin(x.i)), max(y.i, x.i - typemax(x.i))), 0)
+saturating_sub(x::X, y::X) where {X <: FixedPoint{<:Unsigned}} = X(x.i - min(x.i, y.i), 0)
+
+# checked arithmetic
+checked_neg(x::X) where {X <: FixedPoint} = X(checked_neg(x.i), 0)
+checked_add(x::X, y::X) where {X <: FixedPoint} = X(checked_add(x.i, y.i), 0)
+checked_sub(x::X, y::X) where {X <: FixedPoint} = X(checked_sub(x.i, y.i), 0)
+
+# default arithmetic
+const DEFAULT_ARITHMETIC = :wrapping
+
+for (op, name) in ((:-, :neg), )
+    f = Symbol(DEFAULT_ARITHMETIC, :_, name)
+    @eval begin
+        $op(x::X) where {X <: FixedPoint} = $f(x)
+    end
+end
+for (op, name) in ((:+, :add), (:-, :sub))
+    f = Symbol(DEFAULT_ARITHMETIC, :_, name)
+    @eval begin
+        $op(x::X, y::X) where {X <: FixedPoint} = $f(x, y)
+    end
+end
+
+
 function minmax(x::X, y::X) where {X <: FixedPoint}
     a, b = minmax(reinterpret(x), reinterpret(y))
     X(a,0), X(b,0)
@@ -229,12 +270,12 @@ for f in (:(==), :<, :<=, :div, :fld, :fld1)
         $f(x::X, y::X) where {X <: FixedPoint} = $f(x.i, y.i)
     end
 end
-for f in (:-, :~, :abs)
+for f in (:~, :abs)
     @eval begin
         $f(x::X) where {X <: FixedPoint} = X($f(x.i), 0)
     end
 end
-for f in (:+, :-, :rem, :mod, :mod1, :min, :max)
+for f in (:rem, :mod, :mod1, :min, :max)
     @eval begin
         $f(x::X, y::X) where {X <: FixedPoint} = X($f(x.i, y.i), 0)
     end

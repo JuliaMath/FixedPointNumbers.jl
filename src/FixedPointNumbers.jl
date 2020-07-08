@@ -7,9 +7,10 @@ import Base: ==, <, <=, -, +, *, /, ~, isapprox,
              big, rationalize, float, trunc, round, floor, ceil, bswap, clamp,
              div, fld, rem, mod, mod1, fld1, min, max, minmax,
              signed, unsigned, copysign, flipsign, signbit,
-             rand, length
+             length
 
 import Statistics   # for _mean_promote
+import Random: Random, AbstractRNG, SamplerType, rand!
 
 using Base.Checked: checked_add, checked_sub, checked_div
 
@@ -315,7 +316,7 @@ const UF = (N0f8, N6f10, N4f12, N2f14, N0f16)
 promote_rule(::Type{X}, ::Type{Tf}) where {X <: FixedPoint, Tf <: AbstractFloat} =
     promote_type(floattype(X), Tf)
 
-# Note that `Tr` does not always have enough domains. 
+# Note that `Tr` does not always have enough domains.
 promote_rule(::Type{X}, ::Type{Tr}) where {X <: FixedPoint, Tr <: Rational} = Tr
 
 promote_rule(::Type{X}, ::Type{Ti}) where {X <: FixedPoint, Ti <: Integer} = floattype(X)
@@ -382,8 +383,15 @@ scaledual(::Type{Tdual}, x::AbstractArray{T}) where {Tdual, T <: FixedPoint} =
     throw(ArgumentError(String(take!(io))))
 end
 
-rand(::Type{T}) where {T <: FixedPoint} = reinterpret(T, rand(rawtype(T)))
-rand(::Type{T}, sz::Dims) where {T <: FixedPoint} = reinterpret(T, rand(rawtype(T), sz))
+function Random.rand(r::AbstractRNG, ::SamplerType{X}) where X <: FixedPoint
+    X(rand(r, rawtype(X)), 0)
+end
+
+function rand!(r::AbstractRNG, A::Array{X}, ::SamplerType{X}) where {T, X <: FixedPoint{T}}
+    At = unsafe_wrap(Array, reinterpret(Ptr{T}, pointer(A)), size(A))
+    Random.rand!(r, At, SamplerType{T}())
+    A
+end
 
 if VERSION >= v"1.1" # work around https://github.com/JuliaLang/julia/issues/34121
     include("precompile.jl")

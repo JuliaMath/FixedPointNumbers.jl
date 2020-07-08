@@ -1,4 +1,4 @@
-using FixedPointNumbers, Statistics, Test
+using FixedPointNumbers, Statistics, Random, Test
 using FixedPointNumbers: bitwidth, rawtype, nbitsfrac
 
 """

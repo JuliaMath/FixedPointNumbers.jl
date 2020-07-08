@@ -338,6 +338,19 @@ end
     @test minmax(N0f8(0.8), N0f8(0.2)) === (N0f8(0.2), N0f8(0.8))
 end
 
+@testset "clamp" begin
+    @test clamp(0.5N0f8, 0.2N0f8, 0.8N0f8) === 0.5N0f8
+    @test clamp(0.5N0f8, 0.6N0f8, 0.8N0f8) === 0.6N0f8
+    @test clamp(0.5N0f8, 0.2N0f8, 0.4N0f8) === 0.4N0f8
+    @test clamp(0.5,      0.2N0f8, 0.8N0f8) === 0.5
+    @test clamp(0.5f0,    0.6N0f8, 0.8N0f8) === 0.6f0
+    @test clamp(0.5N0f16, 0.2N0f8, 0.4N0f8) === 0.4N0f16
+    @test clamp(0.6N0f8, -Inf, Inf) === 0.6
+    @test clamp(0.5,     N0f8) === 0.5N0f8
+    @test clamp(-1.0f0,  N0f8) === 0.0N0f8
+    @test clamp(2.0N1f7, N0f8) === 1.0N0f8
+end
+
 @testset "unit range" begin
     @test length(N0f8(0):N0f8(1)) == 2
     @test length(N0f8(1):N0f8(0)) == 0

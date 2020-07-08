@@ -1,7 +1,7 @@
 # FixedPointNumbers
 
 [![Build Status](https://travis-ci.org/JuliaMath/FixedPointNumbers.jl.svg?branch=master)](https://travis-ci.org/JuliaMath/FixedPointNumbers.jl)
-
+[![PkgEval](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/F/FixedPointNumbers.svg)](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/report.html)
 [![codecov.io](http://codecov.io/github/JuliaMath/FixedPointNumbers.jl/coverage.svg?branch=master)](http://codecov.io/github/JuliaMath/FixedPointNumbers.jl?branch=master)
 
 This library implements fixed-point number types.  A
@@ -55,10 +55,9 @@ value `1.0` at 10, 12, 14, and 16 bits, respectively (`0x03ff`,
 compact printing and the `fY` component informs about the number of
 fractional bits and `X+Y` equals the number of underlying bits used.
 
-To construct such a number, use `convert(N4f12, 1.3)`, `N4f12(1.3)`,
+To construct such a number, use `1.3N4f12`, `N4f12(1.3)`, `convert(N4f12, 1.3)`,
 `Normed{UInt16,12}(1.3)`, or `reinterpret(N4f12, 0x14cc)`.
-The latter syntax means to construct a `N4f12` (it ends in
-`uf12`) from the `UInt16` value `0x14cc`.
+The last syntax means to construct a `N4f12` from the `UInt16` value `0x14cc`.
 
 More generally, an arbitrary number of bits from any of the standard unsigned
 integer widths can be used for the fractional part.  For example:

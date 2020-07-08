@@ -3,7 +3,7 @@ module FixedPointNumbers
 import Base: ==, <, <=, -, +, *, /, ~, isapprox,
              convert, promote_rule, show, isinteger, abs, decompose,
              isnan, isinf, isfinite,
-             zero, oneunit, one, typemin, typemax, floatmin, floatmax, eps, sizeof, reinterpret,
+             zero, oneunit, one, typemin, typemax, floatmin, floatmax, eps, reinterpret,
              float, trunc, round, floor, ceil, bswap,
              div, fld, rem, mod, mod1, fld1, min, max, minmax,
              rand, length

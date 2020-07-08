@@ -59,7 +59,7 @@ end
     @test_throws DomainError zero(Fixed{Int16,17})
 end
 
-@testset "reinterpret" begin
+@testset "reinterpret/bitstring" begin
     @test reinterpret(Q0f7, signed(0xa2)) === -0.734375Q0f7
     @test reinterpret(Q5f10, signed(0x00a2)) === 0.158203125Q5f10
 
@@ -67,6 +67,9 @@ end
     @test reinterpret(reinterpret(Q5f10, signed(0x00a2))) === signed(0x00a2)
 
     @test reinterpret(Int8, 0.5Q0f7) === signed(0x40)
+
+    @test bitstring(reinterpret(Q0f7, signed(0xa2)))    === "10100010"
+    @test bitstring(reinterpret(Q5f10, signed(0x00a2))) === "0000000010100010"
 end
 
 @testset "masks" begin

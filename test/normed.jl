@@ -8,7 +8,7 @@ using FixedPointNumbers: bitwidth
     @test_throws DomainError zero(Normed{UInt16,17})
 end
 
-@testset "reinterpret" begin
+@testset "reinterpret/bitstring" begin
     @test reinterpret(N0f8, 0xa2).i  === 0xa2
     @test reinterpret(N6f10, 0x1fa2).i === 0x1fa2
     @test reinterpret(N4f12, 0x1fa2).i === 0x1fa2
@@ -22,6 +22,9 @@ end
     @test reinterpret(reinterpret(N0f16, 0x00a2)) === 0x00a2
 
     @test reinterpret(UInt8, 1N0f8) === 0xff
+
+    @test bitstring(reinterpret(N0f8, 0xa2))    === "10100010"
+    @test bitstring(reinterpret(N6f10, 0x00a2)) === "0000000010100010"
 
     @test 0.635N0f8   == N0f8(0.635)
     @test 0.635N6f10 == N6f10(0.635)

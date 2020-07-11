@@ -195,24 +195,5 @@ length(r::AbstractUnitRange{F}) where {F <: Fixed{<:SShorterThanInt,f}} where {f
 length(r::AbstractUnitRange{F}) where {F <: Fixed{T}} where {T <: Signed} =
     checked_add(checked_sub(floor(T, last(r)), floor(T, first(r))), oneunit(T))
 
-promote_rule(ft::Type{Fixed{T,f}}, ::Type{TI}) where {T,f,TI <: Integer} = Fixed{T,f}
-promote_rule(::Type{Fixed{T,f}}, ::Type{TF}) where {T,f,TF <: AbstractFloat} = TF
-promote_rule(::Type{Fixed{T,f}}, ::Type{Rational{TR}}) where {T,f,TR} = Rational{TR}
-
-@generated function promote_rule(::Type{Fixed{T1,f1}}, ::Type{Fixed{T2,f2}}) where {T1,T2,f1,f2}
-    f = max(f1, f2)  # ensure we have enough precision
-    T = promote_type(T1, T2)
-    # make sure we have enough integer bits
-    i1, i2 = bitwidth(T1)-f1, bitwidth(T2)-f2  # number of integer bits for each
-    i = bitwidth(T)-f
-    while i < max(i1, i2)
-        Tw = widen1(T)
-        T == Tw && break
-        T = Tw
-        i = bitwidth(T)-f
-    end
-    :(Fixed{$T,$f})
-end
-
 # TODO: Document and check that it still does the right thing.
 decompose(x::Fixed{T,f}) where {T,f} = x.i, -f, 1

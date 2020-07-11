@@ -311,6 +311,35 @@ include("normed.jl")
 include("deprecations.jl")
 const UF = (N0f8, N6f10, N4f12, N2f14, N0f16)
 
+# Promotions
+promote_rule(::Type{X}, ::Type{Tf}) where {X <: FixedPoint, Tf <: AbstractFloat} =
+    promote_type(floattype(X), Tf)
+
+# Note that `Tr` does not always have enough domains. 
+promote_rule(::Type{X}, ::Type{Tr}) where {X <: FixedPoint, Tr <: Rational} = Tr
+
+promote_rule(::Type{X}, ::Type{Ti}) where {X <: FixedPoint, Ti <: Integer} = floattype(X)
+
+function promote_rule(::Type{X1}, ::Type{X2}) where {T1, f1, X1 <: FixedPoint{T1,f1},
+                                                     T2, f2, X2 <: FixedPoint{T2,f2}}
+    X = wrapper(X1)
+    X !== wrapper(X2) && return promote_type(floattype(X1), floattype(X2))
+
+    f = max(f1, f2)  # ensure we have enough precision
+    Tp = promote_type(T1, T2)
+    T = (T1 <: Signed || T2 <: Signed) ? signedtype(Tp) : Tp
+    # make sure we have enough integer bits
+    m = max(nbitsint(X1), nbitsint(X2))
+    _widen_rawtype(X{T,f}, m)
+end
+
+function _widen_rawtype(::Type{X}, m) where {T, f, X<:FixedPoint{T,f}}
+    nbitsint(X) >= m && return X
+    Tw = widen1(T)
+    T === Tw && return X
+    _widen_rawtype(wrapper(X){Tw,f}, m)
+end
+
 # Promotions for reductions
 const Treduce = Float64
 Base.add_sum(x::FixedPoint, y::FixedPoint) = Treduce(x) + Treduce(y)

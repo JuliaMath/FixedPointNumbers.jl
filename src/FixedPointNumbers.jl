@@ -1,8 +1,8 @@
 module FixedPointNumbers
 
 import Base: ==, <, <=, -, +, *, /, ~, isapprox,
-             convert, promote_rule, show, isinteger, abs, decompose,
-             isnan, isinf, isfinite,
+             convert, promote_rule, show, bitstring, abs, decompose,
+             isnan, isinf, isfinite, isinteger,
              zero, oneunit, one, typemin, typemax, floatmin, floatmax, eps, reinterpret,
              float, trunc, round, floor, ceil, bswap,
              div, fld, rem, mod, mod1, fld1, min, max, minmax,
@@ -170,6 +170,8 @@ function minmax(x::X, y::X) where {X <: FixedPoint}
     a, b = minmax(reinterpret(x), reinterpret(y))
     X(a,0), X(b,0)
 end
+
+bitstring(x::FixedPoint) = bitstring(x.i)
 
 bswap(x::X) where {X <: FixedPoint} = sizeof(X) == 1 ? x : X(bswap(x.i), 0)
 

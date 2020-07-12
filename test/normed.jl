@@ -113,7 +113,6 @@ end
         @test convert(Integer, one(T)) == 1
         @test convert(Rational, one(T)) == 1
     end
-    @test convert(Rational, convert(N0f8, 0.5)) == 0x80//0xff
     @test convert(N0f16, one(N0f8)) === one(N0f16)
     @test convert(N0f16, N0f8(0.5)).i === 0x8080
     @test convert(Normed{UInt16,7}, Normed{UInt8,7}(0.504)) === Normed{UInt16,7}(0.504)
@@ -125,6 +124,24 @@ end
     @test convert(Int, 1N1f7) === 1
     @test_throws InexactError convert(Integer, 0.5N1f7)
     @test_throws InexactError convert(Int8, 256N8f8)
+end
+
+@testset "rational conversions" begin
+    @test convert(Rational, 0.5N0f8) === Rational{UInt8}(0x80//0xff)
+    @test convert(Rational, 0.5N4f12) === Rational{UInt16}(0x800//0xfff)
+    @test convert(Rational{Int}, 0.5N0f8) === Rational{Int}(0x80//0xff)
+
+    @test rationalize(0.8N0f8) === Rational{Int}(4//5)
+    @test rationalize(Int16, 0.804N0f8) === Rational{Int16}(41//51)
+    @test rationalize(0.804N0f8, tol=0.002) === Rational{Int}(41//51)
+    @test rationalize(Int8, 0.804N0f8, tol=0.005) === Rational{Int8}(4//5)
+end
+
+@testset "BigFloat conversions" begin
+    @test convert(BigFloat, 0.5N0f8)::BigFloat == 128 / big"255"
+
+    @test big(N7f1) === BigFloat # !== BigInt
+    @test big(0.5N4f4)::BigFloat == 8 / big"15"
 end
 
 @testset "conversion from float" begin
@@ -161,7 +178,7 @@ end
 
 @testset "conversions to float" begin
     x = N0f8(0.3)
-    for T in (Float16, Float32, Float64, BigFloat)
+    for T in (Float16, Float32, Float64)
         y = convert(T, x)
         @test isa(y, T)
     end

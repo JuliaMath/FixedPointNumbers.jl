@@ -4,7 +4,7 @@ import Base: ==, <, <=, -, +, *, /, ~, isapprox,
              convert, promote_rule, show, bitstring, abs, decompose,
              isnan, isinf, isfinite, isinteger,
              zero, oneunit, one, typemin, typemax, floatmin, floatmax, eps, reinterpret,
-             float, trunc, round, floor, ceil, bswap,
+             big, rationalize, float, trunc, round, floor, ceil, bswap,
              div, fld, rem, mod, mod1, fld1, min, max, minmax,
              rand, length
 
@@ -70,6 +70,14 @@ function (::Type{Ti})(x::FixedPoint) where {Ti <: Integer}
     floor(Ti, x)
 end
 Base.Rational{Ti}(x::FixedPoint) where {Ti <: Integer} = Rational{Ti}(Rational(x))
+
+big(::Type{<:FixedPoint}) = BigFloat
+big(x::FixedPoint) = convert(BigFloat, x)
+
+rationalize(x::FixedPoint; tol::Real=eps(x)) = rationalize(Int, x, tol=tol)
+function rationalize(::Type{Ti}, x::FixedPoint; tol::Real=eps(x)) where Ti <: Integer
+    tol <= eps(x) ? Rational{Ti}(x) : rationalize(Ti, float(x), tol)
+end
 
 """
     isapprox(x::FixedPoint, y::FixedPoint; rtol=0, atol=max(eps(x), eps(y)))

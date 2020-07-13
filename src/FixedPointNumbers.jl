@@ -4,7 +4,7 @@ import Base: ==, <, <=, -, +, *, /, ~, isapprox,
              convert, promote_rule, show, bitstring, abs, decompose,
              isnan, isinf, isfinite, isinteger,
              zero, oneunit, one, typemin, typemax, floatmin, floatmax, eps, reinterpret,
-             big, rationalize, float, trunc, round, floor, ceil, bswap,
+             big, rationalize, float, trunc, round, floor, ceil, bswap, clamp,
              div, fld, rem, mod, mod1, fld1, min, max, minmax,
              rand, length
 
@@ -182,6 +182,12 @@ end
 bitstring(x::FixedPoint) = bitstring(x.i)
 
 bswap(x::X) where {X <: FixedPoint} = sizeof(X) == 1 ? x : X(bswap(x.i), 0)
+
+# At least on Julia v1.5.0 or earlier, the following specialization helps the
+# SIMD vectorization. (cf. PR #194)
+clamp(x::X, lo::X, hi::X) where {X <: FixedPoint} = X(clamp(x.i, lo.i, hi.i), 0)
+
+clamp(x, ::Type{X}) where {X <: FixedPoint} = clamp(x, typemin(X), typemax(X)) % X
 
 for f in (:zero, :oneunit, :one, :eps, :rawone, :rawtype, :floattype)
     @eval begin

@@ -406,6 +406,19 @@ end
     @test bswap(Q0f15(0.5)) === reinterpret(Q0f15, signed(0x0040))
 end
 
+@testset "clamp" begin
+    @test clamp(0.5Q0f7, -0.8Q0f7,  0.8Q0f7) === 0.5Q0f7
+    @test clamp(0.5Q0f7, 0.75Q0f7,  0.8Q0f7) === 0.75Q0f7
+    @test clamp(0.5Q0f7, -0.8Q0f7, 0.25Q0f7) === 0.25Q0f7
+    @test clamp(0.5,      -0.8Q0f7,  0.8Q0f7) === 0.5
+    @test clamp(0.5f0,    0.75Q0f7,  0.8Q0f7) === 0.75f0
+    @test clamp(0.5Q0f15, -0.8Q0f7, 0.25Q0f7) === 0.25Q0f15
+    @test clamp(0.5Q0f7, -Inf, Inf) === 0.5
+    @test clamp(0.5,     Q0f7) === 0.5Q0f7
+    @test clamp(-1.5f0,  Q0f7) === -1.0Q0f7
+    @test clamp(1.5Q1f6, Q0f7) === 0.992Q0f7
+end
+
 @testset "Promotion within Fixed" begin
     @test @inferred(promote(Q0f7(0.25), Q0f7(0.75))) ===
         (Q0f7(0.25), Q0f7(0.75))

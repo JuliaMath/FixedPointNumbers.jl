@@ -25,7 +25,6 @@ struct Fixed{T <: Signed, f} <: FixedPoint{T, f}
 end
 
 typechar(::Type{X}) where {X <: Fixed} = 'Q'
-signbits(::Type{X}) where {X <: Fixed} = 1
 
 for T in (Int8, Int16, Int32, Int64)
     io = IOBuffer()

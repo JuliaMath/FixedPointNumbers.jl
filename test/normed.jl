@@ -158,7 +158,8 @@ end
                 if isinf(input_typemax)
                     @test reinterpret(N(floatmax(Tf))) >= round(T, floatmax(Tf))
                 else
-                    @test reinterpret(N(input_typemax)) >= (typemax(T)>>1) # overflow check
+                    @test reinterpret(N(input_typemax)) > (typemax(T)>>1) # overflow check
+                    @test N(input_typemax) >= N(prevfloat(input_typemax))
                 end
 
                 input_upper = Tf(BigFloat(typemax(T)) / r, RoundDown)

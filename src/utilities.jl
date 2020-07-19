@@ -13,6 +13,8 @@ widen1(::Type{Int128})  = Int128
 widen1(::Type{UInt128}) = UInt128
 widen1(x::Integer) = x % widen1(typeof(x))
 
+signedtype(::Type{T}) where {T <: Integer} = typeof(signed(zero(T)))
+
 const ShortInts = Union{Int8, UInt8, Int16, UInt16}
 const LongInts = Union{Int64, UInt64, Int128, UInt128, BigInt}
 
@@ -34,3 +36,14 @@ significand_bits(::Type{Float32}) = 23
 significand_bits(::Type{Float64}) = 52
 exponent_bias(::Type{Float32}) = 127
 exponent_bias(::Type{Float64}) = 1023
+
+_unsafe_trunc(::Type{T}, x::Integer) where {T} = x % T
+_unsafe_trunc(::Type{T}, x) where {T}          = unsafe_trunc(T, x)
+if !signbit(signed(unsafe_trunc(UInt, -12.345)))
+    # a workaround for ARM (issue #134)
+    function _unsafe_trunc(::Type{T}, x::AbstractFloat) where {T <: Integer}
+        unsafe_trunc(T, unsafe_trunc(signedtype(T), x))
+    end
+    # exclude BigFloat (issue #202)
+    _unsafe_trunc(::Type{T}, x::BigFloat) where {T <: Integer} = unsafe_trunc(T, x)
+end

@@ -54,7 +54,7 @@ end
 
 function _convert(::Type{F}, x::Integer) where {T, f, F <: Fixed{T,f}}
     if ((typemin(T) >> f) <= x) & (x <= (typemax(T) >> f))
-        reinterpret(F, unsafe_trunc(T, x) << f)
+        reinterpret(F, _unsafe_trunc(T, x) << f)
     else
         throw_converterror(F, x)
     end

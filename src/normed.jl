@@ -76,6 +76,7 @@ function _convert(::Type{N}, x::Tf) where {T, f, N <: Normed{T,f}, Tf <: Union{F
         0 <= x <= Tf((typemax(T)-rawone(N))/rawone(N)+1) || throw_converterror(N, x)
     end
 
+    f == 1 && x == Tf(typemax(N)) && return typemax(N)
     if f <= (significand_bits(Tf) + 1) && bitwidth(T) < significand_bits(Tf)
         return reinterpret(N, unsafe_trunc(T, round(rawone(N) * x)))
     end

@@ -324,12 +324,3 @@ end
     end
     :(Normed{$T,$f})
 end
-
-_unsafe_trunc(::Type{T}, x::Integer) where {T} = x % T
-_unsafe_trunc(::Type{T}, x) where {T}          = unsafe_trunc(T, x)
-if !signbit(signed(unsafe_trunc(UInt, -12.345)))
-    # a workaround for 32-bit ARMv7 (issue #134)
-    function _unsafe_trunc(::Type{T}, x::AbstractFloat) where {T}
-        unsafe_trunc(T, unsafe_trunc(typeof(signed(zero(T))), x))
-    end
-end

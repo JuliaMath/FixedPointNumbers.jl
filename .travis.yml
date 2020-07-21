@@ -1,14 +1,15 @@
 language: julia
 os:
     - linux
-    - osx
 julia:
     - 1.0
     - 1
     - nightly
+arch:
+    - arm64
+cache:
+  directories:
+    - $HOME/.julia/artifacts
 notifications:
   email: false
-
-after_success:
-  # push coverage results to Codecov
-  - julia -e 'using Pkg; cd(Pkg.dir("FixedPointNumbers")); Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())'
+codecov: true

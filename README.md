@@ -1,8 +1,8 @@
 # FixedPointNumbers
 
-[![Build Status](https://travis-ci.org/JuliaMath/FixedPointNumbers.jl.svg?branch=master)](https://travis-ci.org/JuliaMath/FixedPointNumbers.jl)
-[![PkgEval](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/F/FixedPointNumbers.svg)](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/report.html)
-[![codecov.io](http://codecov.io/github/JuliaMath/FixedPointNumbers.jl/coverage.svg?branch=master)](http://codecov.io/github/JuliaMath/FixedPointNumbers.jl?branch=master)
+[![Build Status][action-img]][action-url]
+[![Build Status][pkgeval-img]][pkgeval-url]
+[![coverage][codecov-img]][codecov-url]
 
 This library implements fixed-point number types.  A
 [fixed-point number] represents a fractional, or
@@ -142,3 +142,16 @@ Please see [CONTRIBUTING.md](CONTRIBUTING.md) for information about improving th
 [overflow]: https://en.wikipedia.org/wiki/Integer_overflow
 [rounding]: https://en.wikipedia.org/wiki/Round-off_error
 [underflow]: https://en.wikipedia.org/wiki/Arithmetic_underflow
+
+
+<!-- badges -->
+
+[action-img]: https://github.com/JuliaMath/FixedPointNumbers.jl/workflows/Unit%20test/badge.svg
+[action-url]: https://github.com/JuliaMath/FixedPointNumbers.jl/actions
+
+[pkgeval-img]: https://juliaci.github.io/NanosoldierReports/pkgeval_badges/F/FixedPointNumbers.svg
+[pkgeval-url]: https://juliaci.github.io/NanosoldierReports/pkgeval_badges/report.html
+
+[codecov-img]: https://codecov.io/gh/JuliaMath/FixedPointNumbers.jl/branch/master/graph/badge.svg
+[codecov-url]: https://codecov.io/gh/JuliaMath/FixedPointNumbers.jl
+

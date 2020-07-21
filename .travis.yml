@@ -7,6 +7,9 @@ julia:
     - nightly
 arch:
     - arm64
+cache:
+  directories:
+    - $HOME/.julia/artifacts
 notifications:
   email: false
 codecov: true

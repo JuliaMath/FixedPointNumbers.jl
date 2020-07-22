@@ -90,20 +90,25 @@ end
     @test_throws ArgumentError one(Q0f15)
     @test_throws ArgumentError oneunit(Q0f31)
     @test_throws ArgumentError one(Fixed{Int8,8}) # TODO: remove this at end of its support
+
+    @test_throws ArgumentError convert(Q0f7, 0.999)
+    @test_throws ArgumentError convert(Q0f7, 1.0)
+    @test_throws ArgumentError convert(Q0f7, 1)
+    @test_throws ArgumentError convert(Q0f7, 2)
+
+    ret = @test_throws ArgumentError Q0f7(127)
+    msg = ret.value.msg
+    @test occursin("Q0f7 is an 8-bit type representing 256 values from -1.0 to 0.992;", msg)
+    ret = @test_throws ArgumentError convert(Fixed{Int128,100}, 10.0^9)
+    msg = ret.value.msg
+    @test occursin("Fixed{Int128,100} is a 128-bit type representing 2^128 values", msg)
 end
 
 @testset "conversion" begin
     @test isapprox(convert(Fixed{Int8,7}, 0.8), 0.797, atol=0.001)
     @test isapprox(convert(Fixed{Int8,7}, 0.9), 0.898, atol=0.001)
-    @test_throws ArgumentError convert(Fixed{Int8, 7}, 0.999)
-    @test_throws ArgumentError convert(Fixed{Int8, 7}, 1.0)
-    @test_throws ArgumentError convert(Fixed{Int8, 7}, 1)
-    @test_throws ArgumentError convert(Fixed{Int8, 7}, 2)
-    @test_throws ArgumentError convert(Fixed{Int8, 7}, 128)
-    @test_throws ArgumentError convert(Fixed{Int8, 7}, 1.0)
 
     @test convert(Q0f7, -128.5/128) == -1
-
     @test convert(Q0f7, -0.75f0) == -0.75
     @test convert(Q0f7, Float16(-0.75)) == -0.75
     @test convert(Q0f7, BigFloat(-0.75)) == -0.75

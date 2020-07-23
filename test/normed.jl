@@ -473,13 +473,13 @@ end
     @test String(take!(iob)) == "43691.3"
 
     show(IOContext(iob, :typeinfo=>N16f16), n16f16)
-    @test String(take!(iob)) == "43691.33333N16f16" # TODO: Consider removing suffix (issue #188)
+    @test String(take!(iob)) == "43691.33333"
 
     show(IOContext(iob, :typeinfo=>Normed), n16f16)
     @test String(take!(iob)) == "43691.33333N16f16"
 
     show(iob, Normed{UInt128,64}(1.2345e6))
-    @test_broken String(take!(iob)) == "Normed{UInt128,64}(1.2345e6)" # "N64f64" is not defined
+    @test String(take!(iob)) == "Normed{UInt128,64}(1.2345e6)"
 end
 
 @testset "summary" begin
@@ -487,13 +487,13 @@ end
     aa = Normed[0.2N0f8 0.4N0f16]
 
     if VERSION >= v"1.6.0-DEV.356"
-        @test_broken summary(a) == "2-element Vector{N0f8}"
-        @test_broken summary(view(a, 1:2)) == "2-element view(::Vector{N0f8}, 1:2) with eltype N0f8"
-        @test_broken summary(aa) == "1×2 Matrix{Normed}"
+        @test summary(a) == "2-element Vector{N0f8}"
+        @test summary(view(a, 1:2)) == "2-element view(::Vector{N0f8}, 1:2) with eltype N0f8"
+        @test summary(aa) == "1×2 Matrix{Normed}"
     else
         @test summary(a) == "2-element Array{N0f8,1} with eltype Normed{UInt8,8}"
         @test summary(view(a, 1:2)) == "2-element view(::Array{N0f8,1}, 1:2) with eltype Normed{UInt8,8}"
-        @test_broken summary(aa) == "1×2 Array{Normed,2}"
+        @test summary(aa) == "1×2 Array{Normed,2}"
     end
 end
 

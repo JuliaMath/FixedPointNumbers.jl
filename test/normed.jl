@@ -72,7 +72,6 @@ end
 @testset "inexactness" begin
     # TODO: change back to InexactError when it allows message strings
     @test_throws ArgumentError N0f8(2)
-    @test_throws ArgumentError N0f8(255)
     @test_throws ArgumentError N0f8(0xff)
     @test_throws ArgumentError N0f16(2)
     @test_throws ArgumentError N0f16(0xff)
@@ -80,7 +79,13 @@ end
     @test_throws ArgumentError convert(N0f8,  typemax(N6f10))
     @test_throws ArgumentError convert(N0f16, typemax(N6f10))
     @test_throws ArgumentError convert(Normed{UInt128,100}, 10^9)
-    @test_throws ArgumentError convert(Normed{UInt128,100}, 10.0^9)
+
+    ret = @test_throws ArgumentError N0f8(255)
+    msg = ret.value.msg
+    @test occursin("N0f8 is an 8-bit type representing 256 values from 0.0 to 1.0;", msg)
+    ret = @test_throws ArgumentError convert(Normed{UInt128,100}, 10.0^9)
+    msg = ret.value.msg
+    @test occursin("Normed{UInt128,$(SP)100} is a 128-bit type representing 2^128 values", msg)
 end
 
 @testset "conversion" begin

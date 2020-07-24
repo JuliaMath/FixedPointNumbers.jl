@@ -337,13 +337,17 @@ scaledual(::Type{Tdual}, x::FixedPoint) where Tdual = convert(Tdual, 1/rawone(x)
 scaledual(::Type{Tdual}, x::AbstractArray{T}) where {Tdual, T <: FixedPoint} =
     convert(Tdual, 1/rawone(T)), reinterpret(rawtype(T), x)
 
-@noinline function throw_converterror(::Type{X}, x) where {X <: FixedPoint}
-    n = 2^bitwidth(X)
-    bitstring = bitwidth(X) == 8 ? "an 8-bit" : "a $(bitwidth(X))-bit"
+@noinline function throw_converterror(::Type{X}, @nospecialize(x)) where X <: FixedPoint
+    nbits = bitwidth(rawtype(X))
     io = IOBuffer()
-    show(IOContext(io, :compact=>true), typemin(X)); Xmin = String(take!(io))
-    show(IOContext(io, :compact=>true), typemax(X)); Xmax = String(take!(io))
-    throw(ArgumentError("$X is $bitstring type representing $n values from $Xmin to $Xmax; cannot represent $x"))
+    showtype(io, X)
+    print(io, " is ")
+    print(io, nbits == 8 ? "an " : "a ", nbits, "-bit type representing ")
+    print(io, nbits <= 16 ? string(2^nbits) : "2^$nbits", " values from ")
+    print(IOContext(io, :compact=>true), typemin(X), " to ")
+    print(IOContext(io, :compact=>true), typemax(X), "; ")
+    print(io, "cannot represent ", x)
+    throw(ArgumentError(String(take!(io))))
 end
 
 rand(::Type{T}) where {T <: FixedPoint} = reinterpret(T, rand(rawtype(T)))

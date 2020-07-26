@@ -1,5 +1,9 @@
-using FixedPointNumbers, Statistics, Test
-using FixedPointNumbers: bitwidth
+include("common.jl")
+
+function symbol_to_inttype(::Type{Normed}, s::Symbol)
+    d = Dict(:i8 => UInt8, :i16 => UInt16, :i32 => UInt32, :i64 => UInt64, :i128 => UInt128)
+    d[s]
+end
 
 @testset "domain of f" begin
     @test_throws DomainError zero(Normed{UInt8,-1})
@@ -40,30 +44,19 @@ end
     @test isa(v, Vector{N4f12})
 end
 
-UF2 = (Normed{UInt32,16}, Normed{UInt64,3}, Normed{UInt64,51}, Normed{UInt128,7}, Normed{UInt128,51})
-
 @testset "limits and identities" begin
-    for T in (FixedPointNumbers.UF..., UF2...)
-        @test zero(T) == 0
-        @test one(T) == 1
-        @test one(T) * one(T) == one(T)
-        @test typemin(T) == 0
-        @test floatmin(T) == eps(T)
-        @test eps(zero(T)) == eps(typemax(T))
-        @test sizeof(T) == sizeof(FixedPointNumbers.rawtype(T))
+    @testset "$N" for N in target(Normed)
+        T, f = rawtype(N), nbitsfrac(N)
+        @test zero(N) == 0
+        @test one(N) == 1
+        @test one(N) * oneunit(N) == oneunit(N)
+        @test typemin(N) == 0
+        @test typemax(N) == typemax(T)//(big"2"^f - 1)
+        @test floatmin(N) === eps(N) == 1//(big"2"^f - 1)
+        @test floatmax(N) === typemax(N)
+        @test eps(zero(N)) === eps(typemax(N))
+        @test sizeof(N) == sizeof(T)
     end
-    @test typemax(N0f8) == 1
-    @test typemax(N6f10) == typemax(UInt16)//(2^10-1)
-    @test typemax(N4f12) == typemax(UInt16)//(2^12-1)
-    @test typemax(N2f14) == typemax(UInt16)//(2^14-1)
-    @test typemax(N0f16) == 1
-    @test typemax(N6f10) == typemax(UInt16) // (2^10-1)
-    @test typemax(N4f12) == typemax(UInt16) // (2^12-1)
-    @test typemax(N2f14) == typemax(UInt16) // (2^14-1)
-    @test typemax(Normed{UInt32,16}) == typemax(UInt32) // (2^16-1)
-    @test typemax(Normed{UInt64,3}) == typemax(UInt64) // (2^3-1)
-    @test typemax(Normed{UInt128,7}) == typemax(UInt128) // (2^7-1)
-    @test typemax(Normed{UInt128,100}) == typemax(UInt128) // (UInt128(2)^100-1)
 end
 
 @testset "inexactness" begin
@@ -117,10 +110,11 @@ end
     @test convert(Float64, eps(N0f8)) == 1/typemax(UInt8)
     @test convert(Float32, eps(N0f8)) == 1.0f0/typemax(UInt8)
     @test convert(BigFloat, eps(N0f8)) == BigFloat(1)/typemax(UInt8)
-    for T in (FixedPointNumbers.UF..., UF2...)
+    # TODO: migrate to separate testsets
+    for T in target(Normed)
         @test convert(Bool, zero(T)) == false
         @test convert(Bool, one(T))  == true
-        @test_throws InexactError convert(Bool, convert(T, 0.2))
+        eps(T) != 1 && @test_throws InexactError convert(Bool, convert(T, 0.2))
         @test convert(Int, one(T)) == 1
         @test convert(Integer, one(T)) == 1
         @test convert(Rational, one(T)) == 1
@@ -160,39 +154,41 @@ end
     @test big(0.5N4f4)::BigFloat == 8 / big"15"
 end
 
-@testset "float()" begin
+@testset "float/floattype" begin
     @test float(0.8N4f4) === 0.8f0
     @test float(0.8N20f12) === 0.8
     @test float(0.8N8f24) === 0.8
     @test float(1N11f53)::BigFloat == big"1.0"
+
+    @testset "floattype($N)" for N in target(Normed, :i8, :i16, :i32, :i64; ex = :heavy)
+        @test typemax(N) <= maxintfloat(floattype(N))
+    end
 end
 
 @testset "conversion from float" begin
     # issue 102
-    for T in (UInt8, UInt16, UInt32, UInt64, UInt128)
-        for Tf in (Float16, Float32, Float64)
-            @testset "Normed{$T,$f}(::$Tf)" for f = 1:bitwidth(T)
-                N = Normed{T,f}
-                r = FixedPointNumbers.rawone(N)
+    for Tf in (Float16, Float32, Float64)
+        @testset "$N(::$Tf)" for N in target(Normed)
+            T, f = rawtype(N), nbitsfrac(N)
+            r = FixedPointNumbers.rawone(N)
 
-                @test reinterpret(N(zero(Tf))) == 0x0
+            @test reinterpret(N(zero(Tf))) == 0x0
 
-                input_typemax = Tf(typemax(N))
-                if isinf(input_typemax)
-                    @test reinterpret(N(floatmax(Tf))) >= round(T, floatmax(Tf))
-                else
-                    @test reinterpret(N(input_typemax)) > (typemax(T)>>1) # overflow check
-                    @test N(input_typemax) >= N(prevfloat(input_typemax))
-                end
+            input_typemax = Tf(typemax(N))
+            if isinf(input_typemax)
+                @test reinterpret(N(floatmax(Tf))) >= round(T, floatmax(Tf))
+            else
+                @test reinterpret(N(input_typemax)) > (typemax(T)>>1) # overflow check
+                @test N(input_typemax) >= N(prevfloat(input_typemax))
+             end
 
-                input_upper = Tf(BigFloat(typemax(T)) / r, RoundDown)
-                isinf(input_upper) && continue # for Julia v0.7
-                @test reinterpret(N(input_upper)) == T(min(round(BigFloat(input_upper) * r), typemax(T)))
+            input_upper = Tf(BigFloat(typemax(T)) / r, RoundDown)
+            isinf(input_upper) && continue # for Julia v0.7
+            @test reinterpret(N(input_upper)) == T(min(round(BigFloat(input_upper) * r), typemax(T)))
 
-                input_exp2 = Tf(exp2(bitwidth(T) - f))
-                isinf(input_exp2) && continue
-                @test reinterpret(N(input_exp2)) == T(input_exp2) * r
-            end
+            input_exp2 = Tf(exp2(bitwidth(T) - f))
+            isinf(input_exp2) && continue
+            @test reinterpret(N(input_exp2)) == T(input_exp2) * r
         end
     end
     @test N0f32(Float32(0x0.7FFFFFp-32)) == zero(N0f32)
@@ -208,34 +204,30 @@ end
     end
 
     for Tf in (Float16, Float32, Float64)
-        @testset "$Tf(::Normed{$T})" for T in (UInt8, UInt16)
-            @testset "$Tf(::Normed{$T,$f})" for f = 1:bitwidth(T)
-                N = Normed{T,f}
-                float_err = 0.0
-                for i = typemin(T):typemax(T)
-                    f_expected = Tf(i / BigFloat(FixedPointNumbers.rawone(N)))
-                    isinf(f_expected) && break # for Float16(::Normed{UInt16,1})
-                    f_actual = Tf(reinterpret(N, i))
-                    float_err += abs(f_actual - f_expected)
-                end
-                @test float_err == 0.0
+        @testset "$Tf(::$N)" for N in target(Normed, :i8, :i16)
+            T = rawtype(N)
+            float_err = 0.0
+            for i = typemin(T):typemax(T)
+                f_expected = Tf(i / BigFloat(FixedPointNumbers.rawone(N)))
+                isinf(f_expected) && break # for Float16(::Normed{UInt16,1})
+                f_actual = Tf(reinterpret(N, i))
+                float_err += abs(f_actual - f_expected)
             end
+            @test float_err == 0.0
         end
-        @testset "$Tf(::Normed{$T})" for T in (UInt32, UInt64, UInt128)
-            @testset "$Tf(::Normed{$T,$f})" for f = 1:bitwidth(T)
-                N = Normed{T,f}
-                error_count = 0
-                for i in vcat(T(0x00):T(0xFF), (typemax(T)-0xFF):typemax(T))
-                    f_expected = Tf(i / BigFloat(FixedPointNumbers.rawone(N)))
-                    isinf(f_expected) && break # for Float16() and Float32()
-                    f_actual = Tf(reinterpret(N, i))
-                    f_actual == f_expected && continue
-                    f_actual == prevfloat(f_expected) && continue
-                    f_actual == nextfloat(f_expected) && continue
-                    error_count += 1
-                end
-                @test error_count == 0
+        @testset "$Tf(::$N)" for N in target(Normed, :i32, :i64, :i128)
+            T = rawtype(N)
+            error_count = 0
+            for i in vcat(T(0x00):T(0xFF), (typemax(T)-0xFF):typemax(T))
+                f_expected = Tf(i / BigFloat(FixedPointNumbers.rawone(N)))
+                isinf(f_expected) && break # for Float16() and Float32()
+                f_actual = Tf(reinterpret(N, i))
+                f_actual == f_expected && continue
+                f_actual == prevfloat(f_expected) && continue
+                f_actual == nextfloat(f_expected) && continue
+                error_count += 1
             end
+            @test error_count == 0
         end
     end
 end
@@ -266,23 +258,19 @@ end
 end
 
 @testset "arithmetic" begin
-    for T in (FixedPointNumbers.UF..., UF2...)
-        x = T(0x10,0)
-        y = T(0x25,0)
+    @testset "$N arithmetic" for N in target(Normed; ex = :light)
+        x = N(0x10,0)
+        y = N(0x25,0)
         fx = float(x)
         fy = float(y)
         @test y > x
         @test y != x
-        @test typeof(x+y) == T
-        @test typeof((x+y)-y) == T
-        @test typeof(x*y) == T
-        @test typeof(x/y) == T
-        @test (x+y) ≈ T(0x35,0)
-        @test ((x+y)-x) ≈ fy
-        @test ((x-y)+y) ≈ fx
-        @test (x*y)  ≈ convert(T, fx*fy)
-        @test (x/y)  ≈ convert(T, fx/fy)
-        @test (x^2) ≈ convert(T, fx^2)
+        @test x+y === N(0x35,0)
+        @test ((x+y)-y) === x
+        @test ((x-y)+y) === x # wraparound
+        fx*fy <= typemax(N) && @test (x*y)::N ≈ convert(N, fx*fy)
+        @test (x/y)::N ≈ convert(N, fx/fy)
+        fx^2 <= typemax(N) && @test (x^2)::N ≈ convert(N, fx^2)
         @test (x^2.1f0) ≈ fx^2.1f0
         @test (x^2.1) ≈ convert(Float64, x)^2.1
     end
@@ -303,12 +291,12 @@ end
 end
 
 @testset "rounding" begin
-    for T in (UInt8, UInt16, UInt32, UInt64)
+    for sym in (:i8, :i16, :i32, :i64)
+        T = symbol_to_inttype(Normed, sym)
         rs = vcat([ oneunit(T) << b - oneunit(T) << 1 for b = 1:bitwidth(T)],
                   [ oneunit(T) << b - oneunit(T)      for b = 1:bitwidth(T)],
                   [ oneunit(T) << b                   for b = 2:bitwidth(T)-1])
-        @testset "rounding Normed{$T,$f}" for f = 1:bitwidth(T)
-            N = Normed{T,f}
+        @testset "rounding $N" for N in target(Normed, sym)
             xs = (reinterpret(N, r) for r in rs)
             @test all(x -> trunc(x) == trunc(float(x)), xs)
             @test all(x -> floor(x) == floor(float(x)), xs)
@@ -339,11 +327,11 @@ end
 end
 
 @testset "approx" begin
-    @testset "approx $T" for T in FixedPointNumbers.UF
-        xs = typemin(T):eps(T):typemax(T)-eps(T)
-        @test all(x -> x ≈ x + eps(T), xs)
-        @test all(x -> x + eps(T) ≈ x, xs)
-        @test !any(x -> x - eps(T) ≈ x + eps(T), xs)
+    @testset "approx $N" for N in target(Normed, :i8, :i16; ex = :light)
+        xs = typemin(N):eps(N):typemax(N)-eps(N)
+        @test all(x -> x ≈ x + eps(N), xs)
+        @test all(x -> x + eps(N) ≈ x, xs)
+        @test !any(x -> x - eps(N) ≈ x + eps(N), xs)
     end
 end
 
@@ -395,21 +383,15 @@ end
     @test !isinf(1N8f8)
 
     @testset "isinteger" begin
-        for T in (UInt8, UInt16)
-            @testset "isinteger(::Normed{$T,$f})" for f = 1:bitwidth(T)
-                N = Normed{T,f}
-                xs = typemin(N):eps(N):typemax(N)
-                @test all(x -> isinteger(x) == isinteger(float(x)), xs)
-            end
+        @testset "isinteger(::$N)" for N in target(Normed, :i8, :i16)
+            xs = typemin(N):eps(N):typemax(N)
+            @test all(x -> isinteger(x) == isinteger(float(x)), xs)
         end
-        for T in (UInt32, UInt64)
-            @testset "isinteger(::Normed{$T,$f})" for f = 1:bitwidth(T)
-                N = Normed{T,f}
-                if f == 1
-                    @test isinteger(zero(N)) & isinteger(oneunit(N))
-                else
-                    @test !isinteger(oneunit(N) - eps(N)) & isinteger(oneunit(N))
-                end
+        @testset "isinteger(::$N)" for N in target(Normed, :i32, :i64, :i128)
+            if nbitsfrac(N) == 1
+                @test isinteger(zero(N)) & isinteger(oneunit(N))
+            else
+                @test !isinteger(oneunit(N) - eps(N)) & isinteger(oneunit(N))
             end
         end
     end
@@ -470,14 +452,10 @@ end
 end
 
 @testset "rand" begin
-    for T in (Normed{UInt8,8}, Normed{UInt8,6},
-              Normed{UInt16,16}, Normed{UInt16,14},
-              Normed{UInt32,32}, Normed{UInt32,30},
-              Normed{UInt64,64}, Normed{UInt64,62})
-        a = rand(T)
-        @test isa(a, T)
-        a = rand(T, (3, 5))
-        @test ndims(a) == 2 && eltype(a) == T
+    @testset "rand(::$N)" for N in target(Normed; ex = :thin)
+        @test isa(rand(N), N)
+        a = rand(N, (3, 5))
+        @test ndims(a) == 2 && eltype(a) === N
         @test size(a) == (3,5)
     end
 end

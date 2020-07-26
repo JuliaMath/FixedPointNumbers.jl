@@ -1,5 +1,9 @@
-using FixedPointNumbers, Statistics, Test
-using FixedPointNumbers: bitwidth
+include("common.jl")
+
+function symbol_to_inttype(::Type{Fixed}, s::Symbol)
+    d = Dict(:i8 => Int8, :i16 => Int16, :i32 => Int32, :i64 => Int64, :i128 => Int128)
+    d[s]
+end
 
 function test_op(fun::F, ::Type{T}, fx, fy, fxf, fyf, tol) where {F,T}
     # Make sure that the result is representable
@@ -8,9 +12,9 @@ function test_op(fun::F, ::Type{T}, fx, fy, fxf, fyf, tol) where {F,T}
     @assert abs(convert(Float64, fun(fx, fy)) - fun(fxf, fyf)) <= tol
 end
 
-function test_fixed(::Type{T}, f) where {T}
+function test_fixed(::Type{T}) where {T}
     values = [-10:0.01:10; -180:.01:-160; 160:.01:180]
-    tol = 2.0^-f
+    tol = Float64(eps(T))
     for x in values
         # Ignore values outside the representable range
         # typemin <, otherwise for -(-0.5)  > typemax
@@ -36,7 +40,7 @@ function test_fixed(::Type{T}, f) where {T}
             fyf = convert(Float64, fy)
 
             @assert fx==fy || x!=y
-            @assert fx<fy  || x>=y
+            @assert fx<fy  || (x + tol)>=y
             @assert fx<=fy || x>y
 
             test_op(+, T, fx, fy, fxf, fyf, tol)
@@ -50,10 +54,8 @@ function test_fixed(::Type{T}, f) where {T}
 end
 
 @testset "test_fixed" begin
-    for (TI, f) in [(Int8, 7), (Int16, 8), (Int16, 10), (Int32, 16)]
-        T = Fixed{TI,f}
-        # println("  Testing $T")
-        test_fixed(T, f)
+    for F in target(Fixed, :i8, :i16, :i32; ex = :thin)
+        test_fixed(F)
     end
 end
 
@@ -93,10 +95,18 @@ end
 end
 
 @testset "limits and identities" begin
-    # TODO: add tests
-
-    # issue #79
-    @test floatmin(Q11f4) == Q11f4(0.06)
+    @testset "$F" for F in target(Fixed)
+        T, f = rawtype(F), nbitsfrac(F)
+        @test zero(F) == 0
+        f < bitwidth(T) - 1 && @test one(F) == 1
+        f < bitwidth(T) - 1 && @test one(F) * oneunit(F) == oneunit(F)
+        @test typemin(F) == typemin(T) >> f
+        @test typemax(F) == typemax(T)//big"2"^f
+        @test floatmin(F) === eps(F) == 2.0^-f # issue #79
+        @test floatmax(F) === typemax(F)
+        @test eps(zero(F)) === eps(typemax(F))
+        @test sizeof(F) == sizeof(T)
+    end
 end
 
 @testset "inexactness" begin
@@ -182,11 +192,15 @@ end
     @test big(0.75Q3f4)::BigFloat == big"0.75"
 end
 
-@testset "float()" begin
+@testset "float/floattype" begin
     @test float(0.75Q3f4) === 0.75f0
     @test float(0.75Q19f12) === 0.75
     @test float(0.75Q7f24) === 0.75
     @test float(0.75Q10f53)::BigFloat == big"0.75"
+
+    @testset "floattype($F)" for F in target(Fixed, :i8, :i16, :i32, :i64; ex = :heavy)
+        @test typemax(F) <= maxintfloat(floattype(F))
+    end
 end
 
 @testset "conversions to float" begin
@@ -195,49 +209,40 @@ end
     end
 
     for Tf in (Float16, Float32, Float64)
-        @testset "$Tf(::Fixed{$T})" for T in (Int8, Int16)
-            @testset "$Tf(::Fixed{$T,$f})" for f = 0:bitwidth(T)-1
-                F = Fixed{T,f}
-                float_err = 0.0
-                for i = typemin(T):typemax(T)
-                    f_expected = Tf(i * BigFloat(2)^-f)
-                    f_actual = Tf(reinterpret(F, i))
-                    float_err += abs(f_actual - f_expected)
-                end
-                @test float_err == 0.0
+        @testset "$Tf(::$F)" for F in target(Fixed, :i8, :i16)
+            T, f = rawtype(F), nbitsfrac(F)
+            float_err = 0.0
+            for i = typemin(T):typemax(T)
+                f_expected = Tf(i * BigFloat(2)^-f)
+                f_actual = Tf(reinterpret(F, i))
+                float_err += abs(f_actual - f_expected)
             end
+            @test float_err == 0.0
         end
-        @testset "$Tf(::Fixed{$T})" for T in (Int32, Int64, Int128)
-            @testset "$Tf(::Fixed{$T,$f})" for f = 0:bitwidth(T)-1
-                F = Fixed{T,f}
-                error_count = 0
-                for i in vcat(typemin(T):(typemin(T)+0xFF),
-                              -T(0xFF):T(0xFF),
-                              (typemax(T)-0xFF):typemax(T))
-                    f_expected = Tf(i * BigFloat(2)^-f)
-                    isinf(f_expected) && break # for Float16() and Float32()
-                    f_actual = Tf(reinterpret(F, i))
-                    f_actual == f_expected && continue
-                    error_count += 1
-                end
-                @test error_count == 0
+        @testset "$Tf(::$F)" for F in target(Fixed, :i32, :i64, :i128)
+            T, f = rawtype(F), nbitsfrac(F)
+            error_count = 0
+            for i in vcat(typemin(T):(typemin(T)+0xFF),
+                          -T(0xFF):T(0xFF),
+                          (typemax(T)-0xFF):typemax(T))
+                f_expected = Tf(i * BigFloat(2)^-f)
+                isinf(f_expected) && break # for Float16() and Float32()
+                f_actual = Tf(reinterpret(F, i))
+                f_actual == f_expected && continue
+                error_count += 1
             end
+            @test error_count == 0
         end
     end
 end
 
 @testset "fractional fixed-point numbers" begin
     # test all-fractional fixed-point numbers (issue #104)
-    for (T, f) in ((Int8, 7),
-                 (Int16, 15),
-                 (Int32, 31),
-                 (Int64, 63))
-        tmax = typemax(Fixed{T, f})
-        @test tmax == BigInt(typemax(T)) / BigInt(2)^f
-        tol = (tmax + BigFloat(1.0)) / bitwidth(T)
-        for x in range(-1, stop=BigFloat(tmax)-tol, length=50)
-            @test abs(Fixed{T, f}(x) - x) <= tol
-        end
+    for F in (Q0f7, Q0f15, Q0f31, Q0f63)
+        tmax = typemax(F)
+        tol = (tmax + BigFloat(1.0)) / bitwidth(F)
+        r = range(-1, stop=BigFloat(tmax)-tol, length=50)
+        @test all(x -> abs(F(x) - x) <= tol, r)
     end
 end
 
@@ -258,15 +263,15 @@ end
 end
 
 @testset "rounding" begin
-    for T in (Int8, Int16, Int32, Int64)
+    for sym in (:i8, :i16, :i32, :i64)
+        T = symbol_to_inttype(Fixed, sym)
         rs = vcat([ oneunit(T) << b - oneunit(T) for b = 0:bitwidth(T)-1],
                   [ oneunit(T) << b              for b = 1:bitwidth(T)-2],
                   [ oneunit(T) << b + oneunit(T) for b = 2:bitwidth(T)-2],
                   [-oneunit(T) << b - oneunit(T) for b = 2:bitwidth(T)-2],
                   [-oneunit(T) << b              for b = 1:bitwidth(T)-1],
                   [-oneunit(T) << b + oneunit(T) for b = 1:bitwidth(T)-1])
-        @testset "rounding Fixed{$T,$f}" for f = 0:bitwidth(T)-1
-            F = Fixed{T,f}
+        @testset "rounding $F" for F in target(Fixed, sym)
             xs = (reinterpret(F, r) for r in rs)
             @test all(x -> trunc(x) == trunc(float(x)), xs)
             @test all(x -> floor(float(x)) < typemin(F) || floor(x) == floor(float(x)), xs)
@@ -308,11 +313,11 @@ end
 end
 
 @testset "approx" begin
-    @testset "approx $T" for T in [Fixed{Int8,7}, Fixed{Int16,8}, Fixed{Int16,10}]
-        xs = typemin(T):eps(T):typemax(T)-eps(T)
-        @test all(x -> x ≈ x + eps(T), xs)
-        @test all(x -> x + eps(T) ≈ x, xs)
-        @test !any(x -> x - eps(T) ≈ x + eps(T), xs)
+    @testset "approx $F" for F in target(Fixed, :i8, :i16; ex = :light)
+        xs = typemin(F):eps(F):typemax(F)-eps(F)
+        @test all(x -> x ≈ x + eps(F), xs)
+        @test all(x -> x + eps(F) ≈ x, xs)
+        @test !any(x -> x - eps(F) ≈ x + eps(F), xs)
     end
 end
 
@@ -357,22 +362,16 @@ end
     @test !isinf(1Q7f8)
 
     @testset "isinteger" begin
-        for T in (Int8, Int16)
-            @testset "isinteger(::Fixed{$T,$f})" for f = 0:bitwidth(T)-1
-                F = Fixed{T,f}
-                xs = typemin(F):eps(F):typemax(F)
-                @test all(x -> isinteger(x) == isinteger(float(x)), xs)
-            end
+        @testset "isinteger(::$F)" for F in target(Fixed, :i8, :i16)
+            xs = typemin(F):eps(F):typemax(F)
+            @test all(x -> isinteger(x) == isinteger(float(x)), xs)
         end
-        for T in (Int32, Int64)
-            @testset "isinteger(::Fixed{$T,$f})" for f = 0:bitwidth(T)-1
-                F = Fixed{T,f}
-                fzero, fmax, fmin = zero(F), typemax(F), typemin(F)
-                if f == 0
-                    @test isinteger(fzero) & isinteger(fmax) & isinteger(fmin)
-                else
-                    @test isinteger(fzero) & !isinteger(fmax) & isinteger(fmin)
-                end
+        @testset "isinteger(::$F)" for F in target(Fixed, :i32, :i64, :i128)
+            fzero, fmax, fmin = zero(F), typemax(F), typemin(F)
+            if nbitsfrac(F) == 0
+                @test isinteger(fzero) & isinteger(fmax) & isinteger(fmin)
+            else
+                @test isinteger(fzero) & !isinteger(fmax) & isinteger(fmin)
             end
         end
         @testset "isinteger(::Fixed{Int8,8})" begin # TODO: remove this testset
@@ -436,10 +435,10 @@ end
 end
 
 @testset "rand" begin
-    for F in (Fixed{Int8,7}, Fixed{Int16,8}, Fixed{Int16,10}, Fixed{Int32,16})
+    @testset "rand(::$F)" for F in target(Fixed; ex = :thin)
         @test isa(rand(F), F)
         a = rand(F, (3, 5))
-        @test ndims(a) == 2 && eltype(a) == F
+        @test ndims(a) == 2 && eltype(a) === F
         @test size(a) == (3,5)
     end
 end

@@ -49,6 +49,14 @@ function test_fixed(::Type{T}, f) where {T}
     end
 end
 
+@testset "test_fixed" begin
+    for (TI, f) in [(Int8, 7), (Int16, 8), (Int16, 10), (Int32, 16)]
+        T = Fixed{TI,f}
+        # println("  Testing $T")
+        test_fixed(T, f)
+    end
+end
+
 @testset "domain of f" begin
     # TODO: change the upper limit
     @test_logs (:warn, r"`f=8` with raw type `T=Int8` will be removed") zero(Fixed{Int8,8})
@@ -84,6 +92,13 @@ end
     @test FixedPointNumbers.fracmask(0Q0f7) === signed(0x7F)
 end
 
+@testset "limits and identities" begin
+    # TODO: add tests
+
+    # issue #79
+    @test floatmin(Q11f4) == Q11f4(0.06)
+end
+
 @testset "inexactness" begin
     # TODO: change back to InexactError when it allows message strings
     @test_throws ArgumentError Q0f7(-2)
@@ -102,6 +117,13 @@ end
     ret = @test_throws ArgumentError convert(Fixed{Int128,100}, 10.0^9)
     msg = ret.value.msg
     @test occursin("Fixed{Int128,100} is a 128-bit type representing 2^128 values", msg)
+end
+
+@testset "disambiguation constructors" begin
+    @test_throws ArgumentError Fixed{Int32,16}('a')
+    @test_throws InexactError  Fixed{Int32,16}(complex(1.0, 1.0))
+    @test Fixed{Int32,16}(complex(1.0, 0.0)) == 1
+    @test Fixed{Int32,16}(Base.TwicePrecision(1.0, 0.0)) == 1
 end
 
 @testset "conversion" begin
@@ -126,12 +148,113 @@ end
     @test convert(Q0f63, tp) === reinterpret(Q0f63, typemax(Int64))
 end
 
-@testset "test_fixed" begin
-    for (TI, f) in [(Int8, 7), (Int16, 8), (Int16, 10), (Int32, 16)]
-        T = Fixed{TI,f}
-        # println("  Testing $T")
-        test_fixed(T, f)
+@testset "bool conversions" begin
+    @test convert(Bool, 0.0Q1f6) === false
+    @test convert(Bool, 1.0Q1f6) === true
+    @test_throws InexactError convert(Bool, 0.5Q1f6)
+    @test_throws InexactError convert(Bool, -1Q1f6)
+    @test_broken convert(Bool, Fixed{Int8,8}(0.2)) # TODO: remove this
+end
+
+@testset "integer conversions" begin
+    @test convert(Int, Q1f6(1)) === 1
+    @test convert(Integer, Q1f6(1)) === Int8(1)
+    @test convert(UInt, 1Q1f6) === UInt(1)
+    @test_throws InexactError convert(Integer, 0.5Q1f6)
+    @test_throws InexactError convert(Int8, 256Q9f6)
+end
+
+@testset "rational conversions" begin
+    @test convert(Rational, -0.75Q1f6) === Rational{Int8}(-3//4)
+    @test convert(Rational, -0.75Q0f7) === Rational{Int16}(-3//4)
+    @test convert(Rational{Int}, -0.75Q0f7) === Rational{Int}(-3//4)
+
+    @test rationalize(-0.75Q3f4) === Rational{Int}(-3//4)
+    @test rationalize(Int16, 0.81Q3f4) === Rational{Int16}(13//16)
+    @test rationalize(-0.81Q3f4, tol=0.02) === Rational{Int}(-13//16)
+    @test rationalize(Int8, -0.81Q3f4, tol=0.07) === Rational{Int8}(-3//4)
+end
+
+@testset "BigFloat conversions" begin
+    @test convert(BigFloat, -0.75Q0f7)::BigFloat == big"-0.75"
+
+    @test big(Q7f0) === BigFloat # !== BigInt
+    @test big(0.75Q3f4)::BigFloat == big"0.75"
+end
+
+@testset "float()" begin
+    @test float(0.75Q3f4) === 0.75f0
+    @test float(0.75Q19f12) === 0.75
+    @test float(0.75Q7f24) === 0.75
+    @test float(0.75Q10f53)::BigFloat == big"0.75"
+end
+
+@testset "conversions to float" begin
+    for T in (Float16, Float32, Float64)
+        @test isa(convert(T, Q0f7(0.3)), T)
     end
+
+    for Tf in (Float16, Float32, Float64)
+        @testset "$Tf(::Fixed{$T})" for T in (Int8, Int16)
+            @testset "$Tf(::Fixed{$T,$f})" for f = 0:bitwidth(T)-1
+                F = Fixed{T,f}
+                float_err = 0.0
+                for i = typemin(T):typemax(T)
+                    f_expected = Tf(i * BigFloat(2)^-f)
+                    f_actual = Tf(reinterpret(F, i))
+                    float_err += abs(f_actual - f_expected)
+                end
+                @test float_err == 0.0
+            end
+        end
+        @testset "$Tf(::Fixed{$T})" for T in (Int32, Int64, Int128)
+            @testset "$Tf(::Fixed{$T,$f})" for f = 0:bitwidth(T)-1
+                F = Fixed{T,f}
+                error_count = 0
+                for i in vcat(typemin(T):(typemin(T)+0xFF),
+                              -T(0xFF):T(0xFF),
+                              (typemax(T)-0xFF):typemax(T))
+                    f_expected = Tf(i * BigFloat(2)^-f)
+                    isinf(f_expected) && break # for Float16() and Float32()
+                    f_actual = Tf(reinterpret(F, i))
+                    f_actual == f_expected && continue
+                    error_count += 1
+                end
+                @test error_count == 0
+            end
+        end
+    end
+end
+
+@testset "fractional fixed-point numbers" begin
+    # test all-fractional fixed-point numbers (issue #104)
+    for (T, f) in ((Int8, 7),
+                 (Int16, 15),
+                 (Int32, 31),
+                 (Int64, 63))
+        tmax = typemax(Fixed{T, f})
+        @test tmax == BigInt(typemax(T)) / BigInt(2)^f
+        tol = (tmax + BigFloat(1.0)) / bitwidth(T)
+        for x in range(-1, stop=BigFloat(tmax)-tol, length=50)
+            @test abs(Fixed{T, f}(x) - x) <= tol
+        end
+    end
+end
+
+@testset "type modulus" begin
+    T = Fixed{Int8,7}
+    for i = -1.0:0.1:typemax(T)
+        @test i % T === T(i)
+    end
+    @test ( 1.5 % T).i == round(Int,  1.5*128) % Int8
+    @test (-0.3 % T).i == round(Int, -0.3*128) % Int8
+
+    T = Fixed{Int16,9}
+    for i = -64.0:0.1:typemax(T)
+        @test i % T === T(i)
+    end
+    @test ( 65.2 % T).i == round(Int,  65.2*512) % Int16
+    @test (-67.2 % T).i == round(Int, -67.2*512) % Int16
 end
 
 @testset "rounding" begin
@@ -184,28 +307,79 @@ end
     @test_throws InexactError floor(UInt, -eps(Q0f7))
 end
 
-@testset "modulus" begin
-    T = Fixed{Int8,7}
-    for i = -1.0:0.1:typemax(T)
-        @test i % T === T(i)
-    end
-    @test ( 1.5 % T).i == round(Int,  1.5*128) % Int8
-    @test (-0.3 % T).i == round(Int, -0.3*128) % Int8
-
-    T = Fixed{Int16,9}
-    for i = -64.0:0.1:typemax(T)
-        @test i % T === T(i)
-    end
-    @test ( 65.2 % T).i == round(Int,  65.2*512) % Int16
-    @test (-67.2 % T).i == round(Int, -67.2*512) % Int16
-end
-
-@testset "testapprox" begin
+@testset "approx" begin
     @testset "approx $T" for T in [Fixed{Int8,7}, Fixed{Int16,8}, Fixed{Int16,10}]
         xs = typemin(T):eps(T):typemax(T)-eps(T)
         @test all(x -> x ≈ x + eps(T), xs)
         @test all(x -> x + eps(T) ≈ x, xs)
         @test !any(x -> x - eps(T) ≈ x + eps(T), xs)
+    end
+end
+
+@testset "clamp" begin
+    @test clamp(0.5Q0f7, -0.8Q0f7,  0.8Q0f7) === 0.5Q0f7
+    @test clamp(0.5Q0f7, 0.75Q0f7,  0.8Q0f7) === 0.75Q0f7
+    @test clamp(0.5Q0f7, -0.8Q0f7, 0.25Q0f7) === 0.25Q0f7
+    @test clamp(0.5,      -0.8Q0f7,  0.8Q0f7) === 0.5
+    @test clamp(0.5f0,    0.75Q0f7,  0.8Q0f7) === 0.75f0
+    @test clamp(0.5Q0f15, -0.8Q0f7, 0.25Q0f7) === 0.25Q0f15
+    @test clamp(0.5Q0f7, -Inf, Inf) === 0.5
+    @test clamp(0.5,     Q0f7) === 0.5Q0f7
+    @test clamp(-1.5f0,  Q0f7) === -1.0Q0f7
+    @test clamp(1.5Q1f6, Q0f7) === 0.992Q0f7
+end
+
+@testset "sign-related functions" begin
+    @test_throws Exception signed(Q0f7)
+    @test_throws Exception signed(0.5Q0f7)
+    @test_throws Exception unsigned(Q0f7)
+    @test_throws Exception unsigned(0.5Q0f7)
+    @test copysign(0.5Q0f7, 0x1) === 0.5Q0f7
+    @test copysign(0.5Q0f7, -1) === -0.5Q0f7
+    @test flipsign(0.5Q0f7, 0x1) === 0.5Q0f7
+    @test flipsign(0.5Q0f7, -1) === -0.5Q0f7
+    @test_throws ArgumentError sign(0Q0f7)
+    @test sign(0Q1f6) === 0Q1f6
+    @test sign(0.5Q1f6) === 1Q1f6
+    @test sign(-0.5Q1f6) === -1Q1f6
+    @test signbit(0.5Q0f7) === false
+    @test signbit(-0.5Q0f7) === true
+end
+
+@testset "bitwise" begin
+    @test bswap(Q0f7(0.5)) === Q0f7(0.5)
+    @test bswap(Q0f15(0.5)) === reinterpret(Q0f15, signed(0x0040))
+end
+
+@testset "predicates" begin
+    @test isfinite(1Q7f8)
+    @test !isnan(1Q7f8)
+    @test !isinf(1Q7f8)
+
+    @testset "isinteger" begin
+        for T in (Int8, Int16)
+            @testset "isinteger(::Fixed{$T,$f})" for f = 0:bitwidth(T)-1
+                F = Fixed{T,f}
+                xs = typemin(F):eps(F):typemax(F)
+                @test all(x -> isinteger(x) == isinteger(float(x)), xs)
+            end
+        end
+        for T in (Int32, Int64)
+            @testset "isinteger(::Fixed{$T,$f})" for f = 0:bitwidth(T)-1
+                F = Fixed{T,f}
+                fzero, fmax, fmin = zero(F), typemax(F), typemin(F)
+                if f == 0
+                    @test isinteger(fzero) & isinteger(fmax) & isinteger(fmin)
+                else
+                    @test isinteger(fzero) & !isinteger(fmax) & isinteger(fmin)
+                end
+            end
+        end
+        @testset "isinteger(::Fixed{Int8,8})" begin # TODO: remove this testset
+            @test !isinteger(Fixed{Int8,8}(-0.5))
+            @test isinteger(Fixed{Int8,8}(0.0))
+            @test !isinteger(Fixed{Int8,8}(127/256))
+        end
     end
 end
 
@@ -261,115 +435,6 @@ end
     @test varm(a, m) === varm(af, m)
 end
 
-@testset "bool conversions" begin
-    @test convert(Bool, 0.0Q1f6) === false
-    @test convert(Bool, 1.0Q1f6) === true
-    @test_throws InexactError convert(Bool, 0.5Q1f6)
-    @test_throws InexactError convert(Bool, -1Q1f6)
-    @test_broken convert(Bool, Fixed{Int8,8}(0.2)) # TODO: remove this
-end
-
-@testset "integer conversions" begin
-    @test convert(Int, Q1f6(1)) === 1
-    @test convert(Integer, Q1f6(1)) === Int8(1)
-    @test convert(UInt, 1Q1f6) === UInt(1)
-    @test_throws InexactError convert(Integer, 0.5Q1f6)
-    @test_throws InexactError convert(Int8, 256Q9f6)
-end
-
-@testset "rational conversions" begin
-    @test convert(Rational, -0.75Q1f6) === Rational{Int8}(-3//4)
-    @test convert(Rational, -0.75Q0f7) === Rational{Int16}(-3//4)
-    @test convert(Rational{Int}, -0.75Q0f7) === Rational{Int}(-3//4)
-
-    @test rationalize(-0.75Q3f4) === Rational{Int}(-3//4)
-    @test rationalize(Int16, 0.81Q3f4) === Rational{Int16}(13//16)
-    @test rationalize(-0.81Q3f4, tol=0.02) === Rational{Int}(-13//16)
-    @test rationalize(Int8, -0.81Q3f4, tol=0.07) === Rational{Int8}(-3//4)
-end
-
-@testset "BigFloat conversions" begin
-    @test convert(BigFloat, -0.75Q0f7)::BigFloat == big"-0.75"
-
-    @test big(Q7f0) === BigFloat # !== BigInt
-    @test big(0.75Q3f4)::BigFloat == big"0.75"
-end
-
-@testset "Floating-point conversions" begin
-    @test isa(float(one(Fixed{Int8,6})),   Float32)
-    @test isa(float(one(Fixed{Int32,18})), Float64)
-    @test isa(float(one(Fixed{Int32,25})), Float64)
-end
-
-@testset "conversions to float" begin
-    for T in (Float16, Float32, Float64)
-        @test isa(convert(T, Q0f7(0.3)), T)
-    end
-
-    for Tf in (Float16, Float32, Float64)
-        @testset "$Tf(::Fixed{$T})" for T in (Int8, Int16)
-            @testset "$Tf(::Fixed{$T,$f})" for f = 0:bitwidth(T)-1
-                F = Fixed{T,f}
-                float_err = 0.0
-                for i = typemin(T):typemax(T)
-                    f_expected = Tf(i * BigFloat(2)^-f)
-                    f_actual = Tf(reinterpret(F, i))
-                    float_err += abs(f_actual - f_expected)
-                end
-                @test float_err == 0.0
-            end
-        end
-        @testset "$Tf(::Fixed{$T})" for T in (Int32, Int64, Int128)
-            @testset "$Tf(::Fixed{$T,$f})" for f = 0:bitwidth(T)-1
-                F = Fixed{T,f}
-                error_count = 0
-                for i in vcat(typemin(T):(typemin(T)+0xFF),
-                              -T(0xFF):T(0xFF),
-                              (typemax(T)-0xFF):typemax(T))
-                    f_expected = Tf(i * BigFloat(2)^-f)
-                    isinf(f_expected) && break # for Float16() and Float32()
-                    f_actual = Tf(reinterpret(F, i))
-                    f_actual == f_expected && continue
-                    error_count += 1
-                end
-                @test error_count == 0
-            end
-        end
-    end
-end
-
-@testset "predicates" begin
-    @test isfinite(1Q7f8)
-    @test !isnan(1Q7f8)
-    @test !isinf(1Q7f8)
-
-    @testset "isinteger" begin
-        for T in (Int8, Int16)
-            @testset "isinteger(::Fixed{$T,$f})" for f = 0:bitwidth(T)-1
-                F = Fixed{T,f}
-                xs = typemin(F):eps(F):typemax(F)
-                @test all(x -> isinteger(x) == isinteger(float(x)), xs)
-            end
-        end
-        for T in (Int32, Int64)
-            @testset "isinteger(::Fixed{$T,$f})" for f = 0:bitwidth(T)-1
-                F = Fixed{T,f}
-                fzero, fmax, fmin = zero(F), typemax(F), typemin(F)
-                if f == 0
-                    @test isinteger(fzero) & isinteger(fmax) & isinteger(fmin)
-                else
-                    @test isinteger(fzero) & !isinteger(fmax) & isinteger(fmin)
-                end
-            end
-        end
-        @testset "isinteger(::Fixed{Int8,8})" begin # TODO: remove this testset
-            @test !isinteger(Fixed{Int8,8}(-0.5))
-            @test isinteger(Fixed{Int8,8}(0.0))
-            @test !isinteger(Fixed{Int8,8}(127/256))
-        end
-    end
-end
-
 @testset "rand" begin
     for F in (Fixed{Int8,7}, Fixed{Int16,8}, Fixed{Int16,10}, Fixed{Int32,16})
         @test isa(rand(F), F)
@@ -377,68 +442,6 @@ end
         @test ndims(a) == 2 && eltype(a) == F
         @test size(a) == (3,5)
     end
-end
-
-@testset "floatmin" begin
-    # issue #79
-    @test floatmin(Q11f4) == Q11f4(0.06)
-end
-
-@testset "Disambiguation constructors" begin
-    @test_throws ArgumentError Fixed{Int32,16}('a')
-    @test_throws InexactError  Fixed{Int32,16}(complex(1.0, 1.0))
-    @test Fixed{Int32,16}(complex(1.0, 0.0))        == 1
-    @test Fixed{Int32,16}(Base.TwicePrecision(1.0, 0.0)) == 1
-end
-
-@testset "fractional fixed-point numbers" begin
-    # test all-fractional fixed-point numbers (issue #104)
-    for (T, f) in ((Int8, 7),
-                 (Int16, 15),
-                 (Int32, 31),
-                 (Int64, 63))
-        tmax = typemax(Fixed{T, f})
-        @test tmax == BigInt(typemax(T)) / BigInt(2)^f
-        tol = (tmax + BigFloat(1.0)) / bitwidth(T)
-        for x in range(-1, stop=BigFloat(tmax)-tol, length=50)
-            @test abs(Fixed{T, f}(x) - x) <= tol
-        end
-    end
-end
-
-@testset "low-level arithmetic" begin
-    @test bswap(Q0f7(0.5)) === Q0f7(0.5)
-    @test bswap(Q0f15(0.5)) === reinterpret(Q0f15, signed(0x0040))
-end
-
-@testset "clamp" begin
-    @test clamp(0.5Q0f7, -0.8Q0f7,  0.8Q0f7) === 0.5Q0f7
-    @test clamp(0.5Q0f7, 0.75Q0f7,  0.8Q0f7) === 0.75Q0f7
-    @test clamp(0.5Q0f7, -0.8Q0f7, 0.25Q0f7) === 0.25Q0f7
-    @test clamp(0.5,      -0.8Q0f7,  0.8Q0f7) === 0.5
-    @test clamp(0.5f0,    0.75Q0f7,  0.8Q0f7) === 0.75f0
-    @test clamp(0.5Q0f15, -0.8Q0f7, 0.25Q0f7) === 0.25Q0f15
-    @test clamp(0.5Q0f7, -Inf, Inf) === 0.5
-    @test clamp(0.5,     Q0f7) === 0.5Q0f7
-    @test clamp(-1.5f0,  Q0f7) === -1.0Q0f7
-    @test clamp(1.5Q1f6, Q0f7) === 0.992Q0f7
-end
-
-@testset "sign-related functions" begin
-    @test_throws Exception signed(Q0f7)
-    @test_throws Exception signed(0.5Q0f7)
-    @test_throws Exception unsigned(Q0f7)
-    @test_throws Exception unsigned(0.5Q0f7)
-    @test copysign(0.5Q0f7, 0x1) === 0.5Q0f7
-    @test copysign(0.5Q0f7, -1) === -0.5Q0f7
-    @test flipsign(0.5Q0f7, 0x1) === 0.5Q0f7
-    @test flipsign(0.5Q0f7, -1) === -0.5Q0f7
-    @test_throws ArgumentError sign(0Q0f7)
-    @test sign(0Q1f6) === 0Q1f6
-    @test sign(0.5Q1f6) === 1Q1f6
-    @test sign(-0.5Q1f6) === -1Q1f6
-    @test signbit(0.5Q0f7) === false
-    @test signbit(-0.5Q0f7) === true
 end
 
 @testset "Promotion within Fixed" begin

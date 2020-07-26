@@ -85,6 +85,13 @@ end
     @test occursin("Normed{UInt128,100} is a 128-bit type representing 2^128 values", msg)
 end
 
+@testset "disambiguation constructors" begin
+    @test_throws ArgumentError Normed{UInt32,16}('a')
+    @test_throws InexactError  Normed{UInt32,16}(complex(1.0, 1.0))
+    @test Normed{UInt32,16}(complex(1.0, 0.0)) == 1
+    @test Normed{UInt32,16}(Base.TwicePrecision(1.0, 0.0)) == 1
+end
+
 @testset "conversion" begin
     x = N0f8(0.5)
     @test convert(N0f8, x) === x
@@ -121,6 +128,10 @@ end
     @test convert(N0f16, one(N0f8)) === one(N0f16)
     @test convert(N0f16, N0f8(0.5)).i === 0x8080
     @test convert(Normed{UInt16,7}, Normed{UInt8,7}(0.504)) === Normed{UInt16,7}(0.504)
+
+    # avoiding overflow with Float16
+    @test N0f16(Float16(1.0)) === N0f16(1.0)
+    @test Float16(1.0) % N0f16 === N0f16(1.0)
 end
 
 @testset "integer conversions" begin
@@ -147,6 +158,13 @@ end
 
     @test big(N7f1) === BigFloat # !== BigInt
     @test big(0.5N4f4)::BigFloat == 8 / big"15"
+end
+
+@testset "float()" begin
+    @test float(0.8N4f4) === 0.8f0
+    @test float(0.8N20f12) === 0.8
+    @test float(0.8N8f24) === 0.8
+    @test float(1N11f53)::BigFloat == big"1.0"
 end
 
 @testset "conversion from float" begin
@@ -222,7 +240,7 @@ end
     end
 end
 
-@testset "modulus" begin
+@testset "type modulus" begin
     @test  N0f8(0.2) % N0f8  === N0f8(0.2)
     @test N2f14(1.2) % N0f16 === N0f16(0.20002)
     @test N2f14(1.2) % N0f8  === N0f8(0.196)
@@ -247,18 +265,6 @@ end
     @test all(f -> 1.0e0 % Normed{UInt64,f} == oneunit(Normed{UInt64,f}), 1:64)
 end
 
-@testset "bitwise" begin
-    x = N0f8(0b01010001, 0)
-    @test ~x == N0f8(0b10101110, 0)
-    @test -x == reinterpret(N0f8, 0xaf)
-end
-
-@testset "float" begin
-    @test isa(float(one(Normed{UInt8,7})),   Float32)
-    @test isa(float(one(Normed{UInt32,18})), Float64)
-    @test isa(float(one(Normed{UInt32,25})), Float64)
-end
-
 @testset "arithmetic" begin
     for T in (FixedPointNumbers.UF..., UF2...)
         x = T(0x10,0)
@@ -280,6 +286,20 @@ end
         @test (x^2.1f0) ≈ fx^2.1f0
         @test (x^2.1) ≈ convert(Float64, x)^2.1
     end
+end
+
+@testset "div/fld1" begin
+    @test div(reinterpret(N0f8, 0x10), reinterpret(N0f8, 0x02)) == fld(reinterpret(N0f8, 0x10), reinterpret(N0f8, 0x02)) == 8
+    @test div(reinterpret(N0f8, 0x0f), reinterpret(N0f8, 0x02)) == fld(reinterpret(N0f8, 0x0f), reinterpret(N0f8, 0x02)) == 7
+    @test fld1(reinterpret(N0f8, 0x10), reinterpret(N0f8, 0x02)) == 8
+    @test fld1(reinterpret(N0f8, 0x0f), reinterpret(N0f8, 0x02)) == 8
+end
+
+@testset "rem/mod" begin
+    @test mod(reinterpret(N0f8, 0x10), reinterpret(N0f8, 0x02)) == rem(reinterpret(N0f8, 0x10), reinterpret(N0f8, 0x02)) == 0
+    @test mod(reinterpret(N0f8, 0x0f), reinterpret(N0f8, 0x02)) == rem(reinterpret(N0f8, 0x0f), reinterpret(N0f8, 0x02)) == reinterpret(N0f8, 0x01)
+    @test mod1(reinterpret(N0f8, 0x10), reinterpret(N0f8, 0x02)) == reinterpret(N0f8, 0x02)
+    @test mod1(reinterpret(N0f8, 0x0f), reinterpret(N0f8, 0x02)) == reinterpret(N0f8, 0x01)
 end
 
 @testset "rounding" begin
@@ -327,20 +347,10 @@ end
     end
 end
 
-@testset "low-level arithmetic" begin
+@testset "comparison" begin
     @test !(N0f8(0.5) < N0f8(0.5))
     @test N0f8(0.5) <= N0f8(0.5)
 
-    @test div(reinterpret(N0f8, 0x10), reinterpret(N0f8, 0x02)) == fld(reinterpret(N0f8, 0x10), reinterpret(N0f8, 0x02)) == 8
-    @test div(reinterpret(N0f8, 0x0f), reinterpret(N0f8, 0x02)) == fld(reinterpret(N0f8, 0x0f), reinterpret(N0f8, 0x02)) == 7
-    @test Base.fld1(reinterpret(N0f8, 0x10), reinterpret(N0f8, 0x02)) == 8
-    @test Base.fld1(reinterpret(N0f8, 0x0f), reinterpret(N0f8, 0x02)) == 8
-    @test mod(reinterpret(N0f8, 0x10), reinterpret(N0f8, 0x02)) == rem(reinterpret(N0f8, 0x10), reinterpret(N0f8, 0x02)) == 0
-    @test mod(reinterpret(N0f8, 0x0f), reinterpret(N0f8, 0x02)) == rem(reinterpret(N0f8, 0x0f), reinterpret(N0f8, 0x02)) == reinterpret(N0f8, 0x01)
-    @test mod1(reinterpret(N0f8, 0x10), reinterpret(N0f8, 0x02)) == reinterpret(N0f8, 0x02)
-    @test mod1(reinterpret(N0f8, 0x0f), reinterpret(N0f8, 0x02)) == reinterpret(N0f8, 0x01)
-    @test bswap(N0f8(0.5)) === N0f8(0.5)
-    @test bswap(N0f16(0.5)) === reinterpret(N0f16, 0x0080)
     @test minmax(N0f8(0.8), N0f8(0.2)) === (N0f8(0.2), N0f8(0.8))
 end
 
@@ -368,6 +378,41 @@ end
     @test_throws ArgumentError flipsign(1N0f8, -1)
     @test_throws ArgumentError sign(0N0f8)
     @test signbit(1N0f8) === false
+end
+
+@testset "bitwise" begin
+    x = N0f8(0b01010001, 0)
+    @test ~x == N0f8(0b10101110, 0)
+    @test -x == reinterpret(N0f8, 0xaf)
+
+    @test bswap(N0f8(0.5)) === N0f8(0.5)
+    @test bswap(N0f16(0.5)) === reinterpret(N0f16, 0x0080)
+end
+
+@testset "predicates" begin
+    @test isfinite(1N8f8)
+    @test !isnan(1N8f8)
+    @test !isinf(1N8f8)
+
+    @testset "isinteger" begin
+        for T in (UInt8, UInt16)
+            @testset "isinteger(::Normed{$T,$f})" for f = 1:bitwidth(T)
+                N = Normed{T,f}
+                xs = typemin(N):eps(N):typemax(N)
+                @test all(x -> isinteger(x) == isinteger(float(x)), xs)
+            end
+        end
+        for T in (UInt32, UInt64)
+            @testset "isinteger(::Normed{$T,$f})" for f = 1:bitwidth(T)
+                N = Normed{T,f}
+                if f == 1
+                    @test isinteger(zero(N)) & isinteger(oneunit(N))
+                else
+                    @test !isinteger(oneunit(N) - eps(N)) & isinteger(oneunit(N))
+                end
+            end
+        end
+    end
 end
 
 @testset "unit range" begin
@@ -402,29 +447,38 @@ end
     @test_throws OverflowError length(NInt1(0):NInt1(1):typemax(NInt1))
 end
 
-@testset "predicates" begin
-    @test isfinite(1N8f8)
-    @test !isnan(1N8f8)
-    @test !isinf(1N8f8)
+@testset "reductions" begin
+    a = N0f8[reinterpret(N0f8, 0xff), reinterpret(N0f8, 0xff)]
+    @test sum(a) == 2.0
+    @test sum(a, dims=1) == [2.0]
 
-    @testset "isinteger" begin
-        for T in (UInt8, UInt16)
-            @testset "isinteger(::Normed{$T,$f})" for f = 1:bitwidth(T)
-                N = Normed{T,f}
-                xs = typemin(N):eps(N):typemax(N)
-                @test all(x -> isinteger(x) == isinteger(float(x)), xs)
-            end
-        end
-        for T in (UInt32, UInt64)
-            @testset "isinteger(::Normed{$T,$f})" for f = 1:bitwidth(T)
-                N = Normed{T,f}
-                if f == 1
-                    @test isinteger(zero(N)) & isinteger(oneunit(N))
-                else
-                    @test !isinteger(oneunit(N) - eps(N)) & isinteger(oneunit(N))
-                end
-            end
-        end
+    a = N2f14[3.2, 2.4]
+    acmp = Float64(a[1])*Float64(a[2])
+    @test prod(a) == acmp
+    @test prod(a, dims=1) == [acmp]
+end
+
+@testset "reductions, Statistics" begin
+    a = N0f8[reinterpret(N0f8, 0x80), reinterpret(N0f8, 0x40)]
+    af = FixedPointNumbers.Treduce.(a)
+    @test mean(a) === mean(af)
+    @test std(a)  === std(af)
+    @test var(a)  === var(af)
+    m = mean(a)
+    @test stdm(a, m) === stdm(af, m)
+    @test varm(a, m) === varm(af, m)
+end
+
+@testset "rand" begin
+    for T in (Normed{UInt8,8}, Normed{UInt8,6},
+              Normed{UInt16,16}, Normed{UInt16,14},
+              Normed{UInt32,32}, Normed{UInt32,30},
+              Normed{UInt64,64}, Normed{UInt64,62})
+        a = rand(T)
+        @test isa(a, T)
+        a = rand(T, (3, 5))
+        @test ndims(a) == 2 && eltype(a) == T
+        @test size(a) == (3,5)
     end
 end
 
@@ -527,51 +581,4 @@ end
     @test 1.0*a[1] == bd*eld
     bd, ad = scaledual(Float64, a)
     @test 1.0*a == bd*ad
-end
-
-@testset "reductions" begin
-    a = N0f8[reinterpret(N0f8, 0xff), reinterpret(N0f8, 0xff)]
-    @test sum(a) == 2.0
-    @test sum(a, dims=1) == [2.0]
-
-    a = N2f14[3.2, 2.4]
-    acmp = Float64(a[1])*Float64(a[2])
-    @test prod(a) == acmp
-    @test prod(a, dims=1) == [acmp]
-end
-
-@testset "reductions, Statistics" begin
-    a = N0f8[reinterpret(N0f8, 0x80), reinterpret(N0f8, 0x40)]
-    af = FixedPointNumbers.Treduce.(a)
-    @test mean(a) === mean(af)
-    @test std(a)  === std(af)
-    @test var(a)  === var(af)
-    m = mean(a)
-    @test stdm(a, m) === stdm(af, m)
-    @test varm(a, m) === varm(af, m)
-end
-
-@testset "rand" begin
-    for T in (Normed{UInt8,8}, Normed{UInt8,6},
-              Normed{UInt16,16}, Normed{UInt16,14},
-              Normed{UInt32,32}, Normed{UInt32,30},
-              Normed{UInt64,64}, Normed{UInt64,62})
-        a = rand(T)
-        @test isa(a, T)
-        a = rand(T, (3, 5))
-        @test ndims(a) == 2 && eltype(a) == T
-        @test size(a) == (3,5)
-    end
-end
-
-@testset "Overflow with Float16" begin
-    @test N0f16(Float16(1.0)) === N0f16(1.0)
-    @test Float16(1.0) % N0f16 === N0f16(1.0)
-end
-
-@testset "disambiguation constructors" begin
-    @test_throws ArgumentError Normed{UInt32,16}('a')
-    @test_throws InexactError  Normed{UInt32,16}(complex(1.0, 1.0))
-    @test Normed{UInt32,16}(complex(1.0, 0.0))        == 1
-    @test Normed{UInt32,16}(Base.TwicePrecision(1.0, 0.0)) == 1
 end

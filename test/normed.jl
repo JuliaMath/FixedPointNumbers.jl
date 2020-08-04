@@ -89,54 +89,61 @@ end
     x = N0f8(0.5)
     @test convert(N0f8, x) === x
 
-    @test convert(N0f8,  1.1/typemax(UInt8)) == eps(N0f8)
-    @test convert(N6f10, 1.1/typemax(UInt16)*64) == eps(N6f10)
-    @test convert(N4f12, 1.1/typemax(UInt16)*16) == eps(N4f12)
-    @test convert(N2f14, 1.1/typemax(UInt16)*4)  == eps(N2f14)
-    @test convert(N0f16, 1.1/typemax(UInt16))    == eps(N0f16)
-    @test convert(Normed{UInt32,16}, 1.1/typemax(UInt32)*2^16) == eps(Normed{UInt32,16})
-    @test convert(Normed{UInt64,3},  1.1/typemax(UInt64)*UInt64(2)^61)  == eps(Normed{UInt64,3})
-    @test convert(Normed{UInt128,7}, 1.1/typemax(UInt128)*UInt128(2)^121) == eps(Normed{UInt128,7})
-
-    @test convert(N0f8,  1.1f0/typemax(UInt8)) == eps(N0f8)
-
-    @test convert(N0f8, 1//255) === eps(N0f8)
-    @test convert(N0f8, Rational{Int8}(3//5)) === N0f8(3/5)
-    @test convert(N0f8, Rational{UInt8}(3//5)) === N0f8(3/5)
-    @test_throws ArgumentError convert(N0f8, typemax(Rational{UInt8}))
+    @test convert(N0f8,  1.1/typemax(UInt8)) === eps(N0f8)
+    @test convert(N0f8,  1.1f0/typemax(UInt8)) === eps(N0f8)
+    @test convert(N6f10, 1.1/typemax(UInt16)*64) === eps(N6f10)
+    @test convert(N4f12, 1.1/typemax(UInt16)*16) === eps(N4f12)
+    @test convert(N2f14, 1.1/typemax(UInt16)*4)  === eps(N2f14)
+    @test convert(N0f16, 1.1/typemax(UInt16))    === eps(N0f16)
+    @test convert(N16f16, 1.1/typemax(UInt32)*2^16) === eps(N16f16)
+    @test convert(N61f3,  1.1/typemax(UInt64)*UInt64(2)^61) === eps(N61f3)
+    @test convert(Normed{UInt128,7}, 1.1/typemax(UInt128)*UInt128(2)^121) === eps(Normed{UInt128,7})
 
     @test convert(N0f8, Base.TwicePrecision(1.0)) === 1N0f8
 
-    @test convert(Float64, eps(N0f8)) == 1/typemax(UInt8)
-    @test convert(Float32, eps(N0f8)) == 1.0f0/typemax(UInt8)
-    @test convert(BigFloat, eps(N0f8)) == BigFloat(1)/typemax(UInt8)
-    # TODO: migrate to separate testsets
-    for T in target(Normed)
-        @test convert(Bool, zero(T)) == false
-        @test convert(Bool, one(T))  == true
-        eps(T) != 1 && @test_throws InexactError convert(Bool, convert(T, 0.2))
-        @test convert(Int, one(T)) == 1
-        @test convert(Integer, one(T)) == 1
-        @test convert(Rational, one(T)) == 1
-    end
     @test convert(N0f16, one(N0f8)) === one(N0f16)
-    @test convert(N0f16, N0f8(0.5)).i === 0x8080
-    @test convert(Normed{UInt16,7}, Normed{UInt8,7}(0.504)) === Normed{UInt16,7}(0.504)
+    @test convert(N0f16, N0f8(0.5)) === reinterpret(N0f16, 0x8080)
+    @test convert(N9f7, N1f7(0.504)) === N9f7(0.504)
 
     # avoiding overflow with Float16
     @test N0f16(Float16(1.0)) === N0f16(1.0)
     @test Float16(1.0) % N0f16 === N0f16(1.0)
 end
 
+@testset "bool conversions" begin
+    @testset "$N to/from Bool" for N in target(Normed)
+        @test convert(Bool, zero(N)) === false
+        @test convert(Bool, oneunit(N))  === true
+        eps(N) < 1 && @test_throws InexactError convert(Bool, convert(N, 0.2))
+        @test convert(N, true) === oneunit(N)
+        @test convert(N, false) === zero(N)
+    end
+    @test Bool(1N0f8) === true
+end
+
 @testset "integer conversions" begin
+    @testset "$N to/from integer" for N in target(Normed)
+        @test convert(Int, oneunit(N)) === 1
+        @test convert(Integer, oneunit(N)) === oneunit(rawtype(N))
+        @test convert(N, 1) === oneunit(N)
+        @test convert(N, 0x0) === zero(N)
+    end
     @test convert(UInt, 1N1f7) === UInt(1)
-    @test convert(Integer, 1N1f7) === 0x01
-    @test convert(Int, 1N1f7) === 1
     @test_throws InexactError convert(Integer, 0.5N1f7)
     @test_throws InexactError convert(Int8, 256N8f8)
 end
 
 @testset "rational conversions" begin
+    @testset "$N to/from rational" for N in target(Normed)
+        @test convert(Rational, oneunit(N)) == 1//1
+        @test convert(Rational{Int}, zero(N)) === 0//1
+        @test convert(N, 1//1) === oneunit(N)
+    end
+    @test convert(N0f8, 1//255) === eps(N0f8)
+    @test convert(N0f8, Rational{Int8}(3//5)) === N0f8(3/5)
+    @test convert(N0f8, Rational{UInt8}(3//5)) === N0f8(3/5)
+    @test_throws ArgumentError convert(N0f8, typemax(Rational{UInt8}))
+
     @test convert(Rational, 0.5N0f8) === Rational{UInt8}(0x80//0xff)
     @test convert(Rational, 0.5N4f12) === Rational{UInt16}(0x800//0xfff)
     @test convert(Rational{Int}, 0.5N0f8) === Rational{Int}(0x80//0xff)
@@ -149,6 +156,7 @@ end
 
 @testset "BigFloat conversions" begin
     @test convert(BigFloat, 0.5N0f8)::BigFloat == 128 / big"255"
+    @test convert(BigFloat, eps(N0f8))::BigFloat == 1 / big"255"
 
     @test big(N7f1) === BigFloat # !== BigInt
     @test big(0.5N4f4)::BigFloat == 8 / big"15"

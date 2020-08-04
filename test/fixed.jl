@@ -5,50 +5,45 @@ function symbol_to_inttype(::Type{Fixed}, s::Symbol)
     d[s]
 end
 
-function test_op(fun::F, ::Type{T}, fx, fy, fxf, fyf, tol) where {F,T}
+function test_op(fun::Fun, fx::F, fy::F, fxf, fyf, tol) where {Fun, F}
     # Make sure that the result is representable
-    (typemin(T) <= fun(fxf, fyf) <= typemax(T)) || return nothing
-    @assert abs(fun(fx, fy) - convert(T, fun(fxf, fyf))) <= tol
-    @assert abs(convert(Float64, fun(fx, fy)) - fun(fxf, fyf)) <= tol
+    zf = fun(fxf, fyf)
+    typemin(F) <= zf <= typemax(F) || return nothing
+    z = fun(fx, fy)
+    @assert abs(z - convert(F, zf)) <= tol
+    @assert abs(convert(Float64, z) - zf) <= tol
 end
 
-function test_fixed(::Type{T}) where {T}
-    values = [-10:0.01:10; -180:.01:-160; 160:.01:180]
-    tol = Float64(eps(T))
+function test_fixed(::Type{F}) where {F}
+    tol = Float64(eps(F))
+    v = [-10:0.01:10; -180:.01:-160; 160:.01:180]
+    # Ignore values outside the representable range
+    values = filter(x -> typemin(F) < x <= typemax(F), v)
     for x in values
-        # Ignore values outside the representable range
-        # typemin <, otherwise for -(-0.5)  > typemax
-        if !(typemin(T) < x <= typemax(T))
-            continue
-        end
-        fx = convert(T,x)
-        @test convert(T,convert(Float64, fx)) == fx
-        @test convert(T,convert(Float64, -fx)) == -fx
-        @test convert(Float64, -fx) == -convert(Float64, fx)
-
+        fx = convert(F, x)
         fxf = convert(Float64, fx)
 
-        rx = convert(Rational{BigInt},fx)
-        @assert isequal(fx,rx) == isequal(hash(fx),hash(rx))
+        @test convert(F, convert(Float64, fx)) === fx
+        @test convert(F, convert(Float64, -fx)) === -fx
+        @test convert(Float64, -fx) == -convert(Float64, fx)
+
+        rx = convert(Rational{BigInt}, fx)
+        @assert isequal(fx, rx) == isequal(hash(fx), hash(rx))
 
         for y in values
-            if !(typemin(T) < y <= typemax(T))
-                continue
-            end
-
-            fy = convert(T,y)
+            fy = convert(F, y)
             fyf = convert(Float64, fy)
 
             @assert fx==fy || x!=y
             @assert fx<fy  || (x + tol)>=y
             @assert fx<=fy || x>y
 
-            test_op(+, T, fx, fy, fxf, fyf, tol)
-            test_op(-, T, fx, fy, fxf, fyf, tol)
-            test_op(*, T, fx, fy, fxf, fyf, tol)
-            fy != 0 && test_op(/, T, fx, fy, fxf, fyf, tol)
+            test_op(+, fx, fy, fxf, fyf, tol)
+            test_op(-, fx, fy, fxf, fyf, tol)
+            test_op(*, fx, fy, fxf, fyf, tol)
+            fy != 0 && test_op(/, fx, fy, fxf, fyf, tol)
 
-            @assert isequal(fx,fy) == isequal(hash(fx),hash(fy))
+            @assert isequal(fx, fy) === isequal(hash(fx), hash(fy))
         end
     end
 end

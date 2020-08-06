@@ -303,24 +303,3 @@ length(r::AbstractUnitRange{N}) where {N <: Normed{<:UShorterThanInt}} =
     floor(Int, last(r)) - floor(Int, first(r)) + 1
 length(r::AbstractUnitRange{N}) where {N <: Normed{T}} where {T<:Unsigned} =
     r.start > r.stop ? T(0) : checked_add(floor(T, last(r)) - floor(T, first(r)), oneunit(T))
-
-# Promotions
-promote_rule(::Type{T}, ::Type{Tf}) where {T <: Normed,Tf <: AbstractFloat} = promote_type(floattype(T), Tf)
-promote_rule(::Type{T}, ::Type{R}) where {T <: Normed,R <: Rational} = R
-function promote_rule(::Type{T}, ::Type{Ti}) where {T <: Normed,Ti <: Union{Signed, Unsigned}}
-    floattype(T)
-end
-@generated function promote_rule(::Type{Normed{T1,f1}}, ::Type{Normed{T2,f2}}) where {T1,T2,f1,f2}
-    f = max(f1, f2)  # ensure we have enough precision
-    T = promote_type(T1, T2)
-    # make sure we have enough integer bits
-    i1, i2 = bitwidth(T1)-f1, bitwidth(T2)-f2  # number of integer bits for each
-    i = bitwidth(T)-f
-    while i < max(i1, i2)
-        Tw = widen1(T)
-        T == Tw && break
-        T = Tw
-        i = bitwidth(T)-f
-    end
-    :(Normed{$T,$f})
-end

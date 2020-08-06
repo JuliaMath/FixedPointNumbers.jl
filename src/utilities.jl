@@ -1,6 +1,7 @@
 # utility functions and macros, which are independent of `FixedPoint`
 bitwidth(T::Type) = 8sizeof(T)
 
+widen1(T::Type)         = T # fallback
 widen1(::Type{Int8})    = Int16
 widen1(::Type{UInt8})   = UInt16
 widen1(::Type{Int16})   = Int32
@@ -9,8 +10,6 @@ widen1(::Type{Int32})   = Int64
 widen1(::Type{UInt32})  = UInt64
 widen1(::Type{Int64})   = Int128
 widen1(::Type{UInt64})  = UInt128
-widen1(::Type{Int128})  = Int128
-widen1(::Type{UInt128}) = UInt128
 widen1(x::Integer) = x % widen1(typeof(x))
 
 signedtype(::Type{T}) where {T <: Integer} = typeof(signed(zero(T)))
@@ -48,3 +47,5 @@ if !signbit(signed(unsafe_trunc(UInt, -12.345)))
     # exclude BigFloat (issue #202)
     _unsafe_trunc(::Type{T}, x::BigFloat) where {T <: Integer} = unsafe_trunc(T, x)
 end
+
+wrapper(@nospecialize(T)) = Base.typename(T).wrapper

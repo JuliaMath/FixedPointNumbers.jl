@@ -436,6 +436,7 @@ end
         @test ndims(a) == 2 && eltype(a) === F
         @test size(a) == (3,5)
     end
+    @test rand(MersenneTwister(1234), Q0f7) === -0.156Q0f7
 end
 
 @testset "Promotion within Fixed" begin

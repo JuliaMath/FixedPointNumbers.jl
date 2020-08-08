@@ -466,6 +466,7 @@ end
         @test ndims(a) == 2 && eltype(a) === N
         @test size(a) == (3,5)
     end
+    @test rand(MersenneTwister(1234), N0f8) === 0.925N0f8
 end
 
 @testset "Promotion within Normed" begin

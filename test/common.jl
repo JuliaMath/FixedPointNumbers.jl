@@ -1,4 +1,4 @@
-using FixedPointNumbers, Statistics, Test
+using FixedPointNumbers, Statistics, Random, Test
 using FixedPointNumbers: bitwidth, rawtype, nbitsfrac
 
 # FIXME: Remove this comment (SP is borrowed from PR #224)

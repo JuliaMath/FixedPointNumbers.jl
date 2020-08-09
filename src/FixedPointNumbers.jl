@@ -93,15 +93,30 @@ end
 """
     isapprox(x::FixedPoint, y::FixedPoint; rtol=0, atol=max(eps(x), eps(y)))
 
-For FixedPoint numbers, the default criterion is that `x` and `y` differ by no more than `eps`, the separation between adjacent fixed-point numbers.
+For FixedPoint numbers, the default criterion is that `x` and `y` differ by no
+more than `eps`, the separation between adjacent fixed-point numbers.
 """
-function isapprox(x::T, y::T; rtol=0, atol=max(eps(x), eps(y))) where {T <: FixedPoint}
-    maxdiff = T(atol+rtol*max(abs(x), abs(y)))
-    rx, ry, rd = reinterpret(x), reinterpret(y), reinterpret(maxdiff)
-    abs(signed(widen1(rx))-signed(widen1(ry))) <= rd
+@inline function isapprox(x::X, y::X; rtol=0, atol=eps(X)) where {X <: FixedPoint}
+    n, m = minmax(x, y) # m >= n
+    if rtol == zero(rtol)
+        _isapprox_atol(m, n, atol)
+    elseif atol == zero(atol)
+        _isapprox_rtol(m, n, rtol)
+    else
+        _isapprox_atol(m, n, atol) | _isapprox_rtol(m, n, rtol)
+    end
 end
 function isapprox(x::FixedPoint, y::FixedPoint; rtol=0, atol=max(eps(x), eps(y)))
     isapprox(promote(x, y)...; rtol=rtol, atol=atol)
+end
+function _isapprox_atol(m::X, n::X, atol::X) where {X <: FixedPoint}
+    unsigned(m.i - n.i) <= unsigned(max(atol, zero(X)).i)
+end
+function _isapprox_atol(m::X, n::X, atol) where {X <: FixedPoint}
+    unsigned(m.i - n.i) <= div(atol, eps(X))
+end
+function _isapprox_rtol(m::X, n::X, rtol) where {X <: FixedPoint}
+    unsigned(m.i - n.i) <= rtol * max(unsigned(abs(m.i)), unsigned(abs(n.i)))
 end
 
 # predicates

@@ -406,6 +406,15 @@ end
         @test all(x -> x + eps(F) ≈ x, xs)
         @test !any(x -> x - eps(F) ≈ x + eps(F), xs)
     end
+
+    @test isapprox(-0.5Q0f7, -1Q0f7, rtol=0.5, atol=0) # issue 209
+    @test isapprox(typemin(Q0f7), typemax(Q0f7), rtol=2.0)
+    @test !isapprox(zero(Q0f7), typemax(Q0f7), rtol=0.9)
+    @test isapprox(zero(Q0f7), eps(Q0f7), rtol=1e-6) # atol = eps(Q0f7)
+    @test !isapprox(eps(Q0f7), zero(Q0f7), rtol=1e-6, atol=1e-6)
+    @test !isapprox(1.0Q6f1, 1.5Q6f1, rtol=0.3, atol=0) # 1.5 * 0.3 < eps(Q6f1)
+
+    @test isapprox(eps(Q8f7), eps(Q0f7), rtol=1e-6)
 end
 
 @testset "clamp" begin

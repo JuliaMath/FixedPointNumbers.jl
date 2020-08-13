@@ -257,6 +257,81 @@ end
     @test (-67.2 % T).i == round(Int, -67.2*512) % Int16
 end
 
+@testset "neg" begin
+    for F in target(Fixed; ex = :thin)
+        @test   wrapping_neg(typemin(F)) === typemin(F)
+        @test saturating_neg(typemin(F)) === typemax(F)
+        @test_throws OverflowError checked_neg(typemin(F))
+
+        @test   wrapping_neg(typemax(F)) === typemin(F) + eps(F)
+        @test saturating_neg(typemax(F)) === typemin(F) + eps(F)
+        @test    checked_neg(typemax(F)) === typemin(F) + eps(F)
+
+        @test   wrapping_neg(eps(F)) === zero(F) - eps(F)
+        @test saturating_neg(eps(F)) === zero(F) - eps(F)
+        @test    checked_neg(eps(F)) === zero(F) - eps(F)
+    end
+    for F in target(Fixed, :i8; ex = :thin)
+        xs = typemin(F):eps(F):typemax(F)
+        fneg(x) = -float(x)
+        @test all(x -> wrapping_neg(wrapping_neg(x)) === x, xs)
+        @test all(x -> saturating_neg(x) == clamp(fneg(x), F), xs)
+        @test all(x -> !(typemin(F) < fneg(x) < typemax(F)) ||
+                       wrapping_neg(x) === checked_neg(x) === fneg(x) % F, xs)
+    end
+end
+
+@testset "add" begin
+    for F in target(Fixed; ex = :thin)
+        @test   wrapping_add(typemin(F), typemin(F)) === zero(F)
+        @test saturating_add(typemin(F), typemin(F)) === typemin(F)
+        @test_throws OverflowError checked_add(typemin(F), typemin(F))
+
+        @test   wrapping_add(typemax(F), eps(F)) ===   wrapping_add(eps(F), typemax(F)) === typemin(F)
+        @test saturating_add(typemax(F), eps(F)) === saturating_add(eps(F), typemax(F)) === typemax(F)
+        @test_throws OverflowError checked_add(typemax(F), eps(F))
+        @test_throws OverflowError checked_add(eps(F), typemax(F))
+
+        @test   wrapping_add(zero(F), eps(F)) ===   wrapping_add(eps(F), zero(F)) === eps(F)
+        @test saturating_add(zero(F), eps(F)) === saturating_add(eps(F), zero(F)) === eps(F)
+        @test    checked_add(zero(F), eps(F)) ===    checked_add(eps(F), zero(F)) === eps(F)
+    end
+    for F in target(Fixed, :i8; ex = :thin)
+        xs = typemin(F):eps(F):typemax(F)
+        xys = ((x, y) for x in xs, y in xs)
+        fadd(x, y) = float(x) + float(y)
+        @test all(((x, y),) -> wrapping_sub(wrapping_add(x, y), y) === x, xys)
+        @test all(((x, y),) -> saturating_add(x, y) == clamp(fadd(x, y), F), xys)
+        @test all(((x, y),) -> !(typemin(F) < fadd(x, y) < typemax(F)) ||
+                               wrapping_add(x, y) === checked_add(x, y) === fadd(x, y) % F, xys)
+    end
+end
+
+@testset "sub" begin
+    for F in target(Fixed; ex = :thin)
+        @test   wrapping_sub(typemin(F), typemin(F)) === zero(F)
+        @test saturating_sub(typemin(F), typemin(F)) === zero(F)
+        @test    checked_sub(typemin(F), typemin(F)) === zero(F)
+
+        @test   wrapping_sub(typemin(F), eps(F)) === typemax(F)
+        @test saturating_sub(typemin(F), eps(F)) === typemin(F)
+        @test_throws OverflowError checked_sub(typemin(F), eps(F))
+
+        @test   wrapping_sub(eps(F), zero(F)) === eps(F)
+        @test saturating_sub(eps(F), zero(F)) === eps(F)
+        @test    checked_sub(eps(F), zero(F)) === eps(F)
+    end
+    for F in target(Fixed, :i8; ex = :thin)
+        xs = typemin(F):eps(F):typemax(F)
+        xys = ((x, y) for x in xs, y in xs)
+        fsub(x, y) = float(x) - float(y)
+        @test all(((x, y),) -> wrapping_add(wrapping_sub(x, y), y) === x, xys)
+        @test all(((x, y),) -> saturating_sub(x, y) == clamp(fsub(x, y), F), xys)
+        @test all(((x, y),) -> !(typemin(F) < fsub(x, y) < typemax(F)) ||
+                               wrapping_sub(x, y) === checked_sub(x, y) === fsub(x, y) % F, xys)
+    end
+end
+
 @testset "rounding" begin
     for sym in (:i8, :i16, :i32, :i64)
         T = symbol_to_inttype(Fixed, sym)

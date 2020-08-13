@@ -104,10 +104,20 @@ end
 
 /(x::Fixed{T,f}, y::Fixed{T,f}) where {T,f} = Fixed{T,f}(div(convert(widen(T), x.i) << f, y.i), 0)
 
-
-rem(x::Integer, ::Type{Fixed{T,f}}) where {T,f} = Fixed{T,f}(rem(x,T)<<f,0)
-rem(x::Real,    ::Type{Fixed{T,f}}) where {T,f} = Fixed{T,f}(rem(Integer(trunc(x)),T)<<f + rem(Integer(round(rem(x,1)*(one(widen1(T))<<f))),T),0)
-
+rem(x::F, ::Type{F}) where {F <: Fixed} = x
+function rem(x::Fixed, ::Type{F}) where {T, f, F <: Fixed{T,f}}
+    f2 = nbitsfrac(typeof(x))
+    y = round(@exp2(f - f2) * reinterpret(x))
+    reinterpret(F, _unsafe_trunc(T, y))
+end
+rem(x::Integer, ::Type{F}) where {T, f, F <: Fixed{T,f}} = F(_unsafe_trunc(T, x) << f, 0)
+function rem(x::Real, ::Type{F}) where {T, f, F <: Fixed{T,f}}
+    y = _unsafe_trunc(promote_type(Int64, T), round(x * @exp2(f)))
+    reinterpret(F, _unsafe_trunc(T, y))
+end
+function rem(x::BigFloat, ::Type{F}) where {T, f, F <: Fixed{T,f}}
+    reinterpret(F, _unsafe_trunc(T, round(x * @exp2(f))))
+end
 
 (::Type{Tf})(x::Fixed{T,f}) where {Tf <: AbstractFloat, T, f} = Tf(Tf(x.i) * Tf(@exp2(-f)))
 Base.Float16(x::Fixed{T,f}) where {T, f} = Float16(Float32(x))

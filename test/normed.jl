@@ -268,8 +268,8 @@ end
     @test (65.2 % N6f10).i == round(Int, 65.2*1023) % UInt16
     @test (-0.3 % N6f10).i == round(Int, -0.3*1023) % UInt16
 
-    @test 1 % N0f8 == 1
-    @test 2 % N0f8 == N0f8(0.996)
+    @test 1 % N0f8 === N0f8(1)
+    @test 2 % N0f8 === N0f8(0.996)
 
     # issue #150
     @test all(f -> 1.0f0 % Normed{UInt32,f} == oneunit(Normed{UInt32,f}), 1:32)

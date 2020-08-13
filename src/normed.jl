@@ -127,7 +127,6 @@ function rem(x::Float64, ::Type{N}) where {f, N <: Normed{UInt64,f}}
     reinterpret(N, r << UInt8(f - 53) - unsigned(signed(r) >> 0x35))
 end
 
-
 function (::Type{T})(x::Normed) where {T <: AbstractFloat}
     # The following optimization for constant division may cause rounding errors.
     # y = reinterpret(x)*(one(rawtype(x))/convert(T, rawone(x)))
@@ -248,8 +247,45 @@ Base.BigFloat(x::Normed) = reinterpret(x) / BigFloat(rawone(x))
 
 Base.Rational(x::Normed) = reinterpret(x)//rawone(x)
 
-# unchecked arithmetic
-*(x::T, y::T) where {T <: Normed} = convert(T,convert(floattype(T), x)*convert(floattype(T), y))
+# Division by `2^f-1` with RoundNearest. The result would be in the lower half bits.
+div_2fm1(x::T, ::Val{f}) where {T, f} = (x + (T(1)<<(f - 1) - 0x1)) ÷ (T(1) << f - 0x1)
+div_2fm1(x::T, ::Val{1}) where T = x
+div_2fm1(x::UInt16,  ::Val{8})  = (((x + 0x80) >> 0x8) + x + 0x80) >> 0x8
+div_2fm1(x::UInt32,  ::Val{16}) = (((x + 0x8000) >> 0x10) + x + 0x8000) >> 0x10
+div_2fm1(x::UInt64,  ::Val{32}) = (((x + 0x80000000) >> 0x20) + x + 0x80000000) >> 0x20
+div_2fm1(x::UInt128, ::Val{64}) = (((x + 0x8000000000000000) >> 0x40) + x + 0x8000000000000000) >> 0x40
+
+# wrapping arithmetic
+function wrapping_mul(x::N, y::N) where {T <: Union{UInt8,UInt16,UInt32,UInt64}, f, N <: Normed{T,f}}
+    z = widemul(x.i, y.i)
+    N(div_2fm1(z, Val(Int(f))) % T, 0)
+end
+
+# saturating arithmetic
+function saturating_mul(x::N, y::N) where {T <: Union{UInt8,UInt16,UInt32,UInt64}, f, N <: Normed{T,f}}
+    f == bitwidth(T) && return wrapping_mul(x, y)
+    z = min(widemul(x.i, y.i), widemul(typemax(N).i, rawone(N)))
+    N(div_2fm1(z, Val(Int(f))) % T, 0)
+end
+
+# checked arithmetic
+function checked_mul(x::N, y::N) where {N <: Normed}
+    z = float(x) * float(y)
+    z < typemax(N) + eps(N)/2 || throw_overflowerror(:*, x, y)
+    z % N
+end
+function checked_mul(x::N, y::N) where {T <: Union{UInt8,UInt16,UInt32,UInt64}, f, N <: Normed{T,f}}
+    f == bitwidth(T) && return wrapping_mul(x, y)
+    z = widemul(x.i, y.i)
+    m = widemul(typemax(N).i, rawone(N)) + (rawone(N) >> 0x1)
+    z < m || throw_overflowerror(:*, x, y)
+    N(div_2fm1(z, Val(Int(f))) % T, 0)
+end
+
+# TODO: decide the default arithmetic for `Normed` mul
+# Override the default arithmetic with `checked` for backward compatibility
+*(x::N, y::N) where {N <: Normed} = checked_mul(x, y)
+
 /(x::T, y::T) where {T <: Normed} = convert(T,convert(floattype(T), x)/convert(floattype(T), y))
 
 # Functions

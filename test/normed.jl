@@ -263,6 +263,10 @@ end
     # issue #150
     @test all(f -> 1.0f0 % Normed{UInt32,f} == oneunit(Normed{UInt32,f}), 1:32)
     @test all(f -> 1.0e0 % Normed{UInt64,f} == oneunit(Normed{UInt64,f}), 1:64)
+
+    # issu #211
+    @test big"1.2" % N0f8 === 0.196N0f8
+    @test reinterpret(BigFloat(0x0_01234567_89abcdef) % N63f1) === 0x01234567_89abcdef
 end
 
 @testset "arithmetic" begin

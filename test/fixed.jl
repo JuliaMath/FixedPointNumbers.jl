@@ -275,8 +275,8 @@ end
         xs = typemin(F):eps(F):typemax(F)
         fneg(x) = -float(x)
         @test all(x -> wrapping_neg(wrapping_neg(x)) === x, xs)
-        @test all(x -> saturating_neg(x) == clamp(fneg(x), F), xs)
-        @test all(x -> !(typemin(F) < fneg(x) < typemax(F)) ||
+        @test all(x -> saturating_neg(x) === clamp(fneg(x), F), xs)
+        @test all(x -> !(typemin(F) <= fneg(x) <= typemax(F)) ||
                        wrapping_neg(x) === checked_neg(x) === fneg(x) % F, xs)
     end
 end
@@ -301,8 +301,8 @@ end
         xys = ((x, y) for x in xs, y in xs)
         fadd(x, y) = float(x) + float(y)
         @test all(((x, y),) -> wrapping_sub(wrapping_add(x, y), y) === x, xys)
-        @test all(((x, y),) -> saturating_add(x, y) == clamp(fadd(x, y), F), xys)
-        @test all(((x, y),) -> !(typemin(F) < fadd(x, y) < typemax(F)) ||
+        @test all(((x, y),) -> saturating_add(x, y) === clamp(fadd(x, y), F), xys)
+        @test all(((x, y),) -> !(typemin(F) <= fadd(x, y) <= typemax(F)) ||
                                wrapping_add(x, y) === checked_add(x, y) === fadd(x, y) % F, xys)
     end
 end

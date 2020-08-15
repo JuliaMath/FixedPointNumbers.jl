@@ -303,7 +303,7 @@ end
         fneg(x) = -float(x)
         @test all(x -> wrapping_neg(wrapping_neg(x)) === x, xs)
         @test all(x -> saturating_neg(x) === clamp(fneg(x), N), xs)
-        @test all(x -> !(typemin(N) < fneg(x) < typemax(N)) ||
+        @test all(x -> !(typemin(N) <= fneg(x) <= typemax(N)) ||
                        wrapping_neg(x) === checked_neg(x) === fneg(x) % N, xs)
     end
 end
@@ -329,7 +329,7 @@ end
         fadd(x, y) = float(x) + float(y)
         @test all(((x, y),) -> wrapping_sub(wrapping_add(x, y), y) === x, xys)
         @test all(((x, y),) -> saturating_add(x, y) === clamp(fadd(x, y), N), xys)
-        @test all(((x, y),) -> !(typemin(N) < fadd(x, y) < typemax(N)) ||
+        @test all(((x, y),) -> !(typemin(N) <= fadd(x, y) <= typemax(N)) ||
                                wrapping_add(x, y) === checked_add(x, y) === fadd(x, y) % N, xys)
     end
 end
@@ -354,7 +354,7 @@ end
         fsub(x, y) = float(x) - float(y)
         @test all(((x, y),) -> wrapping_add(wrapping_sub(x, y), y) === x, xys)
         @test all(((x, y),) -> saturating_sub(x, y) === clamp(fsub(x, y), N), xys)
-        @test all(((x, y),) -> !(typemin(N) < fsub(x, y) < typemax(N)) ||
+        @test all(((x, y),) -> !(typemin(N) <= fsub(x, y) <= typemax(N)) ||
                                wrapping_sub(x, y) === checked_sub(x, y) === fsub(x, y) % N, xys)
     end
 end

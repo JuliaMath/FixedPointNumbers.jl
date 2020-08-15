@@ -200,9 +200,19 @@ saturating_sub(x::X, y::X) where {X <: FixedPoint} =
 saturating_sub(x::X, y::X) where {X <: FixedPoint{<:Unsigned}} = X(x.i - min(x.i, y.i), 0)
 
 # checked arithmetic
-checked_neg(x::X) where {X <: FixedPoint} = X(checked_neg(x.i), 0)
-checked_add(x::X, y::X) where {X <: FixedPoint} = X(checked_add(x.i, y.i), 0)
-checked_sub(x::X, y::X) where {X <: FixedPoint} = X(checked_sub(x.i, y.i), 0)
+checked_neg(x::X) where {X <: FixedPoint} = checked_sub(zero(X), x)
+function checked_add(x::X, y::X) where {X <: FixedPoint}
+    r, f = Base.Checked.add_with_overflow(x.i, y.i)
+    z = X(r, 0) # store first
+    f && throw_overflowerror(:+, x, y)
+    z
+end
+function checked_sub(x::X, y::X) where {X <: FixedPoint}
+    r, f = Base.Checked.sub_with_overflow(x.i, y.i)
+    z = X(r, 0) # store first
+    f && throw_overflowerror(:-, x, y)
+    z
+end
 
 # default arithmetic
 const DEFAULT_ARITHMETIC = :wrapping
@@ -422,6 +432,13 @@ scaledual(::Type{Tdual}, x::AbstractArray{T}) where {Tdual, T <: FixedPoint} =
     print(IOContext(io, :compact=>true), typemax(X), "; ")
     print(io, "cannot represent ", x)
     throw(ArgumentError(String(take!(io))))
+end
+
+@noinline function throw_overflowerror(op::Symbol, @nospecialize(x), @nospecialize(y))
+    io = IOBuffer()
+    print(io, x, ' ', op, ' ', y, " overflowed for type ")
+    showtype(io, typeof(x))
+    throw(OverflowError(String(take!(io))))
 end
 
 function Random.rand(r::AbstractRNG, ::SamplerType{X}) where X <: FixedPoint

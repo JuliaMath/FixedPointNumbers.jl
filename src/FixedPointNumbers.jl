@@ -357,6 +357,13 @@ scaledual(::Type{Tdual}, x::AbstractArray{T}) where {Tdual, T <: FixedPoint} =
     throw(ArgumentError(String(take!(io))))
 end
 
+@noinline function throw_overflowerror(op::Symbol, @nospecialize(x), @nospecialize(y))
+    io = IOBuffer()
+    print(io, x, ' ', op, ' ', y, " overflowed for type ")
+    showtype(io, typeof(x))
+    throw(OverflowError(String(take!(io))))
+end
+
 function Random.rand(r::AbstractRNG, ::SamplerType{X}) where X <: FixedPoint
     X(rand(r, rawtype(X)), 0)
 end

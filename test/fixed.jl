@@ -64,6 +64,23 @@ end
     @test_throws DomainError zero(Fixed{Int16,17})
 end
 
+@testset "construction using type suffix" begin
+    @test 0.635Q0f7  ===  Q0f7(0.635)
+    @test 0.635Q5f10 === Q5f10(0.635)
+    @test 0.635Q3f12 === Q3f12(0.635)
+    @test 0.635Q1f14 === Q1f14(0.635)
+    @test 0.635Q0f15 === Q0f15(0.635)
+
+    @test_throws ArgumentError 1.1Q0f7
+
+    @test wrapping_mul(0.635, Q0f7) === Q0f7(0.635)
+    @test wrapping_mul(1.635, Q0f7) === Q0f7(-0.365)
+    @test saturating_mul(0.635, Q0f7) === Q0f7(0.635)
+    @test saturating_mul(1.635, Q0f7) === Q0f7(0.992)
+    @test checked_mul(0.635, Q0f7) === Q0f7(0.635)
+    @test_throws ArgumentError checked_mul(1.635, Q0f7)
+end
+
 @testset "reinterpret/bitstring" begin
     @test reinterpret(Q0f7, signed(0xa2)) === -0.734375Q0f7
     @test reinterpret(Q5f10, signed(0x00a2)) === 0.158203125Q5f10

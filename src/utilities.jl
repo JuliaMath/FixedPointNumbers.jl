@@ -38,14 +38,15 @@ exponent_bias(::Type{Float32}) = 127
 exponent_bias(::Type{Float64}) = 1023
 
 _unsafe_trunc(::Type{T}, x::Integer) where {T} = x % T
-_unsafe_trunc(::Type{T}, x) where {T}          = unsafe_trunc(T, x)
+_unsafe_trunc(::Type{T}, x) where {T} = unsafe_trunc(T, x)
+# issue #202, #211
+_unsafe_trunc(::Type{T}, x::BigFloat) where {T <: Integer} = trunc(BigInt, x) % T
+
 if !signbit(signed(unsafe_trunc(UInt, -12.345)))
     # a workaround for ARM (issue #134)
     function _unsafe_trunc(::Type{T}, x::AbstractFloat) where {T <: Integer}
         unsafe_trunc(T, unsafe_trunc(signedtype(T), x))
     end
-    # exclude BigFloat (issue #202)
-    _unsafe_trunc(::Type{T}, x::BigFloat) where {T <: Integer} = unsafe_trunc(T, x)
 end
 
 wrapper(@nospecialize(T)) = Base.typename(T).wrapper

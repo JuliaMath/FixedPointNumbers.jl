@@ -302,6 +302,26 @@ end
     end
 end
 
+@testset "abs" begin
+    for F in target(Fixed; ex = :thin)
+        @test   wrapping_abs(typemax(F)) === typemax(F)
+        @test saturating_abs(typemax(F)) === typemax(F)
+        @test    checked_abs(typemax(F)) === typemax(F)
+
+        @test   wrapping_abs(typemin(F)) === typemin(F)
+        @test saturating_abs(typemin(F)) === typemax(F)
+        @test_throws OverflowError checked_abs(typemin(F))
+    end
+    for F in target(Fixed, :i8; ex = :thin)
+        xs = typemin(F):eps(F):typemax(F)
+        fabs(x) = abs(float(x))
+        @test all(x -> wrapping_abs(x) === (x > 0 ? x : wrapping_neg(x)), xs)
+        @test all(x -> saturating_abs(x) === clamp(fabs(x), F), xs)
+        @test all(x -> !(typemin(F) <= fabs(x) <= typemax(F)) ||
+                       wrapping_abs(x) === checked_abs(x) === fabs(x) % F, xs)
+    end
+end
+
 @testset "add" begin
     for F in target(Fixed; ex = :thin)
         @test   wrapping_add(typemin(F), typemin(F)) === zero(F)

@@ -323,6 +323,26 @@ end
     end
 end
 
+@testset "abs" begin
+    for N in target(Normed; ex = :thin)
+        @test   wrapping_abs(typemax(N)) === typemax(N)
+        @test saturating_abs(typemax(N)) === typemax(N)
+        @test    checked_abs(typemax(N)) === typemax(N)
+
+        @test   wrapping_abs(typemin(N)) === typemin(N)
+        @test saturating_abs(typemin(N)) === typemin(N)
+        @test    checked_abs(typemin(N)) === typemin(N)
+    end
+    for N in target(Normed, :i8; ex = :thin)
+        xs = typemin(N):eps(N):typemax(N)
+        fabs(x) = abs(float(x))
+        @test all(x -> wrapping_abs(x) === (x > 0 ? x : wrapping_neg(x)), xs)
+        @test all(x -> saturating_abs(x) === clamp(fabs(x), N), xs)
+        @test all(x -> !(typemin(N) <= fabs(x) <= typemax(N)) ||
+                       wrapping_abs(x) === checked_abs(x) === fabs(x) % N, xs)
+    end
+end
+
 @testset "add" begin
     for N in target(Normed; ex = :thin)
         @test   wrapping_add(typemin(N), typemin(N)) === zero(N)

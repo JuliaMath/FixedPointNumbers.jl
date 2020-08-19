@@ -24,8 +24,8 @@ function test_fixed(::Type{F}) where {F}
         fxf = convert(Float64, fx)
 
         @test convert(F, convert(Float64, fx)) === fx
-        @test convert(F, convert(Float64, -fx)) === -fx
-        @test convert(Float64, -fx) == -convert(Float64, fx)
+        fx != typemin(F) && @test convert(F, convert(Float64, -fx)) === -fx
+        fx != typemin(F) && @test convert(Float64, -fx) == -convert(Float64, fx)
 
         rx = convert(Rational{BigInt}, fx)
         @assert isequal(fx, rx) == isequal(hash(fx), hash(rx))
@@ -113,7 +113,11 @@ end
         f < bitwidth(T) - 1 && @test one(F) == 1
         f < bitwidth(T) - 1 && @test one(F) * oneunit(F) == oneunit(F)
         @test typemin(F) == typemin(T) >> f
-        @test typemax(F) == typemax(T)//big"2"^f
+        if T === Int128
+            @test typemax(F) * big"2"^f == typemax(T)
+        else
+            @test typemax(F) == typemax(T)//big"2"^f
+        end
         @test floatmin(F) === eps(F) == 2.0^-f # issue #79
         @test floatmax(F) === typemax(F)
         @test eps(zero(F)) === eps(typemax(F))
@@ -343,8 +347,8 @@ end
         xys = ((x, y) for x in xs, y in xs)
         fsub(x, y) = float(x) - float(y)
         @test all(((x, y),) -> wrapping_add(wrapping_sub(x, y), y) === x, xys)
-        @test all(((x, y),) -> saturating_sub(x, y) == clamp(fsub(x, y), F), xys)
-        @test all(((x, y),) -> !(typemin(F) < fsub(x, y) < typemax(F)) ||
+        @test all(((x, y),) -> saturating_sub(x, y) === clamp(fsub(x, y), F), xys)
+        @test all(((x, y),) -> !(typemin(F) <= fsub(x, y) <= typemax(F)) ||
                                wrapping_sub(x, y) === checked_sub(x, y) === fsub(x, y) % F, xys)
     end
 end

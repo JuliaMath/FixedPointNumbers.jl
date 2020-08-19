@@ -107,7 +107,7 @@ T == UInt32 |x - - - - - - -:- - - - - - - -:x - - - - - - -:- - - - - - - -|
 """
 function target_f(X::Type, T::Type{<:Integer}; ex = :default)
     f_min = X === Fixed ? 0 : 1
-    f_max = bitwidth(T) - (T <: Signed) - 1 + f_min
+    f_max = bitwidth(T) - (T <: Signed)
     ex === :heavy && return f_min:f_max
     ex === :default && bitwidth(T) <= 16 && return f_min:f_max
     ex === :thin && return ((f_max + 1) ÷ 2, f_max)

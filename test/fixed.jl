@@ -409,6 +409,13 @@ end
         @test all(((x, y),) -> !(typemin(F) <= fmul(x, y) <= typemax(F)) ||
                                wrapping_mul(x, y) === checked_mul(x, y), xys)
     end
+
+    FixedPointNumbers.mul_with_rounding(1.5Q6f1,  0.5Q6f1, RoundNearest) ===  1.0Q6f1
+    FixedPointNumbers.mul_with_rounding(1.5Q6f1, -0.5Q6f1, RoundNearest) === -1.0Q6f1
+    FixedPointNumbers.mul_with_rounding(1.5Q6f1,  0.5Q6f1, RoundNearestTiesUp) ===  1.0Q6f1
+    FixedPointNumbers.mul_with_rounding(1.5Q6f1, -0.5Q6f1, RoundNearestTiesUp) === -0.5Q6f1
+    FixedPointNumbers.mul_with_rounding(1.5Q6f1,  0.5Q6f1, RoundDown) ===  0.5Q6f1
+    FixedPointNumbers.mul_with_rounding(1.5Q6f1, -0.5Q6f1, RoundDown) === -1.0Q6f1
 end
 
 @testset "rounding" begin

@@ -158,10 +158,18 @@ function checked_mul(x::F, y::F) where {T <: Union{Int8,Int16,Int32,Int64}, f, F
     F(div_2f(z, Val(Int(f))) % T, 0)
 end
 
-# with truncation:
-#*(x::Fixed{T,f}, y::Fixed{T,f}) = Fixed{T,f}(Base.widemul(x.i,y.i)>>f,0)
-# with rounding up:
-#*(x::Fixed{T,f}, y::Fixed{T,f}) where {T,f} = Fixed{T,f}((Base.widemul(x.i,y.i) + (one(widen(T)) << (f-1)))>>f,0)
+function mul_with_rounding(x::F, y::F, ::RoundingMode{:Nearest}) where {F <: Fixed}
+    wrapping_mul(x, y)
+end
+function mul_with_rounding(x::F, y::F, ::RoundingMode{:NearestTiesUp}) where
+                          {T <: Union{Int8,Int16,Int32,Int64}, f, F <: Fixed{T, f}}
+    z = widemul(x.i, y.i)
+    F(((z + (oftype(z, 1) << f >>> 1)) >> f) % T, 0)
+end
+function mul_with_rounding(x::F, y::F, ::RoundingMode{:Down}) where
+                          {T <: Union{Int8,Int16,Int32,Int64}, f, F <: Fixed{T, f}}
+    F((widemul(x.i, y.i) >> f) % T, 0)
+end
 
 /(x::Fixed{T,f}, y::Fixed{T,f}) where {T,f} = Fixed{T,f}(div(convert(widen(T), x.i) << f, y.i), 0)
 

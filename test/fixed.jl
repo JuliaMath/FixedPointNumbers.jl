@@ -377,6 +377,31 @@ end
     FixedPointNumbers.mul_with_rounding(1.5Q6f1, -0.5Q6f1, RoundDown) === -1.0Q6f1
 end
 
+@testset "fdiv" begin
+    for F in target(Fixed; ex = :thin)
+        @test   wrapping_fdiv(typemax(F), -typemax(F)) === F(-1)
+        @test saturating_fdiv(typemax(F), -typemax(F)) === F(-1)
+        @test    checked_fdiv(typemax(F), -typemax(F)) === F(-1)
+
+        @test   wrapping_fdiv(zero(F), typemin(F)) === zero(F)
+        @test saturating_fdiv(zero(F), typemin(F)) === zero(F)
+        @test    checked_fdiv(zero(F), typemin(F)) === zero(F)
+
+        @test   wrapping_fdiv(typemin(F), F(-1)) === wrapping_neg(typemin(F))
+        @test saturating_fdiv(typemin(F), F(-1)) === typemax(F)
+        @test_throws OverflowError checked_fdiv(typemin(F), F(-1))
+
+        @test   wrapping_fdiv(zero(F), zero(F)) === zero(F)
+        @test saturating_fdiv(zero(F), zero(F)) === zero(F)
+        @test_throws DivideError checked_fdiv(zero(F), zero(F))
+
+        @test   wrapping_fdiv(-eps(F), zero(F)) === zero(F)
+        @test saturating_fdiv(-eps(F), zero(F)) === typemin(F)
+        @test_throws DivideError checked_fdiv(-eps(F), zero(F))
+    end
+    test_fdiv(Fixed)
+end
+
 @testset "rounding" begin
     for sym in (:i8, :i16, :i32, :i64)
         T = symbol_to_inttype(Fixed, sym)

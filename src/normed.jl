@@ -291,7 +291,6 @@ end
 # Override the default arithmetic with `checked` for backward compatibility
 *(x::N, y::N) where {N <: Normed} = checked_mul(x, y)
 
-/(x::T, y::T) where {T <: Normed} = convert(T,convert(floattype(T), x)/convert(floattype(T), y))
 
 # Functions
 trunc(x::N) where {N <: Normed} = floor(x)

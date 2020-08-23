@@ -179,7 +179,6 @@ function mul_with_rounding(x::F, y::F, ::RoundingMode{:Down}) where
     F((widemul(x.i, y.i) >> f) % T, 0)
 end
 
-/(x::Fixed{T,f}, y::Fixed{T,f}) where {T,f} = Fixed{T,f}(div(convert(widen(T), x.i) << f, y.i), 0)
 
 function trunc(x::Fixed{T,f}) where {T, f}
     f == 0 && return x

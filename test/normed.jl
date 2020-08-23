@@ -380,6 +380,31 @@ end
     test_mul(Normed)
 end
 
+@testset "fdiv" begin
+    for N in target(Normed; ex = :thin)
+        @test   wrapping_fdiv(typemax(N), typemax(N)) === one(N)
+        @test saturating_fdiv(typemax(N), typemax(N)) === one(N)
+        @test    checked_fdiv(typemax(N), typemax(N)) === one(N)
+
+        @test   wrapping_fdiv(zero(N), eps(N)) === zero(N)
+        @test saturating_fdiv(zero(N), eps(N)) === zero(N)
+        @test    checked_fdiv(zero(N), eps(N)) === zero(N)
+
+        @test   wrapping_fdiv(typemax(N), eps(N)) === (floattype(N))(typemax(rawtype(N))) % N
+        @test saturating_fdiv(typemax(N), eps(N)) === typemax(N)
+        @test_throws OverflowError checked_fdiv(typemax(N), eps(N))
+
+        @test   wrapping_fdiv(zero(N), zero(N)) === zero(N)
+        @test saturating_fdiv(zero(N), zero(N)) === zero(N)
+        @test_throws DivideError checked_fdiv(zero(N), zero(N))
+
+        @test   wrapping_fdiv(eps(N), zero(N)) === zero(N)
+        @test saturating_fdiv(eps(N), zero(N)) === typemax(N)
+        @test_throws DivideError checked_fdiv(eps(N), zero(N))
+    end
+    test_fdiv(Normed)
+end
+
 @testset "div/fld1" begin
     @test div(reinterpret(N0f8, 0x10), reinterpret(N0f8, 0x02)) == fld(reinterpret(N0f8, 0x10), reinterpret(N0f8, 0x02)) == 8
     @test div(reinterpret(N0f8, 0x0f), reinterpret(N0f8, 0x02)) == fld(reinterpret(N0f8, 0x0f), reinterpret(N0f8, 0x02)) == 7

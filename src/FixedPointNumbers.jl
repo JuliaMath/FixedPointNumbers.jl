@@ -38,7 +38,10 @@ export
 # Functions
     scaledual,
     wrapping_neg, wrapping_abs, wrapping_add, wrapping_sub, wrapping_mul,
-    saturating_neg, saturating_abs, saturating_add, saturating_sub, saturating_mul
+    wrapping_fdiv,
+    saturating_neg, saturating_abs, saturating_add, saturating_sub, saturating_mul,
+    saturating_fdiv,
+    checked_fdiv
 
 include("utilities.jl")
 
@@ -207,6 +210,10 @@ wrapping_abs(x::X) where {X <: FixedPoint} = X(abs(x.i), 0)
 wrapping_add(x::X, y::X) where {X <: FixedPoint} = X(x.i + y.i, 0)
 wrapping_sub(x::X, y::X) where {X <: FixedPoint} = X(x.i - y.i, 0)
 wrapping_mul(x::X, y::X) where {X <: FixedPoint} = (float(x) * float(y)) % X
+function wrapping_fdiv(x::X, y::X) where {X <: FixedPoint}
+    z = floattype(X)(x.i) / floattype(X)(y.i)
+    isfinite(z) ? z % X : zero(X)
+end
 
 # saturating arithmetic
 saturating_neg(x::X) where {X <: FixedPoint} = X(~min(x.i - true, x.i), 0)
@@ -224,6 +231,9 @@ saturating_sub(x::X, y::X) where {X <: FixedPoint} =
 saturating_sub(x::X, y::X) where {X <: FixedPoint{<:Unsigned}} = X(x.i - min(x.i, y.i), 0)
 
 saturating_mul(x::X, y::X) where {X <: FixedPoint} = clamp(float(x) * float(y), X)
+
+saturating_fdiv(x::X, y::X) where {X <: FixedPoint} =
+    clamp(floattype(X)(x.i) / floattype(X)(y.i), X)
 
 # checked arithmetic
 checked_neg(x::X) where {X <: FixedPoint} = checked_sub(zero(X), x)
@@ -248,6 +258,16 @@ function checked_mul(x::X, y::X) where {X <: FixedPoint}
     typemin(X) - eps(X)/2 <= z < typemax(X) + eps(X)/2 || throw_overflowerror(:*, x, y)
     z % X
 end
+function checked_fdiv(x::X, y::X) where {T, X <: FixedPoint{T}}
+    y === zero(X) && throw(DivideError())
+    z = floattype(X)(x.i) / floattype(X)(y.i)
+    if T <: Unsigned
+        z < typemax(X) + eps(X)/2 || throw_overflowerror(:/, x, y)
+    else
+        typemin(X) - eps(X)/2 <= z < typemax(X) + eps(X)/2 || throw_overflowerror(:/, x, y)
+    end
+    z % X
+end
 
 # default arithmetic
 const DEFAULT_ARITHMETIC = :wrapping
@@ -264,6 +284,7 @@ for (op, name) in ((:+, :add), (:-, :sub), (:*, :mul))
         $op(x::X, y::X) where {X <: FixedPoint} = $f(x, y)
     end
 end
+/(x::X, y::X) where {X <: FixedPoint} = checked_fdiv(x, y) # force checked arithmetic
 
 
 function minmax(x::X, y::X) where {X <: FixedPoint}

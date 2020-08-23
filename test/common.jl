@@ -222,6 +222,18 @@ function test_mul(TX::Type)
     end
 end
 
+function test_fdiv(TX::Type)
+    for X in target(TX, :i8; ex = :thin)
+        xys = xypairs(X)
+        fdiv(x, y) = oftype(float(x), big(x) / big(y))
+        fdivz(x, y) = y === zero(y) ? float(y) : fdiv(x, y)
+        @test all(((x, y),) -> wrapping_fdiv(x, y) === fdivz(x, y) % X, xys)
+        @test all(((x, y),) -> saturating_fdiv(x, y) === clamp(fdiv(x, y), X), xys)
+        @test all(((x, y),) -> !(typemin(X) <= fdiv(x, y) <= typemax(X)) ||
+                               wrapping_fdiv(x, y) === checked_fdiv(x, y), xys)
+    end
+end
+
 function test_isapprox(TX::Type)
     @testset "approx $X" for X in target(TX, :i8, :i16; ex = :light)
         xs = typemin(X):eps(X):typemax(X)-eps(X)

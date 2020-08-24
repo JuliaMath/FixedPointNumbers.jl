@@ -373,6 +373,40 @@ end
     end
 end
 
+@testset "mul" begin
+    for F in target(Fixed; ex = :thin)
+        @test   wrapping_mul(typemax(F), zero(F)) === zero(F)
+        @test saturating_mul(typemax(F), zero(F)) === zero(F)
+        @test    checked_mul(typemax(F), zero(F)) === zero(F)
+
+        # FIXME: Both the rhs and lhs of the following tests may be inaccurate due to `rem`
+        F === Fixed{Int128,127} && continue
+
+        @test   wrapping_mul(F(-1), typemax(F)) === -typemax(F)
+        @test saturating_mul(F(-1), typemax(F)) === -typemax(F)
+        @test    checked_mul(F(-1), typemax(F)) === -typemax(F)
+
+        @test wrapping_mul(typemin(F), typemax(F)) === big(typemin(F)) * big(typemax(F)) % F
+        if typemin(F) != -1
+            @test saturating_mul(typemin(F), typemax(F)) === typemin(F)
+            @test_throws OverflowError checked_mul(typemin(F), typemax(F))
+        end
+
+        @test   wrapping_mul(typemin(F), typemin(F)) === big(typemin(F))^2 % F
+        @test saturating_mul(typemin(F), typemin(F)) === typemax(F)
+        @test_throws OverflowError checked_mul(typemin(F), typemin(F))
+    end
+    for F in target(Fixed, :i8; ex = :thin)
+        xs = typemin(F):eps(F):typemax(F)
+        xys = ((x, y) for x in xs, y in xs)
+        fmul(x, y) = float(x) * float(y) # note that precision(Float32) < 32
+        @test all(((x, y),) -> wrapping_mul(x, y) === fmul(x, y) % F, xys)
+        @test all(((x, y),) -> saturating_mul(x, y) === clamp(fmul(x, y), F), xys)
+        @test all(((x, y),) -> !(typemin(F) <= fmul(x, y) <= typemax(F)) ||
+                               wrapping_mul(x, y) === checked_mul(x, y), xys)
+    end
+end
+
 @testset "rounding" begin
     for sym in (:i8, :i16, :i32, :i64)
         T = symbol_to_inttype(Fixed, sym)

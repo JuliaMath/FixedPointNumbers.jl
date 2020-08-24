@@ -206,6 +206,7 @@ wrapping_neg(x::X) where {X <: FixedPoint} = X(-x.i, 0)
 wrapping_abs(x::X) where {X <: FixedPoint} = X(abs(x.i), 0)
 wrapping_add(x::X, y::X) where {X <: FixedPoint} = X(x.i + y.i, 0)
 wrapping_sub(x::X, y::X) where {X <: FixedPoint} = X(x.i - y.i, 0)
+wrapping_mul(x::X, y::X) where {X <: FixedPoint} = (float(x) * float(y)) % X
 
 # saturating arithmetic
 saturating_neg(x::X) where {X <: FixedPoint} = X(~min(x.i - true, x.i), 0)
@@ -222,6 +223,7 @@ saturating_sub(x::X, y::X) where {X <: FixedPoint} =
     X(x.i - ifelse(x.i < 0, min(y.i, x.i - typemin(x.i)), max(y.i, x.i - typemax(x.i))), 0)
 saturating_sub(x::X, y::X) where {X <: FixedPoint{<:Unsigned}} = X(x.i - min(x.i, y.i), 0)
 
+saturating_mul(x::X, y::X) where {X <: FixedPoint} = clamp(float(x) * float(y), X)
 
 # checked arithmetic
 checked_neg(x::X) where {X <: FixedPoint} = checked_sub(zero(X), x)
@@ -241,6 +243,11 @@ function checked_sub(x::X, y::X) where {X <: FixedPoint}
     f && throw_overflowerror(:-, x, y)
     z
 end
+function checked_mul(x::X, y::X) where {X <: FixedPoint}
+    z = float(x) * float(y)
+    typemin(X) - eps(X)/2 <= z < typemax(X) + eps(X)/2 || throw_overflowerror(:*, x, y)
+    z % X
+end
 
 # default arithmetic
 const DEFAULT_ARITHMETIC = :wrapping
@@ -251,7 +258,7 @@ for (op, name) in ((:-, :neg), (:abs, :abs))
         $op(x::X) where {X <: FixedPoint} = $f(x)
     end
 end
-for (op, name) in ((:+, :add), (:-, :sub))
+for (op, name) in ((:+, :add), (:-, :sub), (:*, :mul))
     f = Symbol(DEFAULT_ARITHMETIC, :_, name)
     @eval begin
         $op(x::X, y::X) where {X <: FixedPoint} = $f(x, y)

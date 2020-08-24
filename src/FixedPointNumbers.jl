@@ -12,7 +12,8 @@ import Base: ==, <, <=, -, +, *, /, ~, isapprox,
 import Statistics   # for _mean_promote
 import Random: Random, AbstractRNG, SamplerType, rand!
 
-import Base.Checked: checked_neg, checked_add, checked_sub, checked_mul, checked_div
+import Base.Checked: checked_neg, checked_abs, checked_add, checked_sub, checked_mul,
+                     checked_div
 
 using Base: @pure
 
@@ -36,8 +37,8 @@ export
     # Q and N typealiases are exported in separate source files
 # Functions
     scaledual,
-    wrapping_neg, wrapping_add, wrapping_sub, wrapping_mul,
-    saturating_neg, saturating_add, saturating_sub, saturating_mul
+    wrapping_neg, wrapping_abs, wrapping_add, wrapping_sub, wrapping_mul,
+    saturating_neg, saturating_abs, saturating_add, saturating_sub, saturating_mul
 
 include("utilities.jl")
 
@@ -202,12 +203,16 @@ float(x::FixedPoint) = convert(floattype(x), x)
 
 # wrapping arithmetic
 wrapping_neg(x::X) where {X <: FixedPoint} = X(-x.i, 0)
+wrapping_abs(x::X) where {X <: FixedPoint} = X(abs(x.i), 0)
 wrapping_add(x::X, y::X) where {X <: FixedPoint} = X(x.i + y.i, 0)
 wrapping_sub(x::X, y::X) where {X <: FixedPoint} = X(x.i - y.i, 0)
 
 # saturating arithmetic
 saturating_neg(x::X) where {X <: FixedPoint} = X(~min(x.i - true, x.i), 0)
 saturating_neg(x::X) where {X <: FixedPoint{<:Unsigned}} = zero(X)
+
+saturating_abs(x::X) where {X <: FixedPoint} =
+    X(ifelse(signbit(abs(x.i)), typemax(x.i), abs(x.i)), 0)
 
 saturating_add(x::X, y::X) where {X <: FixedPoint} =
     X(x.i + ifelse(x.i < 0, max(y.i, typemin(x.i) - x.i), min(y.i, typemax(x.i) - x.i)), 0)
@@ -217,8 +222,13 @@ saturating_sub(x::X, y::X) where {X <: FixedPoint} =
     X(x.i - ifelse(x.i < 0, min(y.i, x.i - typemin(x.i)), max(y.i, x.i - typemax(x.i))), 0)
 saturating_sub(x::X, y::X) where {X <: FixedPoint{<:Unsigned}} = X(x.i - min(x.i, y.i), 0)
 
+
 # checked arithmetic
 checked_neg(x::X) where {X <: FixedPoint} = checked_sub(zero(X), x)
+function checked_abs(x::X) where {X <: FixedPoint}
+    abs(x.i) >= 0 || throw_overflowerror_abs(x)
+    X(abs(x.i), 0)
+end
 function checked_add(x::X, y::X) where {X <: FixedPoint}
     r, f = Base.Checked.add_with_overflow(x.i, y.i)
     z = X(r, 0) # store first
@@ -235,7 +245,7 @@ end
 # default arithmetic
 const DEFAULT_ARITHMETIC = :wrapping
 
-for (op, name) in ((:-, :neg), )
+for (op, name) in ((:-, :neg), (:abs, :abs))
     f = Symbol(DEFAULT_ARITHMETIC, :_, name)
     @eval begin
         $op(x::X) where {X <: FixedPoint} = $f(x)
@@ -298,7 +308,7 @@ for f in (:(==), :<, :<=, :div, :fld, :fld1)
         $f(x::X, y::X) where {X <: FixedPoint} = $f(x.i, y.i)
     end
 end
-for f in (:~, :abs)
+for f in (:~, )
     @eval begin
         $f(x::X) where {X <: FixedPoint} = X($f(x.i), 0)
     end
@@ -455,6 +465,12 @@ end
 @noinline function throw_overflowerror(op::Symbol, @nospecialize(x), @nospecialize(y))
     io = IOBuffer()
     print(io, x, ' ', op, ' ', y, " overflowed for type ")
+    showtype(io, typeof(x))
+    throw(OverflowError(String(take!(io))))
+end
+@noinline function throw_overflowerror_abs(@nospecialize(x))
+    io = IOBuffer()
+    print(io, "abs(", x, ") overflowed for type ")
     showtype(io, typeof(x))
     throw(OverflowError(String(take!(io))))
 end

@@ -288,6 +288,26 @@ end
     end
 end
 
+@testset "mul" begin
+    checked_mul = FixedPointNumbers.checked_mul
+    for N in target(Normed; ex = :thin)
+        @test checked_mul(typemax(N), zero(N)) === zero(N)
+
+        @test checked_mul(one(N), typemax(N)) === typemax(N)
+
+        if typemax(N) != 1
+            @test_throws OverflowError checked_mul(typemax(N), typemax(N))
+        end
+    end
+    for N in target(Normed, :i8; ex = :thin)
+        xs = typemin(N):eps(N):typemax(N)
+        xys = ((x, y) for x in xs, y in xs)
+        fmul(x, y) = float(x) * float(y) # note that precision(Float32) < 32
+        @test all(((x, y),) -> !(typemin(N) <= fmul(x, y) <= typemax(N)) ||
+                               (fmul(x, y) % N) === checked_mul(x, y), xys)
+    end
+end
+
 @testset "div/fld1" begin
     @test div(reinterpret(N0f8, 0x10), reinterpret(N0f8, 0x02)) == fld(reinterpret(N0f8, 0x10), reinterpret(N0f8, 0x02)) == 8
     @test div(reinterpret(N0f8, 0x0f), reinterpret(N0f8, 0x02)) == fld(reinterpret(N0f8, 0x0f), reinterpret(N0f8, 0x02)) == 7

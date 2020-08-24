@@ -180,6 +180,9 @@ floattype(::Type{Base.TwicePrecision{T}}) where T<:Union{Float16,Float32} = wide
 
 float(x::FixedPoint) = convert(floattype(x), x)
 
+wrapping_mul(x::X, y::X) where {X <: FixedPoint} = (float(x) * float(y)) % X
+*(x::X, y::X) where {X <: FixedPoint} = wrapping_mul(x, y)
+
 function minmax(x::X, y::X) where {X <: FixedPoint}
     a, b = minmax(reinterpret(x), reinterpret(y))
     X(a,0), X(b,0)

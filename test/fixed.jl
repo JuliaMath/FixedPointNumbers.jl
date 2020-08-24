@@ -261,6 +261,28 @@ end
     @test (-67.2 % T).i == round(Int, -67.2*512) % Int16
 end
 
+@testset "mul" begin
+    wrapping_mul = FixedPointNumbers.wrapping_mul
+    for F in target(Fixed; ex = :thin)
+        @test wrapping_mul(typemax(F), zero(F)) === zero(F)
+
+        # FIXME: Both the rhs and lhs of the following tests may be inaccurate due to `rem`
+        F === Fixed{Int128,127} && continue
+
+        @test wrapping_mul(F(-1), typemax(F)) === -typemax(F)
+
+        @test wrapping_mul(typemin(F), typemax(F)) === big(typemin(F)) * big(typemax(F)) % F
+
+        @test wrapping_mul(typemin(F), typemin(F)) === big(typemin(F))^2 % F
+    end
+    for F in target(Fixed, :i8; ex = :thin)
+        xs = typemin(F):eps(F):typemax(F)
+        xys = ((x, y) for x in xs, y in xs)
+        fmul(x, y) = float(x) * float(y) # note that precision(Float32) < 32
+        @test all(((x, y),) -> wrapping_mul(x, y) === fmul(x, y) % F, xys)
+    end
+end
+
 @testset "rounding" begin
     for sym in (:i8, :i16, :i32, :i64)
         T = symbol_to_inttype(Fixed, sym)

@@ -431,6 +431,14 @@ end
         @test all(x -> x + eps(N) ≈ x, xs)
         @test !any(x -> x - eps(N) ≈ x + eps(N), xs)
     end
+
+    @test isapprox(typemin(N0f8), typemax(N0f8), rtol=1.0)
+    @test !isapprox(zero(N0f8), typemax(N0f8), rtol=0.9)
+    @test isapprox(zero(N0f8), eps(N0f8), rtol=1e-6) # atol = eps(N0f8)
+    @test !isapprox(eps(N0f8), zero(N0f8), rtol=1e-6, atol=1e-6)
+    @test !isapprox(0.66N6f2, 1.0N6f2, rtol=0.3, atol=0) # 1.0 * 0.3 < eps(N6f2)
+
+    @test isapprox(eps(N8f8), eps(N0f8), rtol=1e-6)
 end
 
 @testset "comparison" begin

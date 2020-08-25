@@ -95,19 +95,20 @@ function _convert(::Type{F}, x::Rational) where {T, f, F <: Fixed{T,f}}
     end
 end
 
-# unchecked arithmetic
-
-# with truncation:
-#*(x::Fixed{T,f}, y::Fixed{T,f}) = Fixed{T,f}(Base.widemul(x.i,y.i)>>f,0)
-# with rounding up:
-*(x::Fixed{T,f}, y::Fixed{T,f}) where {T,f} = Fixed{T,f}((Base.widemul(x.i,y.i) + (one(widen(T)) << (f-1)))>>f,0)
-
-/(x::Fixed{T,f}, y::Fixed{T,f}) where {T,f} = Fixed{T,f}(div(convert(widen(T), x.i) << f, y.i), 0)
-
-
-rem(x::Integer, ::Type{Fixed{T,f}}) where {T,f} = Fixed{T,f}(rem(x,T)<<f,0)
-rem(x::Real,    ::Type{Fixed{T,f}}) where {T,f} = Fixed{T,f}(rem(Integer(trunc(x)),T)<<f + rem(Integer(round(rem(x,1)*(one(widen1(T))<<f))),T),0)
-
+rem(x::F, ::Type{F}) where {F <: Fixed} = x
+function rem(x::Fixed, ::Type{F}) where {T, f, F <: Fixed{T,f}}
+    f2 = nbitsfrac(typeof(x))
+    y = round(@exp2(f - f2) * reinterpret(x))
+    reinterpret(F, _unsafe_trunc(T, y))
+end
+rem(x::Integer, ::Type{F}) where {T, f, F <: Fixed{T,f}} = F(_unsafe_trunc(T, x) << f, 0)
+function rem(x::Real, ::Type{F}) where {T, f, F <: Fixed{T,f}}
+    y = _unsafe_trunc(promote_type(Int64, T), round(x * @exp2(f)))
+    reinterpret(F, _unsafe_trunc(T, y))
+end
+function rem(x::BigFloat, ::Type{F}) where {T, f, F <: Fixed{T,f}}
+    reinterpret(F, _unsafe_trunc(T, round(x * @exp2(f))))
+end
 
 (::Type{Tf})(x::Fixed{T,f}) where {Tf <: AbstractFloat, T, f} = Tf(Tf(x.i) * Tf(@exp2(-f)))
 Base.Float16(x::Fixed{T,f}) where {T, f} = Float16(Float32(x))
@@ -117,6 +118,35 @@ Base.Float64(x::Fixed{T,f}) where {T, f} = Float64(x.i) * @exp2(-f)
 function Base.Rational(x::Fixed{T,f}) where {T, f}
     f < bitwidth(T)-1 ? x.i//rawone(x) : x.i//(one(widen1(T))<<f)
 end
+
+function div_2f(x::T, ::Val{f}) where {T, f}
+    xf = x & (T(-1) >>> (bitwidth(T) - f - 1))
+    half = oneunit(T) << (f - 1)
+    c = half - (xf === half)
+    (x + c) >> f
+end
+div_2f(x::T, ::Val{0}) where {T} = x
+
+# wrapping arithmetic
+function wrapping_mul(x::F, y::F) where {T <: Union{Int8,Int16,Int32,Int64}, f, F <: Fixed{T,f}}
+    z = widemul(x.i, y.i)
+    F(div_2f(z, Val(Int(f))) % T, 0)
+end
+
+function mul_with_rounding(x::F, y::F, ::RoundingMode{:Nearest}) where {F <: Fixed}
+    wrapping_mul(x, y)
+end
+function mul_with_rounding(x::F, y::F, ::RoundingMode{:NearestTiesUp}) where
+                          {T <: Union{Int8,Int16,Int32,Int64}, f, F <: Fixed{T, f}}
+    z = widemul(x.i, y.i)
+    F(((z + (oftype(z, 1) << f >>> 1)) >> f) % T, 0)
+end
+function mul_with_rounding(x::F, y::F, ::RoundingMode{:Down}) where
+                          {T <: Union{Int8,Int16,Int32,Int64}, f, F <: Fixed{T, f}}
+    F((widemul(x.i, y.i) >> f) % T, 0)
+end
+
+/(x::Fixed{T,f}, y::Fixed{T,f}) where {T,f} = Fixed{T,f}(div(convert(widen(T), x.i) << f, y.i), 0)
 
 function trunc(x::Fixed{T,f}) where {T, f}
     f == 0 && return x

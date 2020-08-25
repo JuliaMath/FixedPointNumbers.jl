@@ -263,6 +263,10 @@ end
 end
 
 @testset "type modulus" begin
+    @test  Q0f7(0.2) % Q0f7  === Q0f7(0.2)
+    @test Q1f14(1.2) % Q0f15 === Q0f15(-0.8)
+    @test Q1f14(1.2) % Q0f7  === Q0f7(-0.8)
+
     T = Fixed{Int8,7}
     for i = -1.0:0.1:typemax(T)
         @test i % T === T(i)
@@ -276,6 +280,9 @@ end
     end
     @test ( 65.2 % T).i == round(Int,  65.2*512) % Int16
     @test (-67.2 % T).i == round(Int, -67.2*512) % Int16
+
+    @test -1 % Q0f7 === Q0f7(-1)
+    @test -2 % Q0f7 === Q0f7(0)
 end
 
 @testset "neg" begin
@@ -379,9 +386,6 @@ end
         @test saturating_mul(typemax(F), zero(F)) === zero(F)
         @test    checked_mul(typemax(F), zero(F)) === zero(F)
 
-        # FIXME: Both the rhs and lhs of the following tests may be inaccurate due to `rem`
-        F === Fixed{Int128,127} && continue
-
         @test   wrapping_mul(F(-1), typemax(F)) === -typemax(F)
         @test saturating_mul(F(-1), typemax(F)) === -typemax(F)
         @test    checked_mul(F(-1), typemax(F)) === -typemax(F)
@@ -405,6 +409,13 @@ end
         @test all(((x, y),) -> !(typemin(F) <= fmul(x, y) <= typemax(F)) ||
                                wrapping_mul(x, y) === checked_mul(x, y), xys)
     end
+
+    FixedPointNumbers.mul_with_rounding(1.5Q6f1,  0.5Q6f1, RoundNearest) ===  1.0Q6f1
+    FixedPointNumbers.mul_with_rounding(1.5Q6f1, -0.5Q6f1, RoundNearest) === -1.0Q6f1
+    FixedPointNumbers.mul_with_rounding(1.5Q6f1,  0.5Q6f1, RoundNearestTiesUp) ===  1.0Q6f1
+    FixedPointNumbers.mul_with_rounding(1.5Q6f1, -0.5Q6f1, RoundNearestTiesUp) === -0.5Q6f1
+    FixedPointNumbers.mul_with_rounding(1.5Q6f1,  0.5Q6f1, RoundDown) ===  0.5Q6f1
+    FixedPointNumbers.mul_with_rounding(1.5Q6f1, -0.5Q6f1, RoundDown) === -1.0Q6f1
 end
 
 @testset "rounding" begin

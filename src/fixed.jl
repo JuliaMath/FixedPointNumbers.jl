@@ -103,10 +103,18 @@ function rem(x::Fixed, ::Type{F}) where {T, f, F <: Fixed{T,f}}
 end
 rem(x::Integer, ::Type{F}) where {T, f, F <: Fixed{T,f}} = F(_unsafe_trunc(T, x) << f, 0)
 function rem(x::Real, ::Type{F}) where {T, f, F <: Fixed{T,f}}
-    y = _unsafe_trunc(promote_type(Int64, T), round(x * @exp2(f)))
+    if bitwidth(T) < 32
+        Ti = T
+    else
+        isfinite(x) || return zero(F)
+        Ti = promote_type(Int64, T)
+    end
+    Tf = floattype(F)
+    y = _unsafe_trunc(Ti, round(x * Tf(@exp2(f))))
     reinterpret(F, _unsafe_trunc(T, y))
 end
 function rem(x::BigFloat, ::Type{F}) where {T, f, F <: Fixed{T,f}}
+    isfinite(x) || return zero(F)
     reinterpret(F, _unsafe_trunc(T, round(x * @exp2(f))))
 end
 

@@ -173,7 +173,7 @@ end
     end
 end
 
-@testset "conversion from float" begin
+@testset "conversions from float" begin
     # issue 102
     for Tf in (Float16, Float32, Float64)
         @testset "$N(::$Tf)" for N in target(Normed)
@@ -202,6 +202,12 @@ end
     @test N0f32(Float32(0x0.7FFFFFp-32)) == zero(N0f32)
     @test N0f32(Float32(0x0.800000p-32)) <= eps(N0f32) # should be zero in RoundNearest mode
     @test N0f32(Float32(0x0.800001p-32)) == eps(N0f32)
+
+    @testset "$N(nan)" for N in target(Normed; ex = :thin)
+        @test_throws ArgumentError N(Inf)
+        @test_throws ArgumentError N(-Inf32)
+        @test_throws ArgumentError N(NaN)
+    end
 end
 
 @testset "conversions to float" begin
@@ -264,9 +270,14 @@ end
     @test all(f -> 1.0f0 % Normed{UInt32,f} == oneunit(Normed{UInt32,f}), 1:32)
     @test all(f -> 1.0e0 % Normed{UInt64,f} == oneunit(Normed{UInt64,f}), 1:64)
 
-    # issu #211
+    # issue #211
     @test big"1.2" % N0f8 === 0.196N0f8
     @test reinterpret(BigFloat(0x0_01234567_89abcdef) % N63f1) === 0x01234567_89abcdef
+
+    # TODO: avoid undefined behavior
+    @testset "nan % $N" for N in target(Normed, :i8, :i16, :i32, :i64; ex = :thin)
+        @test NaN % N === NaN32 % N ===  NaN16 % N == zero(N)
+    end
 end
 
 @testset "arithmetic" begin
@@ -385,6 +396,12 @@ end
     @test clamp(0.5,     N0f8) === 0.5N0f8
     @test clamp(-1.0f0,  N0f8) === 0.0N0f8
     @test clamp(2.0N1f7, N0f8) === 1.0N0f8
+
+    @testset "clamp(nan, $N)" for N in target(Normed; ex = :thin)
+        @test clamp( Inf, N) === clamp( Inf32, N) === typemax(N)
+        @test clamp(-Inf, N) === clamp(-Inf32, N) === typemin(N)
+        @test clamp( NaN, N) === clamp( NaN32, N) === zero(N)
+    end
 end
 
 @testset "sign-related functions" begin

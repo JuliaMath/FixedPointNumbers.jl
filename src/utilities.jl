@@ -45,6 +45,10 @@ _unsafe_trunc(::Type{T}, x::BigFloat) where {T <: Integer} = trunc(BigInt, x) % 
 if !signbit(signed(unsafe_trunc(UInt, -12.345)))
     # a workaround for ARM (issue #134)
     function _unsafe_trunc(::Type{T}, x::AbstractFloat) where {T <: Integer}
-        unsafe_trunc(T, unsafe_trunc(signedtype(T), x))
+        if T === UInt32
+            copysign(unsafe_trunc(T, abs(x)), x)
+        else
+            unsafe_trunc(T, unsafe_trunc(signedtype(T), x))
+        end
     end
 end

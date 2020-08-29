@@ -202,6 +202,14 @@ end
     end
 end
 
+@testset "conversions from float" begin
+    @testset "$F(nan)" for F in target(Fixed; ex = :thin)
+        @test_throws ArgumentError F(Inf)
+        @test_throws ArgumentError F(-Inf32)
+        @test_throws ArgumentError F(NaN)
+    end
+end
+
 @testset "conversions to float" begin
     for T in (Float16, Float32, Float64)
         @test isa(convert(T, Q0f7(0.3)), T)
@@ -266,6 +274,11 @@ end
 
     @test -1 % Q0f7 === Q0f7(-1)
     @test -2 % Q0f7 === Q0f7(0)
+
+    # TODO: avoid undefined behavior
+    @testset "nan % $F" for F in target(Fixed, :i8, :i16, :i32, :i64; ex = :thin)
+        @test NaN % F === NaN32 % F === NaN16 % F === zero(F)
+    end
 end
 
 @testset "mul" begin
@@ -364,6 +377,12 @@ end
     @test clamp(0.5,     Q0f7) === 0.5Q0f7
     @test clamp(-1.5f0,  Q0f7) === -1.0Q0f7
     @test clamp(1.5Q1f6, Q0f7) === 0.992Q0f7
+
+    @testset "clamp(nan, $F)" for F in target(Fixed; ex = :thin)
+        @test clamp( Inf, F) === clamp( Inf32, F) === typemax(F)
+        @test clamp(-Inf, F) === clamp(-Inf32, F) === typemin(F)
+        @test clamp( NaN, F) === clamp( NaN32, F) === zero(F)
+    end
 end
 
 @testset "sign-related functions" begin

@@ -86,7 +86,7 @@ end
     @test occursin("N0f8 is an 8-bit type representing 256 values from 0.0 to 1.0;", msg)
     ret = @test_throws ArgumentError convert(Normed{UInt128,100}, 10.0^9)
     msg = ret.value.msg
-    @test occursin("Normed{UInt128,100} is a 128-bit type representing 2^128 values", msg)
+    @test occursin("Normed{UInt128,$(SP)100} is a 128-bit type representing 2^128 values", msg)
 end
 
 @testset "disambiguation constructors" begin
@@ -179,9 +179,7 @@ end
     @test float(0.8N8f24) === 0.8
     @test float(1N11f53)::BigFloat == big"1.0"
 
-    @testset "floattype($N)" for N in target(Normed, :i8, :i16, :i32, :i64; ex = :heavy)
-        @test typemax(N) <= maxintfloat(floattype(N))
-    end
+    test_floattype(Normed)
 end
 
 @testset "conversions from float" begin
@@ -214,11 +212,7 @@ end
     @test N0f32(Float32(0x0.800000p-32)) <= eps(N0f32) # should be zero in RoundNearest mode
     @test N0f32(Float32(0x0.800001p-32)) == eps(N0f32)
 
-    @testset "$N(nan)" for N in target(Normed; ex = :thin)
-        @test_throws ArgumentError N(Inf)
-        @test_throws ArgumentError N(-Inf32)
-        @test_throws ArgumentError N(NaN)
-    end
+    test_convert_from_nan(Normed)
 end
 
 @testset "conversions to float" begin
@@ -231,14 +225,14 @@ end
     for Tf in (Float16, Float32, Float64)
         @testset "$Tf(::$N)" for N in target(Normed, :i8, :i16)
             T = rawtype(N)
-            float_err = 0.0
+            float_err = zero(Tf)
             for i = typemin(T):typemax(T)
                 f_expected = Tf(i / BigFloat(FixedPointNumbers.rawone(N)))
                 isinf(f_expected) && break # for Float16(::Normed{UInt16,1})
                 f_actual = Tf(reinterpret(N, i))
                 float_err += abs(f_actual - f_expected)
             end
-            @test float_err == 0.0
+            @test float_err == 0
         end
         @testset "$Tf(::$N)" for N in target(Normed, :i32, :i64, :i128)
             T = rawtype(N)
@@ -258,19 +252,16 @@ end
 end
 
 @testset "type modulus" begin
+    test_rem_type(Normed)
+    test_rem_nan(Normed)
+
     @test  N0f8(0.2) % N0f8  === N0f8(0.2)
     @test N2f14(1.2) % N0f16 === N0f16(0.20002)
     @test N2f14(1.2) % N0f8  === N0f8(0.196)
 
-    for i = 0.0:0.1:1.0
-        @test i % N0f8 === N0f8(i)
-    end
     @test ( 1.5 % N0f8).i == round(Int,  1.5*255) % UInt8
     @test (-0.3 % N0f8).i == round(Int, -0.3*255) % UInt8
 
-    for i = 0.0:0.1:64.0
-        @test i % N6f10 === N6f10(i)
-    end
     @test (65.2 % N6f10).i == round(Int, 65.2*1023) % UInt16
     @test (-0.3 % N6f10).i == round(Int, -0.3*1023) % UInt16
 
@@ -284,11 +275,6 @@ end
     # issue #211
     @test big"1.2" % N0f8 === 0.196N0f8
     @test reinterpret(BigFloat(0x0_01234567_89abcdef) % N63f1) === 0x01234567_89abcdef
-
-    # TODO: avoid undefined behavior
-    @testset "nan % $N" for N in target(Normed, :i8, :i16, :i32, :i64; ex = :thin)
-        @test NaN % N === NaN32 % N ===  NaN16 % N == zero(N)
-    end
 end
 
 @testset "arithmetic" begin
@@ -324,14 +310,7 @@ end
         @test saturating_neg(eps(N)) === zero(N)
         @test_throws OverflowError checked_neg(eps(N))
     end
-    for N in target(Normed, :i8; ex = :thin)
-        xs = typemin(N):eps(N):typemax(N)
-        fneg(x) = -float(x)
-        @test all(x -> wrapping_neg(wrapping_neg(x)) === x, xs)
-        @test all(x -> saturating_neg(x) === clamp(fneg(x), N), xs)
-        @test all(x -> !(typemin(N) <= fneg(x) <= typemax(N)) ||
-                       wrapping_neg(x) === checked_neg(x) === fneg(x) % N, xs)
-    end
+    test_neg(Normed)
 end
 
 @testset "abs" begin
@@ -344,14 +323,7 @@ end
         @test saturating_abs(typemin(N)) === typemin(N)
         @test    checked_abs(typemin(N)) === typemin(N)
     end
-    for N in target(Normed, :i8; ex = :thin)
-        xs = typemin(N):eps(N):typemax(N)
-        fabs(x) = abs(float(x))
-        @test all(x -> wrapping_abs(x) === (x > 0 ? x : wrapping_neg(x)), xs)
-        @test all(x -> saturating_abs(x) === clamp(fabs(x), N), xs)
-        @test all(x -> !(typemin(N) <= fabs(x) <= typemax(N)) ||
-                       wrapping_abs(x) === checked_abs(x) === fabs(x) % N, xs)
-    end
+    test_abs(Normed)
 end
 
 @testset "add" begin
@@ -369,15 +341,7 @@ end
         @test saturating_add(zero(N), eps(N)) === saturating_add(eps(N), zero(N)) === eps(N)
         @test    checked_add(zero(N), eps(N)) ===    checked_add(eps(N), zero(N)) === eps(N)
     end
-    for N in target(Normed, :i8; ex = :thin)
-        xs = typemin(N):eps(N):typemax(N)
-        xys = ((x, y) for x in xs, y in xs)
-        fadd(x, y) = float(x) + float(y)
-        @test all(((x, y),) -> wrapping_sub(wrapping_add(x, y), y) === x, xys)
-        @test all(((x, y),) -> saturating_add(x, y) === clamp(fadd(x, y), N), xys)
-        @test all(((x, y),) -> !(typemin(N) <= fadd(x, y) <= typemax(N)) ||
-                               wrapping_add(x, y) === checked_add(x, y) === fadd(x, y) % N, xys)
-    end
+    test_add(Normed)
 end
 
 @testset "sub" begin
@@ -394,15 +358,7 @@ end
         @test saturating_sub(eps(N), zero(N)) === eps(N)
         @test    checked_sub(eps(N), zero(N)) === eps(N)
     end
-    for N in target(Normed, :i8; ex = :thin)
-        xs = typemin(N):eps(N):typemax(N)
-        xys = ((x, y) for x in xs, y in xs)
-        fsub(x, y) = float(x) - float(y)
-        @test all(((x, y),) -> wrapping_add(wrapping_sub(x, y), y) === x, xys)
-        @test all(((x, y),) -> saturating_sub(x, y) === clamp(fsub(x, y), N), xys)
-        @test all(((x, y),) -> !(typemin(N) <= fsub(x, y) <= typemax(N)) ||
-                               wrapping_sub(x, y) === checked_sub(x, y) === fsub(x, y) % N, xys)
-    end
+    test_sub(Normed)
 end
 
 @testset "mul" begin
@@ -421,15 +377,7 @@ end
             @test_throws OverflowError checked_mul(typemax(N), typemax(N))
         end
     end
-    for N in target(Normed, :i8; ex = :thin)
-        xs = typemin(N):eps(N):typemax(N)
-        xys = ((x, y) for x in xs, y in xs)
-        fmul(x, y) = float(x) * float(y) # note that precision(Float32) < 32
-        @test all(((x, y),) -> wrapping_mul(x, y) === fmul(x, y) % N, xys)
-        @test all(((x, y),) -> saturating_mul(x, y) === clamp(fmul(x, y), N), xys)
-        @test all(((x, y),) -> !(typemin(N) <= fmul(x, y) <= typemax(N)) ||
-                               wrapping_mul(x, y) === checked_mul(x, y), xys)
-    end
+    test_mul(Normed)
 end
 
 @testset "div/fld1" begin
@@ -483,12 +431,7 @@ end
 end
 
 @testset "approx" begin
-    @testset "approx $N" for N in target(Normed, :i8, :i16; ex = :light)
-        xs = typemin(N):eps(N):typemax(N)-eps(N)
-        @test all(x -> x ≈ x + eps(N), xs)
-        @test all(x -> x + eps(N) ≈ x, xs)
-        @test !any(x -> x - eps(N) ≈ x + eps(N), xs)
-    end
+    test_isapprox(Normed)
 
     @test isapprox(typemin(N0f8), typemax(N0f8), rtol=1.0)
     @test !isapprox(zero(N0f8), typemax(N0f8), rtol=0.9)
@@ -518,11 +461,7 @@ end
     @test clamp(-1.0f0,  N0f8) === 0.0N0f8
     @test clamp(2.0N1f7, N0f8) === 1.0N0f8
 
-    @testset "clamp(nan, $N)" for N in target(Normed; ex = :thin)
-        @test clamp( Inf, N) === clamp( Inf32, N) === typemax(N)
-        @test clamp(-Inf, N) === clamp(-Inf32, N) === typemin(N)
-        @test clamp( NaN, N) === clamp( NaN32, N) === zero(N)
-    end
+    test_clamp_nan(Normed)
 end
 
 @testset "sign-related functions" begin
@@ -553,10 +492,7 @@ end
     @test !isinf(1N8f8)
 
     @testset "isinteger" begin
-        @testset "isinteger(::$N)" for N in target(Normed, :i8, :i16)
-            xs = typemin(N):eps(N):typemax(N)
-            @test all(x -> isinteger(x) == isinteger(float(x)), xs)
-        end
+        test_isinteger(Normed)
         @testset "isinteger(::$N)" for N in target(Normed, :i32, :i64, :i128)
             if nbitsfrac(N) == 1
                 @test isinteger(zero(N)) & isinteger(oneunit(N))
@@ -622,12 +558,7 @@ end
 end
 
 @testset "rand" begin
-    @testset "rand(::$N)" for N in target(Normed; ex = :thin)
-        @test isa(rand(N), N)
-        a = rand(N, (3, 5))
-        @test ndims(a) == 2 && eltype(a) === N
-        @test size(a) == (3,5)
-    end
+    test_rand(Normed)
     @test rand(MersenneTwister(1234), N0f8) === 0.925N0f8
 end
 
@@ -698,7 +629,7 @@ end
     @test String(take!(iob)) == "43691.33333N16f16"
 
     show(iob, Normed{UInt128,64}(1.2345e6))
-    @test String(take!(iob)) == "Normed{UInt128,64}(1.2345e6)"
+    @test String(take!(iob)) == "Normed{UInt128,$(SP)64}(1.2345e6)"
 end
 
 @testset "summary" begin

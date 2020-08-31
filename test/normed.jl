@@ -340,6 +340,21 @@ end
     test_mul(Normed)
 end
 
+@testset "fdiv" begin
+    for N in target(Normed; ex = :thin)
+        @test checked_fdiv(typemax(N), typemax(N)) === one(N)
+
+        @test checked_fdiv(zero(N), eps(N)) === zero(N)
+
+        @test_throws Exception checked_fdiv(typemax(N), eps(N)) # OverflowError on v0.9 (#222)
+
+        @test_throws Exception checked_fdiv(zero(N), zero(N)) # DivideError on v0.9 (#222)
+
+        @test_throws Exception checked_fdiv(eps(N), zero(N)) # DivideError on v0.9 (#222)
+    end
+    test_fdiv(Normed)
+end
+
 @testset "div/fld1" begin
     @test div(reinterpret(N0f8, 0x10), reinterpret(N0f8, 0x02)) == fld(reinterpret(N0f8, 0x10), reinterpret(N0f8, 0x02)) == 8
     @test div(reinterpret(N0f8, 0x0f), reinterpret(N0f8, 0x02)) == fld(reinterpret(N0f8, 0x0f), reinterpret(N0f8, 0x02)) == 7

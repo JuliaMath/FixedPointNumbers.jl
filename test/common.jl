@@ -9,6 +9,7 @@ wrapping_add = (+)
 wrapping_sub = (-)
 wrapping_mul = FixedPointNumbers.wrapping_mul
 checked_mul = FixedPointNumbers.checked_mul
+checked_fdiv = (/) # The current implementations are inconsistent (do not check properly).
 
 """
     target(X::Type, Ss...; ex = :default)
@@ -210,6 +211,16 @@ function test_mul(TX::Type)
         xys = xypairs(X)
         fmul(x, y) = float(x) * float(y) # note that precision(Float32) < 32
         @test all(((x, y),) -> wrapping_mul(x, y) === fmul(x, y) % X, xys)
+    end
+end
+
+function test_fdiv(TX::Type)
+    for X in target(TX, :i8; ex = :thin)
+        xys = xypairs(X)
+        fdiv(x, y) = oftype(float(x), big(x) / big(y))
+        fdivz(x, y) = y === zero(y) ? float(y) : fdiv(x, y)
+        @test_broken all(((x, y),) -> !(typemin(X) <= fdiv(x, y) <= typemax(X)) ||
+                               checked_fdiv(x, y) === fdivz(x, y) % X, xys)
     end
 end
 

@@ -142,7 +142,7 @@ end
     @test occursin("Q0f7 is an 8-bit type representing 256 values from -1.0 to 0.992;", msg)
     ret = @test_throws ArgumentError convert(Fixed{Int128,100}, 10.0^9)
     msg = ret.value.msg
-    @test occursin("Fixed{Int128,100} is a 128-bit type representing 2^128 values", msg)
+    @test occursin("Fixed{Int128,$(SP)100} is a 128-bit type representing 2^128 values", msg)
 end
 
 @testset "disambiguation constructors" begin
@@ -214,17 +214,11 @@ end
     @test float(0.75Q7f24) === 0.75
     @test float(0.75Q10f53)::BigFloat == big"0.75"
 
-    @testset "floattype($F)" for F in target(Fixed, :i8, :i16, :i32, :i64; ex = :heavy)
-        @test typemax(F) <= maxintfloat(floattype(F))
-    end
+    test_floattype(Fixed)
 end
 
 @testset "conversions from float" begin
-    @testset "$F(nan)" for F in target(Fixed; ex = :thin)
-        @test_throws ArgumentError F(Inf)
-        @test_throws ArgumentError F(-Inf32)
-        @test_throws ArgumentError F(NaN)
-    end
+    test_convert_from_nan(Fixed)
 end
 
 @testset "conversions to float" begin
@@ -234,22 +228,22 @@ end
 
     for Tf in (Float16, Float32, Float64)
         @testset "$Tf(::$F)" for F in target(Fixed, :i8, :i16)
-            T, f = rawtype(F), nbitsfrac(F)
-            float_err = 0.0
+            T, exp2mf = rawtype(F), big(2.0^-nbitsfrac(F))
+            float_err = zero(Tf)
             for i = typemin(T):typemax(T)
-                f_expected = Tf(i * BigFloat(2)^-f)
+                f_expected = Tf(i * exp2mf)
                 f_actual = Tf(reinterpret(F, i))
                 float_err += abs(f_actual - f_expected)
             end
-            @test float_err == 0.0
+            @test float_err == 0
         end
         @testset "$Tf(::$F)" for F in target(Fixed, :i32, :i64, :i128)
-            T, f = rawtype(F), nbitsfrac(F)
+            T, exp2mf = rawtype(F), big(2.0^-nbitsfrac(F))
             error_count = 0
             for i in vcat(typemin(T):(typemin(T)+0xFF),
                           -T(0xFF):T(0xFF),
                           (typemax(T)-0xFF):typemax(T))
-                f_expected = Tf(i * BigFloat(2)^-f)
+                f_expected = Tf(i * exp2mf)
                 isinf(f_expected) && break # for Float16() and Float32()
                 f_actual = Tf(reinterpret(F, i))
                 f_actual == f_expected && continue
@@ -271,31 +265,21 @@ end
 end
 
 @testset "type modulus" begin
+    test_rem_type(Fixed)
+    test_rem_nan(Fixed)
+
     @test  Q0f7(0.2) % Q0f7  === Q0f7(0.2)
     @test Q1f14(1.2) % Q0f15 === Q0f15(-0.8)
     @test Q1f14(1.2) % Q0f7  === Q0f7(-0.8)
 
-    T = Fixed{Int8,7}
-    for i = -1.0:0.1:typemax(T)
-        @test i % T === T(i)
-    end
-    @test ( 1.5 % T).i == round(Int,  1.5*128) % Int8
-    @test (-0.3 % T).i == round(Int, -0.3*128) % Int8
+    @test ( 1.5 % Q0f7).i == round(Int,  1.5*128) % Int8
+    @test (-0.3 % Q0f7).i == round(Int, -0.3*128) % Int8
 
-    T = Fixed{Int16,9}
-    for i = -64.0:0.1:typemax(T)
-        @test i % T === T(i)
-    end
-    @test ( 65.2 % T).i == round(Int,  65.2*512) % Int16
-    @test (-67.2 % T).i == round(Int, -67.2*512) % Int16
+    @test ( 65.2 % Q6f9).i == round(Int,  65.2*512) % Int16
+    @test (-67.2 % Q6f9).i == round(Int, -67.2*512) % Int16
 
     @test -1 % Q0f7 === Q0f7(-1)
     @test -2 % Q0f7 === Q0f7(0)
-
-    # TODO: avoid undefined behavior
-    @testset "nan % $F" for F in target(Fixed, :i8, :i16, :i32, :i64; ex = :thin)
-        @test NaN % F === NaN32 % F === NaN16 % F === zero(F)
-    end
 end
 
 @testset "neg" begin
@@ -312,14 +296,7 @@ end
         @test saturating_neg(eps(F)) === zero(F) - eps(F)
         @test    checked_neg(eps(F)) === zero(F) - eps(F)
     end
-    for F in target(Fixed, :i8; ex = :thin)
-        xs = typemin(F):eps(F):typemax(F)
-        fneg(x) = -float(x)
-        @test all(x -> wrapping_neg(wrapping_neg(x)) === x, xs)
-        @test all(x -> saturating_neg(x) === clamp(fneg(x), F), xs)
-        @test all(x -> !(typemin(F) <= fneg(x) <= typemax(F)) ||
-                       wrapping_neg(x) === checked_neg(x) === fneg(x) % F, xs)
-    end
+    test_neg(Fixed)
 end
 
 @testset "abs" begin
@@ -332,14 +309,7 @@ end
         @test saturating_abs(typemin(F)) === typemax(F)
         @test_throws OverflowError checked_abs(typemin(F))
     end
-    for F in target(Fixed, :i8; ex = :thin)
-        xs = typemin(F):eps(F):typemax(F)
-        fabs(x) = abs(float(x))
-        @test all(x -> wrapping_abs(x) === (x > 0 ? x : wrapping_neg(x)), xs)
-        @test all(x -> saturating_abs(x) === clamp(fabs(x), F), xs)
-        @test all(x -> !(typemin(F) <= fabs(x) <= typemax(F)) ||
-                       wrapping_abs(x) === checked_abs(x) === fabs(x) % F, xs)
-    end
+    test_abs(Fixed)
 end
 
 @testset "add" begin
@@ -357,15 +327,7 @@ end
         @test saturating_add(zero(F), eps(F)) === saturating_add(eps(F), zero(F)) === eps(F)
         @test    checked_add(zero(F), eps(F)) ===    checked_add(eps(F), zero(F)) === eps(F)
     end
-    for F in target(Fixed, :i8; ex = :thin)
-        xs = typemin(F):eps(F):typemax(F)
-        xys = ((x, y) for x in xs, y in xs)
-        fadd(x, y) = float(x) + float(y)
-        @test all(((x, y),) -> wrapping_sub(wrapping_add(x, y), y) === x, xys)
-        @test all(((x, y),) -> saturating_add(x, y) === clamp(fadd(x, y), F), xys)
-        @test all(((x, y),) -> !(typemin(F) <= fadd(x, y) <= typemax(F)) ||
-                               wrapping_add(x, y) === checked_add(x, y) === fadd(x, y) % F, xys)
-    end
+    test_add(Fixed)
 end
 
 @testset "sub" begin
@@ -382,15 +344,7 @@ end
         @test saturating_sub(eps(F), zero(F)) === eps(F)
         @test    checked_sub(eps(F), zero(F)) === eps(F)
     end
-    for F in target(Fixed, :i8; ex = :thin)
-        xs = typemin(F):eps(F):typemax(F)
-        xys = ((x, y) for x in xs, y in xs)
-        fsub(x, y) = float(x) - float(y)
-        @test all(((x, y),) -> wrapping_add(wrapping_sub(x, y), y) === x, xys)
-        @test all(((x, y),) -> saturating_sub(x, y) === clamp(fsub(x, y), F), xys)
-        @test all(((x, y),) -> !(typemin(F) <= fsub(x, y) <= typemax(F)) ||
-                               wrapping_sub(x, y) === checked_sub(x, y) === fsub(x, y) % F, xys)
-    end
+    test_sub(Fixed)
 end
 
 @testset "mul" begin
@@ -413,15 +367,7 @@ end
         @test saturating_mul(typemin(F), typemin(F)) === typemax(F)
         @test_throws OverflowError checked_mul(typemin(F), typemin(F))
     end
-    for F in target(Fixed, :i8; ex = :thin)
-        xs = typemin(F):eps(F):typemax(F)
-        xys = ((x, y) for x in xs, y in xs)
-        fmul(x, y) = float(x) * float(y) # note that precision(Float32) < 32
-        @test all(((x, y),) -> wrapping_mul(x, y) === fmul(x, y) % F, xys)
-        @test all(((x, y),) -> saturating_mul(x, y) === clamp(fmul(x, y), F), xys)
-        @test all(((x, y),) -> !(typemin(F) <= fmul(x, y) <= typemax(F)) ||
-                               wrapping_mul(x, y) === checked_mul(x, y), xys)
-    end
+    test_mul(Fixed)
 
     FixedPointNumbers.mul_with_rounding(1.5Q6f1,  0.5Q6f1, RoundNearest) ===  1.0Q6f1
     FixedPointNumbers.mul_with_rounding(1.5Q6f1, -0.5Q6f1, RoundNearest) === -1.0Q6f1
@@ -482,12 +428,7 @@ end
 end
 
 @testset "approx" begin
-    @testset "approx $F" for F in target(Fixed, :i8, :i16; ex = :light)
-        xs = typemin(F):eps(F):typemax(F)-eps(F)
-        @test all(x -> x ≈ x + eps(F), xs)
-        @test all(x -> x + eps(F) ≈ x, xs)
-        @test !any(x -> x - eps(F) ≈ x + eps(F), xs)
-    end
+    test_isapprox(Fixed)
 
     @test isapprox(-0.5Q0f7, -1Q0f7, rtol=0.5, atol=0) # issue 209
     @test isapprox(typemin(Q0f7), typemax(Q0f7), rtol=2.0)
@@ -511,11 +452,7 @@ end
     @test clamp(-1.5f0,  Q0f7) === -1.0Q0f7
     @test clamp(1.5Q1f6, Q0f7) === 0.992Q0f7
 
-    @testset "clamp(nan, $F)" for F in target(Fixed; ex = :thin)
-        @test clamp( Inf, F) === clamp( Inf32, F) === typemax(F)
-        @test clamp(-Inf, F) === clamp(-Inf32, F) === typemin(F)
-        @test clamp( NaN, F) === clamp( NaN32, F) === zero(F)
-    end
+    test_clamp_nan(Fixed)
 end
 
 @testset "sign-related functions" begin
@@ -546,10 +483,7 @@ end
     @test !isinf(1Q7f8)
 
     @testset "isinteger" begin
-        @testset "isinteger(::$F)" for F in target(Fixed, :i8, :i16)
-            xs = typemin(F):eps(F):typemax(F)
-            @test all(x -> isinteger(x) == isinteger(float(x)), xs)
-        end
+        test_isinteger(Fixed)
         @testset "isinteger(::$F)" for F in target(Fixed, :i32, :i64, :i128)
             fzero, fmax, fmin = zero(F), typemax(F), typemin(F)
             if nbitsfrac(F) == 0
@@ -619,12 +553,7 @@ end
 end
 
 @testset "rand" begin
-    @testset "rand(::$F)" for F in target(Fixed; ex = :thin)
-        @test isa(rand(F), F)
-        a = rand(F, (3, 5))
-        @test ndims(a) == 2 && eltype(a) === F
-        @test size(a) == (3,5)
-    end
+    test_rand(Fixed)
     @test rand(MersenneTwister(1234), Q0f7) === -0.156Q0f7
 end
 
@@ -695,11 +624,11 @@ end
     @test String(take!(iob)) == "-21845.33334Q15f16"
 
     show(iob, Fixed{Int128,64}(-1.2345e6))
-    @test String(take!(iob)) == "Fixed{Int128,64}(-1.2345e6)"
+    @test String(take!(iob)) == "Fixed{Int128,$(SP)64}(-1.2345e6)"
 
     # TODO: remove this test
     show(iob, reinterpret(Fixed{Int8,8}, signed(0xaa)))
-    @test String(take!(iob)) == "Fixed{Int8,8}(-0.336)"
+    @test String(take!(iob)) == "Fixed{Int8,$(SP)8}(-0.336)"
 end
 
 @testset "summary" begin

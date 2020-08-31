@@ -1,8 +1,14 @@
 using FixedPointNumbers, Statistics, Random, Test
 using FixedPointNumbers: bitwidth, rawtype, nbitsfrac
 
-# FIXME: Remove this comment (SP is borrowed from PR #224)
 SP = VERSION >= v"1.6.0-DEV.771" ? " " : "" # JuliaLang/julia #37085
+
+wrapping_neg = (-)
+wrapping_abs = abs
+wrapping_add = (+)
+wrapping_sub = (-)
+wrapping_mul = FixedPointNumbers.wrapping_mul
+checked_mul = FixedPointNumbers.checked_mul
 
 """
     target(X::Type, Ss...; ex = :default)
@@ -131,3 +137,112 @@ target_f_series(::Type{Normed}, T::Type{<:Integer}) =
      23, 24, 31, 32, 33,
      52, 53, 63, 64, 65,
      112, 113, 127, 128)
+
+# generator for cartesian product
+function xypairs(::Type{X}) where X
+    xs = typemin(X):eps(X):typemax(X)
+    ((x, y) for x in xs, y in xs)
+end
+
+
+function test_floattype(TX::Type)
+    @testset "floattype($X)" for X in target(TX, :i8, :i16, :i32, :i64; ex = :heavy)
+        @test typemax(X) <= maxintfloat(floattype(X))
+    end
+end
+
+function test_convert_from_nan(TX::Type)
+    @testset "$X(nan)" for X in target(TX; ex = :thin)
+        @test_throws ArgumentError X(Inf)
+        @test_throws ArgumentError X(-Inf32)
+        @test_throws ArgumentError X(NaN)
+    end
+end
+
+function test_rem_type(TX::Type)
+    @testset "% $X" for X in target(TX, :i8, :i16; ex = :thin)
+        xs = typemin(X):0.1:typemax(X)
+        @test all(x -> x % X === X(x), xs)
+    end
+end
+
+function test_rem_nan(TX::Type)
+    # TODO: avoid undefined behavior
+    @testset "nan % $X" for X in target(TX, :i8, :i16, :i32, :i64; ex = :thin)
+        @test NaN % X === NaN32 % X === NaN16 % X === zero(X)
+    end
+end
+
+function test_neg(TX::Type)
+    for X in target(TX, :i8; ex = :thin)
+        xs = typemin(X):eps(X):typemax(X)
+        fneg(x) = -float(x)
+        @test all(x -> wrapping_neg(wrapping_neg(x)) === x, xs)
+    end
+end
+
+function test_abs(TX::Type)
+    for X in target(TX, :i8; ex = :thin)
+        xs = typemin(X):eps(X):typemax(X)
+        fabs(x) = abs(float(x))
+        @test all(x -> wrapping_abs(x) === (x > 0 ? x : wrapping_neg(x)), xs)
+    end
+end
+
+function test_add(TX::Type)
+    for X in target(TX, :i8; ex = :thin)
+        xys = xypairs(X)
+        fadd(x, y) = float(x) + float(y)
+        @test all(((x, y),) -> wrapping_sub(wrapping_add(x, y), y) === x, xys)
+    end
+end
+
+function test_sub(TX::Type)
+    for X in target(TX, :i8; ex = :thin)
+        xys = xypairs(X)
+        fsub(x, y) = float(x) - float(y)
+        @test all(((x, y),) -> wrapping_add(wrapping_sub(x, y), y) === x, xys)
+    end
+end
+
+function test_mul(TX::Type)
+    for X in target(TX, :i8; ex = :thin)
+        xys = xypairs(X)
+        fmul(x, y) = float(x) * float(y) # note that precision(Float32) < 32
+        @test all(((x, y),) -> wrapping_mul(x, y) === fmul(x, y) % X, xys)
+    end
+end
+
+function test_isapprox(TX::Type)
+    @testset "approx $X" for X in target(TX, :i8, :i16; ex = :light)
+        xs = typemin(X):eps(X):typemax(X)-eps(X)
+        @test all(x -> x ≈ x + eps(X), xs)
+        @test all(x -> x + eps(X) ≈ x, xs)
+        @test !any(x -> x - eps(X) ≈ x + eps(X), xs)
+    end
+
+end
+
+function test_clamp_nan(TX::Type)
+    @testset "clamp(nan, $X)" for X in target(TX; ex = :thin)
+        @test clamp( Inf, X) === clamp( Inf32, X) === typemax(X)
+        @test clamp(-Inf, X) === clamp(-Inf32, X) === typemin(X)
+        @test clamp( NaN, X) === clamp( NaN32, X) === zero(X)
+    end
+end
+
+function test_isinteger(TX::Type)
+    @testset "isinteger(::$X)" for X in target(TX, :i8, :i16)
+        xs = typemin(X):eps(X):typemax(X)
+        @test all(x -> isinteger(x) == isinteger(float(x)), xs)
+    end
+end
+
+function test_rand(TX::Type)
+    @testset "rand(::$X)" for X in target(TX; ex = :thin)
+        @test isa(rand(X), X)
+        a = rand(X, (3, 5))
+        @test ndims(a) == 2 && eltype(a) === X
+        @test size(a) == (3, 5)
+    end
+end

@@ -168,9 +168,7 @@ end
     @test float(0.8N8f24) === 0.8
     @test float(1N11f53)::BigFloat == big"1.0"
 
-    @testset "floattype($N)" for N in target(Normed, :i8, :i16, :i32, :i64; ex = :heavy)
-        @test typemax(N) <= maxintfloat(floattype(N))
-    end
+    test_floattype(Normed)
 end
 
 @testset "conversions from float" begin
@@ -203,11 +201,7 @@ end
     @test N0f32(Float32(0x0.800000p-32)) <= eps(N0f32) # should be zero in RoundNearest mode
     @test N0f32(Float32(0x0.800001p-32)) == eps(N0f32)
 
-    @testset "$N(nan)" for N in target(Normed; ex = :thin)
-        @test_throws ArgumentError N(Inf)
-        @test_throws ArgumentError N(-Inf32)
-        @test_throws ArgumentError N(NaN)
-    end
+    test_convert_from_nan(Normed)
 end
 
 @testset "conversions to float" begin
@@ -220,14 +214,14 @@ end
     for Tf in (Float16, Float32, Float64)
         @testset "$Tf(::$N)" for N in target(Normed, :i8, :i16)
             T = rawtype(N)
-            float_err = 0.0
+            float_err = zero(Tf)
             for i = typemin(T):typemax(T)
                 f_expected = Tf(i / BigFloat(FixedPointNumbers.rawone(N)))
                 isinf(f_expected) && break # for Float16(::Normed{UInt16,1})
                 f_actual = Tf(reinterpret(N, i))
                 float_err += abs(f_actual - f_expected)
             end
-            @test float_err == 0.0
+            @test float_err == 0
         end
         @testset "$Tf(::$N)" for N in target(Normed, :i32, :i64, :i128)
             T = rawtype(N)
@@ -247,19 +241,16 @@ end
 end
 
 @testset "type modulus" begin
+    test_rem_type(Normed)
+    test_rem_nan(Normed)
+
     @test  N0f8(0.2) % N0f8  === N0f8(0.2)
     @test N2f14(1.2) % N0f16 === N0f16(0.20002)
     @test N2f14(1.2) % N0f8  === N0f8(0.196)
 
-    for i = 0.0:0.1:1.0
-        @test i % N0f8 === N0f8(i)
-    end
     @test ( 1.5 % N0f8).i == round(Int,  1.5*255) % UInt8
     @test (-0.3 % N0f8).i == round(Int, -0.3*255) % UInt8
 
-    for i = 0.0:0.1:64.0
-        @test i % N6f10 === N6f10(i)
-    end
     @test (65.2 % N6f10).i == round(Int, 65.2*1023) % UInt16
     @test (-0.3 % N6f10).i == round(Int, -0.3*1023) % UInt16
 
@@ -273,11 +264,6 @@ end
     # issue #211
     @test big"1.2" % N0f8 === 0.196N0f8
     @test reinterpret(BigFloat(0x0_01234567_89abcdef) % N63f1) === 0x01234567_89abcdef
-
-    # TODO: avoid undefined behavior
-    @testset "nan % $N" for N in target(Normed, :i8, :i16, :i32, :i64; ex = :thin)
-        @test NaN % N === NaN32 % N ===  NaN16 % N == zero(N)
-    end
 end
 
 @testset "arithmetic" begin
@@ -299,8 +285,49 @@ end
     end
 end
 
+@testset "neg" begin
+    for N in target(Normed; ex = :thin)
+        @test wrapping_neg(typemin(N)) === zero(N)
+
+        @test wrapping_neg(typemax(N)) === eps(N)
+
+        @test wrapping_neg(eps(N)) === typemax(N)
+    end
+    test_neg(Normed)
+end
+
+@testset "abs" begin
+    for N in target(Normed; ex = :thin)
+        @test wrapping_abs(typemax(N)) === typemax(N)
+
+        @test wrapping_abs(typemin(N)) === typemin(N)
+    end
+    test_abs(Normed)
+end
+
+@testset "add" begin
+    for N in target(Normed; ex = :thin)
+        @test wrapping_add(typemin(N), typemin(N)) === zero(N)
+
+        @test wrapping_add(typemax(N), eps(N)) === wrapping_add(eps(N), typemax(N)) === zero(N)
+
+        @test wrapping_add(zero(N), eps(N)) === wrapping_add(eps(N), zero(N)) === eps(N)
+    end
+    test_add(Normed)
+end
+
+@testset "sub" begin
+    for N in target(Normed; ex = :thin)
+        @test wrapping_sub(typemin(N), typemin(N)) === zero(N)
+
+        @test wrapping_sub(typemin(N), eps(N)) === typemax(N)
+
+        @test wrapping_sub(eps(N), zero(N)) === eps(N)
+    end
+    test_sub(Normed)
+end
+
 @testset "mul" begin
-    checked_mul = FixedPointNumbers.checked_mul
     for N in target(Normed; ex = :thin)
         @test checked_mul(typemax(N), zero(N)) === zero(N)
 
@@ -310,13 +337,7 @@ end
             @test_throws OverflowError checked_mul(typemax(N), typemax(N))
         end
     end
-    for N in target(Normed, :i8; ex = :thin)
-        xs = typemin(N):eps(N):typemax(N)
-        xys = ((x, y) for x in xs, y in xs)
-        fmul(x, y) = float(x) * float(y) # note that precision(Float32) < 32
-        @test all(((x, y),) -> !(typemin(N) <= fmul(x, y) <= typemax(N)) ||
-                               (fmul(x, y) % N) === checked_mul(x, y), xys)
-    end
+    test_mul(Normed)
 end
 
 @testset "div/fld1" begin
@@ -370,12 +391,16 @@ end
 end
 
 @testset "approx" begin
-    @testset "approx $N" for N in target(Normed, :i8, :i16; ex = :light)
-        xs = typemin(N):eps(N):typemax(N)-eps(N)
-        @test all(x -> x ≈ x + eps(N), xs)
-        @test all(x -> x + eps(N) ≈ x, xs)
-        @test !any(x -> x - eps(N) ≈ x + eps(N), xs)
-    end
+    test_isapprox(Normed)
+
+    # PR #216 required
+    @test_broken isapprox(typemin(N0f8), typemax(N0f8), rtol=1.0)
+    @test !isapprox(zero(N0f8), typemax(N0f8), rtol=0.9)
+    @test isapprox(zero(N0f8), eps(N0f8), rtol=1e-6) # atol = eps(N0f8)
+    @test !isapprox(eps(N0f8), zero(N0f8), rtol=1e-6, atol=1e-6)
+    @test_broken !isapprox(0.66N6f2, 1.0N6f2, rtol=0.3, atol=0) # 1.0 * 0.3 < eps(N6f2)
+
+    @test isapprox(eps(N8f8), eps(N0f8), rtol=1e-6)
 end
 
 @testset "comparison" begin
@@ -397,11 +422,7 @@ end
     @test clamp(-1.0f0,  N0f8) === 0.0N0f8
     @test clamp(2.0N1f7, N0f8) === 1.0N0f8
 
-    @testset "clamp(nan, $N)" for N in target(Normed; ex = :thin)
-        @test clamp( Inf, N) === clamp( Inf32, N) === typemax(N)
-        @test clamp(-Inf, N) === clamp(-Inf32, N) === typemin(N)
-        @test clamp( NaN, N) === clamp( NaN32, N) === zero(N)
-    end
+    test_clamp_nan(Normed)
 end
 
 @testset "sign-related functions" begin
@@ -432,10 +453,7 @@ end
     @test !isinf(1N8f8)
 
     @testset "isinteger" begin
-        @testset "isinteger(::$N)" for N in target(Normed, :i8, :i16)
-            xs = typemin(N):eps(N):typemax(N)
-            @test all(x -> isinteger(x) == isinteger(float(x)), xs)
-        end
+        test_isinteger(Normed)
         @testset "isinteger(::$N)" for N in target(Normed, :i32, :i64, :i128)
             if nbitsfrac(N) == 1
                 @test isinteger(zero(N)) & isinteger(oneunit(N))
@@ -501,12 +519,7 @@ end
 end
 
 @testset "rand" begin
-    @testset "rand(::$N)" for N in target(Normed; ex = :thin)
-        @test isa(rand(N), N)
-        a = rand(N, (3, 5))
-        @test ndims(a) == 2 && eltype(a) === N
-        @test size(a) == (3,5)
-    end
+    test_rand(Normed)
     @test rand(MersenneTwister(1234), N0f8) === 0.925N0f8
 end
 

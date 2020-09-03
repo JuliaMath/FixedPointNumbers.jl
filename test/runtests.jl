@@ -1,6 +1,10 @@
 using FixedPointNumbers, Test
 
-@test isempty(detect_ambiguities(FixedPointNumbers, Base, Core))
+if VERSION >= v"1.6.0-DEV.816" # JuliaLang/julia #36962
+    @test isempty(detect_ambiguities(FixedPointNumbers))
+else
+    @test isempty(detect_ambiguities(FixedPointNumbers, Base, Core))
+end
 
 @testset "normed" begin
     include("normed.jl")

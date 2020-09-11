@@ -234,6 +234,61 @@ function test_fdiv(TX::Type)
     end
 end
 
+function test_div(TX::Type)
+    for X in target(TX, :i8; ex = :thin)
+        T = rawtype(X)
+        xys = xypairs(X)
+        fdiv(x, y) = oftype(float(x), big(x) / big(y))
+        @test all(xys) do (x, y)
+            rem_t(x) = x > typemax(T) ? typemin(T) : unsafe_trunc(T, x)
+            z = y === zero(y) ? float(y) : fdiv(x, y)
+            return (wrapping_div(x, y) === rem_t(trunc(z))) &
+                   (wrapping_fld(x, y) === rem_t(floor(z))) &
+                   (wrapping_cld(x, y) === rem_t( ceil(z)))
+        end
+        @test all(xys) do (x, y)
+            clamp_t(x) = isnan(x) ? zero(T) : trunc(T, clamp(x, typemin(T), typemax(T)))
+            z = fdiv(x, y)
+            return (saturating_div(x, y) === clamp_t(trunc(z))) &
+                   (saturating_fld(x, y) === clamp_t(floor(z))) &
+                   (saturating_cld(x, y) === clamp_t( ceil(z)))
+        end
+        @test all(xys) do (x, y)
+            z = fdiv(x, y)
+            t = !(typemin(T) <= trunc(z) <= typemax(T)) || wrapping_div(x, y) === checked_div(x, y)
+            f = !(typemin(T) <= floor(z) <= typemax(T)) || wrapping_fld(x, y) === checked_fld(x, y)
+            c = !(typemin(T) <=  ceil(z) <= typemax(T)) || wrapping_cld(x, y) === checked_cld(x, y)
+            return t & f & c
+        end
+    end
+end
+
+function test_div_3arg(TX::Type)
+    for X in target(TX; ex = :thin)
+        @test div(eps(X), typemax(X), RoundToZero) === div(eps(X), typemax(X))
+        @test div(eps(X), typemax(X), RoundDown)   === fld(eps(X), typemax(X))
+        @test div(eps(X), typemax(X), RoundUp)     === cld(eps(X), typemax(X))
+    end
+end
+
+function test_fld1_mod1(TX::Type)
+    for X in target(TX, :i8, :i16; ex = :thin)
+        T = rawtype(X)
+        eps2 = eps(X) + eps(X)
+        xs = reinterpret.(X, T.((17, 16, 15, 14)))
+        @test all(fld1.(xs, eps2) .=== T.((9, 8, 8, 7)))
+        @test_throws DivideError fld1(eps(X), zero(X))
+
+        @test all(mod1.(xs, eps2) .=== reinterpret.(X, T.((1, 2, 1, 2))))
+        @test_throws DivideError mod1(eps(X), zero(X))
+
+        d, r = fldmod1(typemin(X), eps2)
+        @test d isa T && r isa X && ((d - 1) * eps2 + r) % X === typemin(X)
+        d, r = fldmod1(typemax(X), eps2)
+        @test d isa T && r isa X && ((d - 1) * eps2 + r) % X === typemax(X)
+    end
+end
+
 function test_isapprox(TX::Type)
     @testset "approx $X" for X in target(TX, :i8, :i16; ex = :light)
         xs = typemin(X):eps(X):typemax(X)-eps(X)

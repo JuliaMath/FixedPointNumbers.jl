@@ -402,6 +402,56 @@ end
     test_fdiv(Fixed)
 end
 
+@testset "div/cld/fld" begin
+    for F in target(Fixed; ex = :thin)
+        fm, fn, fz, fe = typemax(F), typemin(F), zero(F), eps(F)
+        T = rawtype(F)
+        @test   wrapping_div(fm, fm) ===   wrapping_fld(fm, fm) ===   wrapping_cld(fm, fm) === one(T)
+        @test saturating_div(fm, fm) === saturating_fld(fm, fm) === saturating_cld(fm, fm) === one(T)
+        @test    checked_div(fm, fm) ===    checked_fld(fm, fm) ===    checked_cld(fm, fm) === one(T)
+
+        @test   wrapping_div(fz, fe) ===   wrapping_fld(fz, fe) ===   wrapping_cld(fz, fe) === zero(T)
+        @test saturating_div(fz, fe) === saturating_fld(fz, fe) === saturating_cld(fz, fe) === zero(T)
+        @test    checked_div(fz, fe) ===    checked_fld(fz, fe) ===    checked_cld(fz, fe) === zero(T)
+
+        @test   wrapping_div(fm, fe) ===   wrapping_fld(fm, fe) ===   wrapping_cld(fm, fe) === typemax(T)
+        @test saturating_div(fm, fe) === saturating_fld(fm, fe) === saturating_cld(fm, fe) === typemax(T)
+        @test    checked_div(fm, fe) ===    checked_fld(fm, fe) ===    checked_cld(fm, fe) === typemax(T)
+
+        @test   wrapping_div(fz, fz) ===   wrapping_fld(fz, fz) ===   wrapping_cld(fz, fz) === zero(T)
+        @test saturating_div(fz, fz) === saturating_fld(fz, fz) === saturating_cld(fz, fz) === zero(T)
+        @test_throws DivideError checked_div(fz, fz)
+        @test_throws DivideError checked_fld(fz, fz)
+        @test_throws DivideError checked_cld(fz, fz)
+
+        @test   wrapping_div(fe, fz) ===   wrapping_fld(fe, fz) ===   wrapping_cld(fe, fz) === zero(T)
+        @test saturating_div(fe, fz) === saturating_fld(fe, fz) === saturating_cld(fe, fz) === typemax(T)
+        @test_throws DivideError checked_div(fe, fz)
+        @test_throws DivideError checked_fld(fe, fz)
+        @test_throws DivideError checked_cld(fe, fz)
+
+        @test   wrapping_div(fn, -fe) ===   wrapping_fld(fn, -fe) ===   wrapping_cld(fn, -fe) === typemin(T)
+        @test saturating_div(fn, -fe) === saturating_fld(fn, -fe) === saturating_cld(fn, -fe) === typemax(T)
+        @test_throws OverflowError checked_div(fn, -fe)
+        @test_throws OverflowError checked_fld(fn, -fe)
+        @test_throws OverflowError checked_cld(fn, -fe)
+
+        @test wrapping_div(fe, fm) === saturating_div(fe, fm) === checked_div(fe, fm) === zero(T)
+        @test wrapping_fld(fe, fm) === saturating_fld(fe, fm) === checked_fld(fe, fm) === zero(T)
+        @test wrapping_cld(fe, fm) === saturating_cld(fe, fm) === checked_cld(fe, fm) === one(T)
+
+        @test wrapping_div(fe, fn) === saturating_div(fe, fn) === checked_div(fe, fn) === zero(T)
+        @test wrapping_fld(fe, fn) === saturating_fld(fe, fn) === checked_fld(fe, fn) === -one(T)
+        @test wrapping_cld(fe, fn) === saturating_cld(fe, fn) === checked_cld(fe, fn) === zero(T)
+    end
+    test_div(Fixed)
+    test_div_3arg(Fixed)
+end
+
+@testset "fld1/mod1" begin
+    test_fld1_mod1(Fixed)
+end
+
 @testset "rounding" begin
     for sym in (:i8, :i16, :i32, :i64)
         T = symbol_to_inttype(Fixed, sym)

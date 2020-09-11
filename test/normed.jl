@@ -405,18 +405,49 @@ end
     test_fdiv(Normed)
 end
 
-@testset "div/fld1" begin
-    @test div(reinterpret(N0f8, 0x10), reinterpret(N0f8, 0x02)) == fld(reinterpret(N0f8, 0x10), reinterpret(N0f8, 0x02)) == 8
-    @test div(reinterpret(N0f8, 0x0f), reinterpret(N0f8, 0x02)) == fld(reinterpret(N0f8, 0x0f), reinterpret(N0f8, 0x02)) == 7
-    @test fld1(reinterpret(N0f8, 0x10), reinterpret(N0f8, 0x02)) == 8
-    @test fld1(reinterpret(N0f8, 0x0f), reinterpret(N0f8, 0x02)) == 8
+@testset "div/cld/fld" begin
+    for N in target(Normed; ex = :thin)
+        nm, nz, ne = typemax(N), zero(N), eps(N)
+        T = rawtype(N)
+        @test   wrapping_div(nm, nm) ===   wrapping_fld(nm, nm) ===   wrapping_cld(nm, nm) === one(T)
+        @test saturating_div(nm, nm) === saturating_fld(nm, nm) === saturating_cld(nm, nm) === one(T)
+        @test    checked_div(nm, nm) ===    checked_fld(nm, nm) ===    checked_cld(nm, nm) === one(T)
+
+        @test   wrapping_div(nz, ne) ===   wrapping_fld(nz, ne) ===   wrapping_cld(nz, ne) === zero(T)
+        @test saturating_div(nz, ne) === saturating_fld(nz, ne) === saturating_cld(nz, ne) === zero(T)
+        @test    checked_div(nz, ne) ===    checked_fld(nz, ne) ===    checked_cld(nz, ne) === zero(T)
+
+        @test   wrapping_div(nm, ne) ===   wrapping_fld(nm, ne) ===   wrapping_cld(nm, ne) === typemax(T)
+        @test saturating_div(nm, ne) === saturating_fld(nm, ne) === saturating_cld(nm, ne) === typemax(T)
+        @test    checked_div(nm, ne) ===    checked_fld(nm, ne) ===    checked_cld(nm, ne) === typemax(T)
+
+        @test   wrapping_div(nz, nz) ===   wrapping_fld(nz, nz) ===   wrapping_cld(nz, nz) === zero(T)
+        @test saturating_div(nz, nz) === saturating_fld(nz, nz) === saturating_cld(nz, nz) === zero(T)
+        @test_throws DivideError checked_div(nz, nz)
+        @test_throws DivideError checked_fld(nz, nz)
+        @test_throws DivideError checked_cld(nz, nz)
+
+        @test   wrapping_div(ne, nz) ===   wrapping_fld(ne, nz) ===   wrapping_cld(ne, nz) === zero(T)
+        @test saturating_div(ne, nz) === saturating_fld(ne, nz) === saturating_cld(ne, nz) === typemax(T)
+        @test_throws DivideError checked_div(ne, nz)
+        @test_throws DivideError checked_fld(ne, nz)
+        @test_throws DivideError checked_cld(ne, nz)
+
+        @test wrapping_div(ne, nm) === saturating_div(ne, nm) === checked_div(ne, nm) === zero(T)
+        @test wrapping_fld(ne, nm) === saturating_fld(ne, nm) === checked_fld(ne, nm) === zero(T)
+        @test wrapping_cld(ne, nm) === saturating_cld(ne, nm) === checked_cld(ne, nm) === one(T)
+    end
+    test_div(Normed)
+    test_div_3arg(Normed)
 end
 
 @testset "rem/mod" begin
     @test mod(reinterpret(N0f8, 0x10), reinterpret(N0f8, 0x02)) == rem(reinterpret(N0f8, 0x10), reinterpret(N0f8, 0x02)) == 0
     @test mod(reinterpret(N0f8, 0x0f), reinterpret(N0f8, 0x02)) == rem(reinterpret(N0f8, 0x0f), reinterpret(N0f8, 0x02)) == reinterpret(N0f8, 0x01)
-    @test mod1(reinterpret(N0f8, 0x10), reinterpret(N0f8, 0x02)) == reinterpret(N0f8, 0x02)
-    @test mod1(reinterpret(N0f8, 0x0f), reinterpret(N0f8, 0x02)) == reinterpret(N0f8, 0x01)
+end
+
+@testset "fld1/mod1" begin
+    test_fld1_mod1(Normed)
 end
 
 @testset "rounding" begin

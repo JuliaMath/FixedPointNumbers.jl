@@ -5,7 +5,7 @@ import Base: ==, <, <=, -, +, *, /, ~, isapprox,
              isnan, isinf, isfinite, isinteger,
              zero, oneunit, one, typemin, typemax, floatmin, floatmax, eps, reinterpret,
              big, rationalize, float, trunc, round, floor, ceil, bswap, clamp,
-             div, fld, rem, mod, mod1, fld1, min, max, minmax,
+             div, fld, cld, rem, mod, mod1, fld1, min, max, minmax,
              signed, unsigned, copysign, flipsign, signbit,
              length
 
@@ -13,7 +13,7 @@ import Statistics   # for _mean_promote
 import Random: Random, AbstractRNG, SamplerType, rand!
 
 import Base.Checked: checked_neg, checked_abs, checked_add, checked_sub, checked_mul,
-                     checked_div
+                     checked_div, checked_fld, checked_cld
 
 using Base: @pure
 
@@ -38,9 +38,9 @@ export
 # Functions
     scaledual,
     wrapping_neg, wrapping_abs, wrapping_add, wrapping_sub, wrapping_mul,
-    wrapping_fdiv,
+    wrapping_fdiv, wrapping_div, wrapping_fld, wrapping_cld,
     saturating_neg, saturating_abs, saturating_add, saturating_sub, saturating_mul,
-    saturating_fdiv,
+    saturating_fdiv, saturating_div, saturating_fld, saturating_cld,
     checked_fdiv
 
 include("utilities.jl")
@@ -214,6 +214,17 @@ function wrapping_fdiv(x::X, y::X) where {X <: FixedPoint}
     z = floattype(X)(x.i) / floattype(X)(y.i)
     isfinite(z) ? z % X : zero(X)
 end
+function wrapping_div(x::X, y::X, r::RoundingMode = RoundToZero) where {T, X <: FixedPoint{T}}
+    z = round(floattype(X)(x.i) / floattype(X)(y.i), r)
+    isfinite(z) || return zero(T)
+    if T <: Unsigned
+        _unsafe_trunc(T, z)
+    else
+        z > typemax(T) ? typemin(T) : _unsafe_trunc(T, z)
+    end
+end
+wrapping_fld(x::X, y::X) where {X <: FixedPoint} = wrapping_div(x, y, RoundDown)
+wrapping_cld(x::X, y::X) where {X <: FixedPoint} = wrapping_div(x, y, RoundUp)
 
 # saturating arithmetic
 saturating_neg(x::X) where {X <: FixedPoint} = X(~min(x.i - true, x.i), 0)
@@ -234,6 +245,18 @@ saturating_mul(x::X, y::X) where {X <: FixedPoint} = clamp(float(x) * float(y), 
 
 saturating_fdiv(x::X, y::X) where {X <: FixedPoint} =
     clamp(floattype(X)(x.i) / floattype(X)(y.i), X)
+
+function saturating_div(x::X, y::X, r::RoundingMode = RoundToZero) where {T, X <: FixedPoint{T}}
+    z = round(floattype(X)(x.i) / floattype(X)(y.i), r)
+    isnan(z) && return zero(T)
+    if T <: Unsigned
+        isfinite(z) ? _unsafe_trunc(T, z) : typemax(T)
+    else
+        _unsafe_trunc(T, clamp(z, typemin(T), typemax(T)))
+    end
+end
+saturating_fld(x::X, y::X) where {X <: FixedPoint} = saturating_div(x, y, RoundDown)
+saturating_cld(x::X, y::X) where {X <: FixedPoint} = saturating_div(x, y, RoundUp)
 
 # checked arithmetic
 checked_neg(x::X) where {X <: FixedPoint} = checked_sub(zero(X), x)
@@ -268,6 +291,16 @@ function checked_fdiv(x::X, y::X) where {T, X <: FixedPoint{T}}
     end
     z % X
 end
+function checked_div(x::X, y::X, r::RoundingMode = RoundToZero) where {T, X <: FixedPoint{T}}
+    y === zero(X) && throw(DivideError())
+    z = round(floattype(X)(x.i) / floattype(X)(y.i), r)
+    if T <: Signed
+        z <= typemax(T) || throw_overflowerror_div(r, x, y)
+    end
+    _unsafe_trunc(T, z)
+end
+checked_fld(x::X, y::X) where {X <: FixedPoint} = checked_div(x, y, RoundDown)
+checked_cld(x::X, y::X) where {X <: FixedPoint} = checked_div(x, y, RoundUp)
 
 # default arithmetic
 const DEFAULT_ARITHMETIC = :wrapping
@@ -284,8 +317,11 @@ for (op, name) in ((:+, :add), (:-, :sub), (:*, :mul))
         $op(x::X, y::X) where {X <: FixedPoint} = $f(x, y)
     end
 end
-/(x::X, y::X) where {X <: FixedPoint} = checked_fdiv(x, y) # force checked arithmetic
-
+# force checked arithmetic
+/(x::X, y::X) where {X <: FixedPoint} = checked_fdiv(x, y)
+div(x::X, y::X, r::RoundingMode = RoundToZero) where {X <: FixedPoint} = checked_div(x, y, r)
+fld(x::X, y::X) where {X <: FixedPoint} = checked_div(x, y, RoundDown)
+cld(x::X, y::X) where {X <: FixedPoint} = checked_div(x, y, RoundUp)
 
 function minmax(x::X, y::X) where {X <: FixedPoint}
     a, b = minmax(reinterpret(x), reinterpret(y))
@@ -331,7 +367,7 @@ for f in (:zero, :oneunit, :one, :eps, :rawone, :rawtype, :floattype)
         $f(x::FixedPoint) = $f(typeof(x))
     end
 end
-for f in (:(==), :<, :<=, :div, :fld, :fld1)
+for f in (:(==), :<, :<=, :fld1)
     @eval begin
         $f(x::X, y::X) where {X <: FixedPoint} = $f(x.i, y.i)
     end
@@ -500,6 +536,12 @@ end
     io = IOBuffer()
     print(io, "abs(", x, ") overflowed for type ")
     showtype(io, typeof(x))
+    throw(OverflowError(String(take!(io))))
+end
+@noinline function throw_overflowerror_div(r::RoundingMode, @nospecialize(x), @nospecialize(y))
+    io = IOBuffer()
+    op = r === RoundUp ? "cld(" : r === RoundDown ? "fld(" : "div("
+    print(io, op, x, ", ", y, ") overflowed for type ", rawtype(x))
     throw(OverflowError(String(take!(io))))
 end
 

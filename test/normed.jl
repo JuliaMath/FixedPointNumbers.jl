@@ -355,18 +355,39 @@ end
     test_fdiv(Normed)
 end
 
-@testset "div/fld1" begin
-    @test div(reinterpret(N0f8, 0x10), reinterpret(N0f8, 0x02)) == fld(reinterpret(N0f8, 0x10), reinterpret(N0f8, 0x02)) == 8
-    @test div(reinterpret(N0f8, 0x0f), reinterpret(N0f8, 0x02)) == fld(reinterpret(N0f8, 0x0f), reinterpret(N0f8, 0x02)) == 7
-    @test fld1(reinterpret(N0f8, 0x10), reinterpret(N0f8, 0x02)) == 8
-    @test fld1(reinterpret(N0f8, 0x0f), reinterpret(N0f8, 0x02)) == 8
+@testset "div/cld/fld" begin
+    for N in target(Normed; ex = :thin)
+        nm, nz, ne = typemax(N), zero(N), eps(N)
+        T = rawtype(N)
+        @test checked_div(nm, nm) === checked_fld(nm, nm) === checked_cld(nm, nm) === one(T)
+
+        @test checked_div(nz, ne) === checked_fld(nz, ne) === checked_cld(nz, ne) === zero(T)
+
+        @test checked_div(nm, ne) === checked_fld(nm, ne) === checked_cld(nm, ne) === typemax(T)
+
+        @test_throws DivideError checked_div(nz, nz)
+        @test_throws DivideError checked_fld(nz, nz)
+        @test_throws DivideError checked_cld(nz, nz)
+
+        @test_throws DivideError checked_div(ne, nz)
+        @test_throws DivideError checked_fld(ne, nz)
+        @test_throws DivideError checked_cld(ne, nz)
+
+        @test checked_div(ne, nm) === zero(T)
+        @test checked_fld(ne, nm) === zero(T)
+        @test checked_cld(ne, nm) === one(T)
+    end
+    test_div(Normed)
+    test_div_3arg(Normed)
 end
 
 @testset "rem/mod" begin
     @test mod(reinterpret(N0f8, 0x10), reinterpret(N0f8, 0x02)) == rem(reinterpret(N0f8, 0x10), reinterpret(N0f8, 0x02)) == 0
     @test mod(reinterpret(N0f8, 0x0f), reinterpret(N0f8, 0x02)) == rem(reinterpret(N0f8, 0x0f), reinterpret(N0f8, 0x02)) == reinterpret(N0f8, 0x01)
-    @test mod1(reinterpret(N0f8, 0x10), reinterpret(N0f8, 0x02)) == reinterpret(N0f8, 0x02)
-    @test mod1(reinterpret(N0f8, 0x0f), reinterpret(N0f8, 0x02)) == reinterpret(N0f8, 0x01)
+end
+
+@testset "fld1/mod1" begin
+    test_fld1_mod1(Normed)
 end
 
 @testset "rounding" begin

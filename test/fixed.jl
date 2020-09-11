@@ -343,6 +343,44 @@ end
     test_fdiv(Fixed)
 end
 
+@testset "div/cld/fld" begin
+    for F in target(Fixed; ex = :thin)
+        fm, fn, fz, fe = typemax(F), typemin(F), zero(F), eps(F)
+        T = rawtype(F)
+        @test checked_div(fm, fm) === checked_fld(fm, fm) === checked_cld(fm, fm) === one(T)
+
+        @test checked_div(fz, fe) === checked_fld(fz, fe) === checked_cld(fz, fe) === zero(T)
+
+        @test checked_div(fm, fe) === checked_fld(fm, fe) === checked_cld(fm, fe) === typemax(T)
+
+        @test_throws DivideError checked_div(fz, fz)
+        @test_throws DivideError checked_fld(fz, fz)
+        @test_throws DivideError checked_cld(fz, fz)
+
+        @test_throws DivideError checked_div(fe, fz)
+        @test_throws DivideError checked_fld(fe, fz)
+        @test_throws DivideError checked_cld(fe, fz)
+
+        @test_throws OverflowError checked_div(fn, -fe)
+        @test_throws OverflowError checked_fld(fn, -fe)
+        @test_throws OverflowError checked_cld(fn, -fe)
+
+        @test checked_div(fe, fm) === zero(T)
+        @test checked_fld(fe, fm) === zero(T)
+        @test checked_cld(fe, fm) === one(T)
+
+        @test checked_div(fe, fn) === zero(T)
+        @test checked_fld(fe, fn) === -one(T)
+        @test checked_cld(fe, fn) === zero(T)
+    end
+    test_div(Fixed)
+    test_div_3arg(Fixed)
+end
+
+@testset "fld1/mod1" begin
+    test_fld1_mod1(Fixed)
+end
+
 @testset "rounding" begin
     for sym in (:i8, :i16, :i32, :i64)
         T = symbol_to_inttype(Fixed, sym)

@@ -5,14 +5,15 @@ import Base: ==, <, <=, -, +, *, /, ~, isapprox,
              isnan, isinf, isfinite, isinteger,
              zero, oneunit, one, typemin, typemax, floatmin, floatmax, eps, reinterpret,
              big, rationalize, float, trunc, round, floor, ceil, bswap, clamp,
-             div, fld, rem, mod, mod1, fld1, min, max, minmax,
+             div, fld, cld, rem, mod, mod1, fld1, min, max, minmax,
              signed, unsigned, copysign, flipsign, signbit,
              length
 
 import Statistics   # for _mean_promote
 import Random: Random, AbstractRNG, SamplerType, rand!
 
-using Base.Checked: checked_add, checked_sub, checked_div
+import Base.Checked: checked_mul, checked_div
+using Base.Checked: checked_add, checked_sub
 
 using Base: @pure
 
@@ -183,6 +184,18 @@ float(x::FixedPoint) = convert(floattype(x), x)
 wrapping_mul(x::X, y::X) where {X <: FixedPoint} = (float(x) * float(y)) % X
 *(x::X, y::X) where {X <: FixedPoint} = wrapping_mul(x, y)
 
+function checked_div(x::X, y::X, r::RoundingMode = RoundToZero) where {T, X <: FixedPoint{T}}
+    y === zero(X) && throw(DivideError())
+    z = round(floattype(X)(x.i) / floattype(X)(y.i), r)
+    if T <: Signed
+        z <= typemax(T) || throw_overflowerror_div(r, x, y)
+    end
+    _unsafe_trunc(T, z)
+end
+div(x::X, y::X, r::RoundingMode = RoundToZero) where {X <: FixedPoint} = checked_div(x, y, r)
+fld(x::X, y::X) where {X <: FixedPoint} = checked_div(x, y, RoundDown)
+cld(x::X, y::X) where {X <: FixedPoint} = checked_div(x, y, RoundUp)
+
 function minmax(x::X, y::X) where {X <: FixedPoint}
     a, b = minmax(reinterpret(x), reinterpret(y))
     X(a,0), X(b,0)
@@ -233,7 +246,7 @@ for f in (:zero, :oneunit, :one, :eps, :rawone, :rawtype, :floattype)
         $f(x::FixedPoint) = $f(typeof(x))
     end
 end
-for f in (:(==), :<, :<=, :div, :fld, :fld1)
+for f in (:(==), :<, :<=, :fld1)
     @eval begin
         $f(x::X, y::X) where {X <: FixedPoint} = $f(x.i, y.i)
     end
@@ -364,6 +377,12 @@ end
     io = IOBuffer()
     print(io, x, ' ', op, ' ', y, " overflowed for type ")
     showtype(io, typeof(x))
+    throw(OverflowError(String(take!(io))))
+end
+@noinline function throw_overflowerror_div(r::RoundingMode, @nospecialize(x), @nospecialize(y))
+    io = IOBuffer()
+    op = r === RoundUp ? "cld(" : r === RoundDown ? "fld(" : "div("
+    print(io, op, x, ", ", y, ") overflowed for type ", rawtype(x))
     throw(OverflowError(String(take!(io))))
 end
 

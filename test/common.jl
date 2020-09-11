@@ -10,6 +10,9 @@ wrapping_sub = (-)
 wrapping_mul = FixedPointNumbers.wrapping_mul
 checked_mul = FixedPointNumbers.checked_mul
 checked_fdiv = (/) # The current implementations are inconsistent (do not check properly).
+checked_div = FixedPointNumbers.checked_div
+checked_fld = fld
+checked_cld = cld
 
 """
     target(X::Type, Ss...; ex = :default)
@@ -221,6 +224,47 @@ function test_fdiv(TX::Type)
         fdivz(x, y) = y === zero(y) ? float(y) : fdiv(x, y)
         @test_broken all(((x, y),) -> !(typemin(X) <= fdiv(x, y) <= typemax(X)) ||
                                checked_fdiv(x, y) === fdivz(x, y) % X, xys)
+    end
+end
+
+function test_div(TX::Type)
+    for X in target(TX, :i8; ex = :thin)
+        T = rawtype(X)
+        xys = xypairs(X)
+        fdiv(x, y) = oftype(float(x), big(x) / big(y))
+        @test all(xys) do (x, y)
+            z = fdiv(x, y)
+            t = !(typemin(T) <= trunc(z) <= typemax(T)) || trunc(z) == checked_div(x, y)
+            f = !(typemin(T) <= floor(z) <= typemax(T)) || floor(z) == checked_fld(x, y)
+            c = !(typemin(T) <=  ceil(z) <= typemax(T)) || ceil(z)  == checked_cld(x, y)
+            return t & f & c
+        end
+    end
+end
+
+function test_div_3arg(TX::Type)
+    for X in target(TX; ex = :thin)
+        @test div(eps(X), typemax(X), RoundToZero) === div(eps(X), typemax(X))
+        @test div(eps(X), typemax(X), RoundDown)   === fld(eps(X), typemax(X))
+        @test div(eps(X), typemax(X), RoundUp)     === cld(eps(X), typemax(X))
+    end
+end
+
+function test_fld1_mod1(TX::Type)
+    for X in target(TX, :i8, :i16; ex = :thin)
+        T = rawtype(X)
+        eps2 = eps(X) + eps(X)
+        xs = reinterpret.(X, T.((17, 16, 15, 14)))
+        @test all(fld1.(xs, eps2) .=== T.((9, 8, 8, 7)))
+        @test_throws DivideError fld1(eps(X), zero(X))
+
+        @test all(mod1.(xs, eps2) .=== reinterpret.(X, T.((1, 2, 1, 2))))
+        @test_throws DivideError mod1(eps(X), zero(X))
+
+        d, r = fldmod1(typemin(X), eps2)
+        @test d isa T && r isa X && ((d - 1.0) * eps2 + r) % X === typemin(X) # use `1.0` instead of `1`
+        d, r = fldmod1(typemax(X), eps2)
+        @test d isa T && r isa X && ((d - 1.0) * eps2 + r) % X === typemax(X) # use `1.0` instead of `1`
     end
 end
 

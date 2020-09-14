@@ -162,7 +162,7 @@ except in scenarios where they are guaranteed to have hardware support.
 
 A classic usage is to avoid overflow behavior by promoting `FixedPoint` to `AbstractFloat`
 
-```jldoctest
+```jldoctest; setup = :(using FixedPointNumbers)
 julia> x = N0f8(1.0)
 1.0N0f8
 

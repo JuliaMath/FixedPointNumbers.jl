@@ -64,6 +64,12 @@ wrapping_mul(x::Real, ::Type{X}) where {X <: FixedPoint} = x % X
 saturating_mul(x::Real, ::Type{X}) where {X <: FixedPoint} = clamp(x, X)
 checked_mul(x::Real, ::Type{X}) where {X <: FixedPoint} = _convert(X, x)
 
+# type modulus
+rem(x::Real, ::Type{X}) where {X <: FixedPoint} = _rem(x, X)
+wrapping_rem(x::Real, ::Type{X}) where {X <: FixedPoint} = _rem(x, X)
+saturating_rem(x::Real, ::Type{X}) where {X <: FixedPoint} = _rem(x, X)
+checked_rem(x::Real, ::Type{X}) where {X <: FixedPoint} = _rem(x, X)
+
 # constructor-style conversions
 (::Type{X})(x::X) where {X <: FixedPoint}      = x
 (::Type{X})(x::Number) where {X <: FixedPoint} = _convert(X, x)

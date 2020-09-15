@@ -95,14 +95,14 @@ function _convert(::Type{F}, x::Rational) where {T, f, F <: Fixed{T,f}}
     end
 end
 
-rem(x::F, ::Type{F}) where {F <: Fixed} = x
-function rem(x::Fixed, ::Type{F}) where {T, f, F <: Fixed{T,f}}
+_rem(x::F, ::Type{F}) where {F <: Fixed} = x
+function _rem(x::Fixed, ::Type{F}) where {T, f, F <: Fixed{T,f}}
     f2 = nbitsfrac(typeof(x))
     y = round(@exp2(f - f2) * reinterpret(x))
     reinterpret(F, _unsafe_trunc(T, y))
 end
-rem(x::Integer, ::Type{F}) where {T, f, F <: Fixed{T,f}} = F(_unsafe_trunc(T, x) << f, 0)
-function rem(x::Real, ::Type{F}) where {T, f, F <: Fixed{T,f}}
+_rem(x::Integer, ::Type{F}) where {T, f, F <: Fixed{T,f}} = F(_unsafe_trunc(T, x) << f, 0)
+function _rem(x::Real, ::Type{F}) where {T, f, F <: Fixed{T,f}}
     if bitwidth(T) < 32
         Ti = T
     else
@@ -113,7 +113,7 @@ function rem(x::Real, ::Type{F}) where {T, f, F <: Fixed{T,f}}
     y = _unsafe_trunc(Ti, round(x * Tf(@exp2(f))))
     reinterpret(F, _unsafe_trunc(T, y))
 end
-function rem(x::BigFloat, ::Type{F}) where {T, f, F <: Fixed{T,f}}
+function _rem(x::BigFloat, ::Type{F}) where {T, f, F <: Fixed{T,f}}
     isfinite(x) || return zero(F)
     reinterpret(F, _unsafe_trunc(T, round(x * @exp2(f))))
 end

@@ -157,6 +157,7 @@ function test_rem_type(TX::Type)
     @testset "% $X" for X in target(TX, :i8, :i16; ex = :thin)
         xs = typemin(X):0.1:typemax(X)
         @test all(x -> x % X === X(x), xs)
+        @test wrapping_rem(2, X) === saturating_rem(2, X) === checked_rem(2, X) === 2 % X
     end
 end
 

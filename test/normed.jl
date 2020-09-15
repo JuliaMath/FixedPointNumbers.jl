@@ -442,8 +442,39 @@ end
 end
 
 @testset "rem/mod" begin
-    @test mod(reinterpret(N0f8, 0x10), reinterpret(N0f8, 0x02)) == rem(reinterpret(N0f8, 0x10), reinterpret(N0f8, 0x02)) == 0
-    @test mod(reinterpret(N0f8, 0x0f), reinterpret(N0f8, 0x02)) == rem(reinterpret(N0f8, 0x0f), reinterpret(N0f8, 0x02)) == reinterpret(N0f8, 0x01)
+    for N in target(Normed; ex = :thin)
+        nm, nz, ne = typemax(N), zero(N), eps(N)
+        T = rawtype(N)
+        @test   wrapping_rem(nm, nm) ===   wrapping_mod(nm, nm) === nz
+        @test saturating_rem(nm, nm) === saturating_mod(nm, nm) === nz
+        @test    checked_rem(nm, nm) ===    checked_mod(nm, nm) === nz
+
+        @test   wrapping_rem(nz, ne) ===   wrapping_mod(nz, ne) === nz
+        @test saturating_rem(nz, ne) === saturating_mod(nz, ne) === nz
+        @test    checked_rem(nz, ne) ===    checked_mod(nz, ne) === nz
+
+        @test   wrapping_rem(nm, ne) ===   wrapping_mod(nm, ne) === nz
+        @test saturating_rem(nm, ne) === saturating_mod(nm, ne) === nz
+        @test    checked_rem(nm, ne) ===    checked_mod(nm, ne) === nz
+
+        @test   wrapping_rem(nz, nz) ===   wrapping_mod(nz, nz) === nz
+        @test saturating_rem(nz, nz) === saturating_mod(nz, nz) === nz
+        @test_throws DivideError checked_rem(nz, nz)
+        @test_throws DivideError checked_mod(nz, nz)
+
+        @test   wrapping_rem(ne, nz) ===   wrapping_mod(ne, nz) === ne
+        @test saturating_rem(ne, nz) === saturating_mod(ne, nz) === ne
+        @test_throws DivideError checked_rem(ne, nz)
+        @test_throws DivideError checked_mod(ne, nz)
+
+        @test wrapping_rem(ne, nm) === saturating_rem(ne, nm) === checked_rem(ne, nm) === ne
+        @test wrapping_mod(ne, nm) === saturating_mod(ne, nm) === checked_mod(ne, nm) === ne
+    end
+    test_rem(Normed)
+    test_rem_3arg(Normed)
+
+    @test_throws OverflowError rem(0.5N0f8, 1N0f8, RoundUp)
+    @test saturating_rem(0.5N0f8, 1N0f8, RoundUp) === zero(N0f8)
 end
 
 @testset "fld1/mod1" begin

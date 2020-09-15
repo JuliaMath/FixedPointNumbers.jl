@@ -13,7 +13,7 @@ import Statistics   # for _mean_promote
 import Random: Random, AbstractRNG, SamplerType, rand!
 
 import Base.Checked: checked_neg, checked_abs, checked_add, checked_sub, checked_mul,
-                     checked_div, checked_fld, checked_cld
+                     checked_div, checked_fld, checked_cld, checked_rem, checked_mod
 
 using Base: @pure
 
@@ -38,10 +38,10 @@ export
 # Functions
     scaledual,
     wrapping_neg, wrapping_abs, wrapping_add, wrapping_sub, wrapping_mul,
-    wrapping_fdiv, wrapping_div, wrapping_fld, wrapping_cld,
+    wrapping_div, wrapping_fld, wrapping_cld, wrapping_rem, wrapping_mod,
     saturating_neg, saturating_abs, saturating_add, saturating_sub, saturating_mul,
-    saturating_fdiv, saturating_div, saturating_fld, saturating_cld,
-    checked_fdiv
+    saturating_div, saturating_fld, saturating_cld, saturating_rem, saturating_mod,
+    wrapping_fdiv, saturating_fdiv, checked_fdiv
 
 include("utilities.jl")
 
@@ -225,6 +225,9 @@ function wrapping_div(x::X, y::X, r::RoundingMode = RoundToZero) where {T, X <: 
 end
 wrapping_fld(x::X, y::X) where {X <: FixedPoint} = wrapping_div(x, y, RoundDown)
 wrapping_cld(x::X, y::X) where {X <: FixedPoint} = wrapping_div(x, y, RoundUp)
+wrapping_rem(x::X, y::X, r::RoundingMode = RoundToZero) where {T, X <: FixedPoint{T}} =
+    X(x.i - wrapping_div(x, y, r) * y.i, 0)
+wrapping_mod(x::X, y::X) where {X <: FixedPoint} = wrapping_rem(x, y, RoundDown)
 
 # saturating arithmetic
 saturating_neg(x::X) where {X <: FixedPoint} = X(~min(x.i - true, x.i), 0)
@@ -257,6 +260,11 @@ function saturating_div(x::X, y::X, r::RoundingMode = RoundToZero) where {T, X <
 end
 saturating_fld(x::X, y::X) where {X <: FixedPoint} = saturating_div(x, y, RoundDown)
 saturating_cld(x::X, y::X) where {X <: FixedPoint} = saturating_div(x, y, RoundUp)
+function saturating_rem(x::X, y::X, r::RoundingMode = RoundToZero) where {T, X <: FixedPoint{T}}
+    T <: Unsigned && r isa RoundingMode{:Up} && return zero(X)
+    X(x.i - saturating_div(x, y, r) * y.i, 0)
+end
+saturating_mod(x::X, y::X) where {X <: FixedPoint} = saturating_rem(x, y, RoundDown)
 
 # checked arithmetic
 checked_neg(x::X) where {X <: FixedPoint} = checked_sub(zero(X), x)
@@ -301,6 +309,16 @@ function checked_div(x::X, y::X, r::RoundingMode = RoundToZero) where {T, X <: F
 end
 checked_fld(x::X, y::X) where {X <: FixedPoint} = checked_div(x, y, RoundDown)
 checked_cld(x::X, y::X) where {X <: FixedPoint} = checked_div(x, y, RoundUp)
+function checked_rem(x::X, y::X, r::RoundingMode = RoundToZero) where {T, X <: FixedPoint{T}}
+    y === zero(X) && throw(DivideError())
+    fx, fy = floattype(X)(x.i), floattype(X)(y.i)
+    z = fx - round(fx / fy, r) * fy
+    if T <: Unsigned && r isa RoundingMode{:Up}
+        z >= zero(z) || throw_overflowerror_rem(r, x, y)
+    end
+    X(_unsafe_trunc(T, z), 0)
+end
+checked_mod(x::X, y::X) where {X <: FixedPoint} = checked_rem(x, y, RoundDown)
 
 # default arithmetic
 const DEFAULT_ARITHMETIC = :wrapping
@@ -322,6 +340,10 @@ end
 div(x::X, y::X, r::RoundingMode = RoundToZero) where {X <: FixedPoint} = checked_div(x, y, r)
 fld(x::X, y::X) where {X <: FixedPoint} = checked_div(x, y, RoundDown)
 cld(x::X, y::X) where {X <: FixedPoint} = checked_div(x, y, RoundUp)
+rem(x::X, y::X) where {X <: FixedPoint} = checked_rem(x, y, RoundToZero)
+rem(x::X, y::X, ::RoundingMode{:Down}) where {X <: FixedPoint} = checked_rem(x, y, RoundDown)
+rem(x::X, y::X, ::RoundingMode{:Up}) where {X <: FixedPoint} = checked_rem(x, y, RoundUp)
+mod(x::X, y::X) where {X <: FixedPoint} = checked_rem(x, y, RoundDown)
 
 function minmax(x::X, y::X) where {X <: FixedPoint}
     a, b = minmax(reinterpret(x), reinterpret(y))
@@ -377,7 +399,7 @@ for f in (:~, )
         $f(x::X) where {X <: FixedPoint} = X($f(x.i), 0)
     end
 end
-for f in (:rem, :mod, :mod1, :min, :max)
+for f in (:mod1, :min, :max)
     @eval begin
         $f(x::X, y::X) where {X <: FixedPoint} = X($f(x.i, y.i), 0)
     end
@@ -542,6 +564,11 @@ end
     io = IOBuffer()
     op = r === RoundUp ? "cld(" : r === RoundDown ? "fld(" : "div("
     print(io, op, x, ", ", y, ") overflowed for type ", rawtype(x))
+    throw(OverflowError(String(take!(io))))
+end
+@noinline function throw_overflowerror_rem(r::RoundingMode, @nospecialize(x), @nospecialize(y))
+    io = IOBuffer()
+    print(io, "rem(", x, ", ", y, ", ", r, ") overflowed for type ", typeof(x))
     throw(OverflowError(String(take!(io))))
 end
 

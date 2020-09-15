@@ -1,6 +1,6 @@
 using FixedPointNumbers, Test
 
-if VERSION >= v"1.6.0-DEV.816" # JuliaLang/julia #36962
+if VERSION >= v"1.6.0-DEV.816" # JuliaLang/julia #36962 # FIXME
     @test isempty(detect_ambiguities(FixedPointNumbers))
 else
     @test isempty(detect_ambiguities(FixedPointNumbers, Base, Core))

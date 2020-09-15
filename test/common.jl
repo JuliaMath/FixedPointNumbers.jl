@@ -271,6 +271,33 @@ function test_div_3arg(TX::Type)
     end
 end
 
+function test_rem(TX::Type)
+    for X in target(TX, :i8; ex = :thin)
+        T = rawtype(X)
+        xys = xypairs(X)
+        frem(x, y) = y === zero(y) ? float(x) : x - float(wrapping_div(x, y)) * y
+        fmod(x, y) = y === zero(y) ? float(x) : x - float(wrapping_fld(x, y)) * y
+        frems(x, y) = y === zero(y) ? float(x) : x - float(saturating_div(x, y)) * y
+        fmods(x, y) = y === zero(y) ? float(x) : x - float(saturating_fld(x, y)) * y
+        @test all(((x, y),) -> wrapping_rem(x, y) === frem(x, y) % X, xys)
+        @test all(((x, y),) -> wrapping_mod(x, y) === fmod(x, y) % X, xys)
+        @test all(((x, y),) -> saturating_rem(x, y) === frems(x, y) % X, xys)
+        @test all(((x, y),) -> saturating_mod(x, y) === fmods(x, y) % X, xys)
+        @test all(((x, y),) -> y === zero(y) ||
+                               wrapping_rem(x, y) === checked_rem(x, y), xys)
+        @test all(((x, y),) -> y === zero(y) ||
+                               wrapping_mod(x, y) === checked_mod(x, y), xys)
+    end
+end
+
+function test_rem_3arg(TX::Type)
+    for X in target(TX; ex = :thin)
+        @test rem(eps(X), typemax(X), RoundToZero) === rem(eps(X), typemax(X))
+        @test rem(eps(X), typemax(X), RoundDown)   === mod(eps(X), typemax(X))
+        @test rem(eps(X), eps(X), RoundUp) === zero(X)
+    end
+end
+
 function test_fld1_mod1(TX::Type)
     for X in target(TX, :i8, :i16; ex = :thin)
         T = rawtype(X)

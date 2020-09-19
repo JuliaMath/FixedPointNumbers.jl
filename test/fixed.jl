@@ -448,6 +448,51 @@ end
     test_div_3arg(Fixed)
 end
 
+@testset "rem/mod" begin
+    for F in target(Fixed; ex = :thin)
+        fm, fn, fz, fe = typemax(F), typemin(F), zero(F), eps(F)
+        T = rawtype(F)
+        @test   wrapping_rem(fm, fm) ===   wrapping_mod(fm, fm) === fz
+        @test saturating_rem(fm, fm) === saturating_mod(fm, fm) === fz
+        @test    checked_rem(fm, fm) ===    checked_mod(fm, fm) === fz
+
+        @test   wrapping_rem(fz, fe) ===   wrapping_mod(fz, fe) === fz
+        @test saturating_rem(fz, fe) === saturating_mod(fz, fe) === fz
+        @test    checked_rem(fz, fe) ===    checked_mod(fz, fe) === fz
+
+        @test   wrapping_rem(fm, fe) ===   wrapping_mod(fm, fe) === fz
+        @test saturating_rem(fm, fe) === saturating_mod(fm, fe) === fz
+        @test    checked_rem(fm, fe) ===    checked_mod(fm, fe) === fz
+
+        @test   wrapping_rem(fz, fz) ===   wrapping_mod(fz, fz) === fz
+        @test saturating_rem(fz, fz) === saturating_mod(fz, fz) === fz
+        @test_throws DivideError checked_rem(fz, fz)
+        @test_throws DivideError checked_mod(fz, fz)
+
+        @test   wrapping_rem(fe, fz) ===   wrapping_mod(fe, fz) === fe
+        @test saturating_rem(fe, fz) === saturating_mod(fe, fz) === fe
+        @test_throws DivideError checked_rem(fe, fz)
+        @test_throws DivideError checked_mod(fe, fz)
+
+        @test   wrapping_rem(fn, -fe) === wrapping_mod(fn, -fe) === fz
+        @test saturating_rem(fn, -fe) === saturating_mod(fn, -fe) === -fe
+        @test    checked_rem(fn, -fe) ===  checked_mod(fn, -fe) === fz
+
+        @test wrapping_rem(fe, fm) === saturating_rem(fe, fm) === checked_rem(fe, fm) === fe
+        @test wrapping_mod(fe, fm) === saturating_mod(fe, fm) === checked_mod(fe, fm) === fe
+
+        @test wrapping_rem(fe, fn) === saturating_rem(fe, fn) === checked_rem(fe, fn) === fe
+        @test wrapping_mod(fe, fn) === saturating_mod(fe, fn) === checked_mod(fe, fn) === fn + fe
+
+        @test wrapping_rem(fn, fm) === saturating_rem(fn, fm) === checked_rem(fn, fm) === -fe
+        @test wrapping_mod(fn, fm) === saturating_mod(fn, fm) === checked_mod(fn, fm) === fm - fe
+    end
+    test_rem(Fixed)
+    test_rem_3arg(Fixed)
+
+    @test rem(0.5Q0f7, 0.75Q0f7, RoundUp) === -0.25Q0f7
+end
+
 @testset "fld1/mod1" begin
     test_fld1_mod1(Fixed)
 end

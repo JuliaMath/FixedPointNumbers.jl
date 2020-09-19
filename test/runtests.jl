@@ -6,6 +6,9 @@ else
     @test isempty(detect_ambiguities(FixedPointNumbers, Base, Core))
 end
 
+using Documenter
+doctest(FixedPointNumbers, manual = false)
+
 @testset "normed" begin
     include("normed.jl")
 end

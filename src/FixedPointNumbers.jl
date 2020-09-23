@@ -438,7 +438,7 @@ hasalias(::Type{X}) where {T<:NotBiggerThanInt64, f, X<:FixedPoint{T,f}} = f isa
 
 # Printing. These are used to generate type-symbols, so we need them
 # before we include "src/fixed.jl" / "src/normed.jl".
-@inline function showtype(io::IO, ::Type{X}) where {X <: FixedPoint}
+@inline function showtype(io::IO, @nospecialize(X))
     if hasalias(X)
         f = nbitsfrac(X)
         m = nbitsint(X)

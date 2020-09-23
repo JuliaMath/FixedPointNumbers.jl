@@ -27,14 +27,14 @@ end
 # TODO: remove this
 hasalias(::Type{F}) where {F <: Union{Fixed{Int8,8},Fixed{Int16,16},Fixed{Int32,32},Fixed{Int64,64}}} = false
 
-typechar(::Type{X}) where {X <: Fixed} = 'Q'
+type_prefix(::Type{F}) where {F <: Fixed{<:Signed}} = :Q
 
 for T in (Int8, Int16, Int32, Int64)
-    io = IOBuffer()
     for f in 0:bitwidth(T)-1
-        sym = Symbol(String(take!(showtype(io, Fixed{T,f}))))
+        F = Fixed{T,f}
+        sym = alias_symbol(F)
         @eval begin
-            const $sym = Fixed{$T,$f}
+            const $sym = $F
             export $sym
         end
     end

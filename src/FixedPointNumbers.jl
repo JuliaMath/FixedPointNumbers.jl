@@ -460,17 +460,23 @@ end
 hasalias(::Type) = false
 hasalias(::Type{X}) where {T<:NotBiggerThanInt64, f, X<:FixedPoint{T,f}} = f isa Int
 
-# Printing. These are used to generate type-symbols, so we need them
-# before we include "src/fixed.jl" / "src/normed.jl".
+# `alias_symbol` is used to define type aliases, so we need this before we
+# include "src/fixed.jl" / "src/normed.jl".
+function alias_symbol(@nospecialize(X))
+    Symbol(type_prefix(X), nbitsint(X), 'f', nbitsfrac(X))
+end
+
 @inline function showtype(io::IO, ::Type{X}) where {X <: FixedPoint}
     if hasalias(X)
+        # low-level code equivalent to `write(io, alias_symbol(X))`
+        # This is faster than dynamic string `print`ing, but still slow.
         f = nbitsfrac(X)
         m = nbitsint(X)
-        write(io, typechar(X))
-        m > 9 && write(io, Char(m ÷ 10 + 0x30))
-        write(io, Char(m % 10 + 0x30), 'f')
-        f > 9 && write(io, Char(f ÷ 10 + 0x30))
-        write(io, Char(f % 10 + 0x30))
+        write(io, type_prefix(X))
+        m > 9 && write(io, (m ÷ 10) % UInt8 + 0x30)
+        write(io, (m % 10) % UInt8 + 0x30, 0x66)
+        f > 9 && write(io, (f ÷ 10) % UInt8 + 0x30)
+        write(io, (f % 10) % UInt8 + 0x30)
     else
         print(io, X)
     end

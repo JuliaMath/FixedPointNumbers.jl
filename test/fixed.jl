@@ -718,6 +718,8 @@ end
 end
 
 @testset "show" begin
+    @test (@test_deprecated FixedPointNumbers.typechar(Q0f7)) === 'Q'
+
     iob = IOBuffer()
     q0f7 = reinterpret(Q0f7, signed(0xaa))
     show(iob, q0f7)

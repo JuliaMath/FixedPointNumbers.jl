@@ -466,17 +466,18 @@ function alias_symbol(@nospecialize(X))
     Symbol(type_prefix(X), nbitsint(X), 'f', nbitsfrac(X))
 end
 
+function _alias_symbol(::Type{X}) where {X <: FixedPoint}
+    if @generated
+        sym = string(alias_symbol(X))
+        return :(Symbol($sym))
+    else
+        return alias_symbol(X)
+    end
+end
+
 @inline function showtype(io::IO, ::Type{X}) where {X <: FixedPoint}
     if hasalias(X)
-        # low-level code equivalent to `write(io, alias_symbol(X))`
-        # This is faster than dynamic string `print`ing, but still slow.
-        f = nbitsfrac(X)
-        m = nbitsint(X)
-        write(io, type_prefix(X))
-        m > 9 && write(io, (m ÷ 10) % UInt8 + 0x30)
-        write(io, (m % 10) % UInt8 + 0x30, 0x66)
-        f > 9 && write(io, (f ÷ 10) % UInt8 + 0x30)
-        write(io, (f % 10) % UInt8 + 0x30)
+        write(io, _alias_symbol(X))
     else
         print(io, X)
     end

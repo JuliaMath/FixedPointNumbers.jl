@@ -214,6 +214,27 @@ function round(x::Fixed{T,f}) where {T, f}
     z = y & intmask(x)
     reinterpret(Fixed{T,f}, z - T(y & m == rawone(x)) << f)
 end
+function _round_digits(x::F, r::RoundingMode, d::Int) where {f, F <: Fixed{Int8, f}}
+    xd = x.i * Int16(d === 1 ? 10 : 100)
+    uf = UInt8(f)
+    if r isa Union{RoundingMode{:Down}, RoundingMode{:ToZero}}
+        t = r isa RoundingMode{:ToZero} && x.i < 0 ? fracmask(x) : Int16(0)
+        xr = (xd + t) >> uf
+    else
+        xr = r isa RoundingMode{:Up} ? (xd + fracmask(x)) >> uf : div_2f(xd, Val(Int(f)))
+        if d < 3 && xr == (Int16(d === 1 ? 10 : 100) << (0x7 - uf))
+            throw_converterror(F, @exp2(7 - f))
+        end
+    end
+    h8, h24  = Int16(0x80), Int32(1 << 23)
+    if d === 1
+        f >= 5 && return F(((xr * Int16(6553) >> (0x8 - uf) + h8) >> 0x8) % Int8, 0)
+        f >= 3 && return F(((xr * Int32(26843545) >> (0x4 - uf) + h24) >> 0x18) % Int8, 0)
+    elseif d === 2
+        return F(((xr * Int32(42949672) >> (0x8 - uf) + h24) >> 0x18) % Int8, 0)
+    end
+    return x
+end
 
 function trunc(::Type{Ti}, x::Fixed{T,f}) where {Ti <: Integer, T, f}
     f == 0 && return convert(Ti, x.i)

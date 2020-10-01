@@ -543,6 +543,9 @@ end
         @test round(Int, -1.5Q1f6, RoundUp) === -1
         @test round(Int, -1.5Q1f6, RoundDown) === -2
     end
+    @testset "rounding with digits" begin
+        test_round_digits(Fixed)
+    end
     @test_throws InexactError trunc(UInt, typemin(Q0f7))
     @test_throws InexactError floor(UInt, -eps(Q0f7))
 end

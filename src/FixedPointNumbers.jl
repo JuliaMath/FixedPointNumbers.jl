@@ -390,6 +390,35 @@ end
 
 signbit(x::X) where {X <: FixedPoint} = signbit(x.i)
 
+~(x::X) where {X <: FixedPoint} = X(~x.i, 0)
+
+function round(x::FixedPoint, r::RoundingMode=RoundNearest;
+               digits::Union{Nothing, Integer}=nothing,
+               sigdigits::Union{Nothing, Integer}=nothing,
+               base::Union{Nothing, Integer}=nothing)
+
+    d = digits === nothing ? 0 : Int(digits)
+
+    if base !== nothing && base != 10
+        throw(ArgumentError("`base` numbers other than 10 are not supported."))
+    elseif sigdigits !== nothing
+        throw(ArgumentError("`sigdigits` is not supported."))
+    elseif d < 0
+        throw(ArgumentError("negative `digits` is not supported."))
+    end
+    d === 0 ? _round_digits0(x, r) : _round_digits(x, r, d)
+end
+function _round_digits(x::X, r::RoundingMode, d::Int) where {T, f, X <: FixedPoint{T,f}}
+    log10_2 = 0.3010299956639812
+    d > floor(Int, ((f + 1) * log10_2)) && return x
+    r = round(float(x), r, digits=d)
+    typemin(X) - eps(X)/2 <= r < typemax(X) + eps(X)/2 || throw_converterror(X, r)
+    clamp(r, X)
+end
+
+trunc(x::X) where {X <: FixedPoint{<:Unsigned}} = floor(x)
+trunc(::Type{Ti}, x::X) where {X <: FixedPoint{<:Unsigned}, Ti <: Integer} = floor(Ti, x)
+
 for f in (:zero, :oneunit, :one, :eps, :rawone, :rawtype, :floattype)
     @eval begin
         $f(x::FixedPoint) = $f(typeof(x))
@@ -398,11 +427,6 @@ end
 for f in (:(==), :<, :<=, :fld1)
     @eval begin
         $f(x::X, y::X) where {X <: FixedPoint} = $f(x.i, y.i)
-    end
-end
-for f in (:~, )
-    @eval begin
-        $f(x::X) where {X <: FixedPoint} = X($f(x.i), 0)
     end
 end
 for f in (:mod1, :min, :max)
@@ -415,7 +439,7 @@ for (m, f) in ((:(:Nearest), :round),
                (:(:Up), :ceil),
                (:(:Down), :floor))
     @eval begin
-        round(x::FixedPoint, ::RoundingMode{$m}) = $f(x)
+        _round_digits0(x::FixedPoint, ::RoundingMode{$m}) = $f(x)
         round(::Type{Ti}, x::FixedPoint, ::RoundingMode{$m}) where {Ti <: Integer} = $f(Ti, x)
     end
 end

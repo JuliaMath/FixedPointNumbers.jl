@@ -294,7 +294,6 @@ end
 
 
 # Functions
-trunc(x::N) where {N <: Normed} = floor(x)
 floor(x::N) where {N <: Normed} = reinterpret(N, x.i - x.i % rawone(N))
 function ceil(x::Normed{T,f}) where {T, f}
     f == 1 && return x
@@ -310,8 +309,26 @@ function round(x::Normed{T,f}) where {T, f}
     q = rawone(x) - r
     reinterpret(Normed{T,f}, r > q ? x.i + q : x.i - r)
 end
+function _round_digits(x::N0f8, r::RoundingMode, d::Int)
+    t(::RoundingMode{:Nearest}) = 0x0081
+    t(::RoundingMode{:ToZero})  = 0x0003
+    t(::RoundingMode{:Up})      = 0x00ff
+    t(::RoundingMode{:Down})    = 0x0003
+    xd = x.i * (d === 1 ? 0x000a : 0x0064)
+    if d === 1
+        x10 = xd + (x.i >> 0x5) + t(r)
+        y = (x10 >> 0x8) % UInt8
+        return N0f8(y * 0x19 + (y + 0x3) >> 0x2 + y >> 0x2, 0)
+    elseif d === 2
+        x100 = xd + ((xd + x.i) >> 0x8) + t(r)
+        y = (x100 >> 0x8) % UInt8
+        z = ((y * 0x233 + 0x212) >> 0xa) % UInt8
+        return N0f8(z + y + y - (y === 0x1e) - (y === 0x46), 0)
+    else
+        return x
+    end
+end
 
-trunc(::Type{Ti}, x::Normed) where {Ti <: Integer} = floor(Ti, x)
 function floor(::Type{Ti}, x::Normed) where {Ti <: Integer}
     convert(Ti, reinterpret(x) ÷ rawone(x))
 end

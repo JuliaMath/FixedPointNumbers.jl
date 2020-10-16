@@ -515,6 +515,9 @@ end
         @test round(Int, 1.504N1f7, RoundUp) === 2
         @test round(Int, 1.504N1f7, RoundDown) === 1
     end
+    @testset "rounding with digits" begin
+        test_round_digits(Normed)
+    end
 end
 
 @testset "approx" begin

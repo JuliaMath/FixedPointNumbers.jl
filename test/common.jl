@@ -317,6 +317,45 @@ function test_fld1_mod1(TX::Type)
     end
 end
 
+function test_round_digits(TX::Type)
+    function check(x, r, d)
+        X = typeof(x)
+        dec = round(Int, float(rationalize(x) * 10^d), r) // (10^d)
+        if dec >= typemax(X) + eps(X)/2
+            try
+                round(x, r, digits=d)
+            catch
+                return true
+            end
+            return false
+        end
+        actual, expected = round(x, r, digits=d), float(dec) % X
+        actual === expected && return true
+        (actual - dec) == (dec - expected) && return true
+        error(actual, " != ", expected)
+    end
+    for X in target(TX, :i8)
+        xs = typemin(X):eps(X):typemax(X)
+        modes = (RoundNearest, RoundToZero, RoundUp, RoundDown)
+        @testset "round(::$X, $r, digits=x)" for r in modes
+            @test all(x -> check(x, r, 1), xs)
+            @test all(x -> check(x, r, 2), xs)
+            @test all(x -> check(x, r, 3), xs)
+        end
+    end
+    @testset "round(::$X, r, digits=x)" for X in target(TX; ex = :thin)
+        @test round(X(0.462), digits=6) ≈ X(0.462) atol=1e-6
+        @test trunc(X(0.462), digits=2) ≈ X(0.46)  atol=1e-6
+        @test  ceil(X(0.462), digits=1) ≈ X(0.5)   atol=1e-6
+        @test floor(X(0.462), digits=0) ≈ X(0)     atol=1e-6
+    end
+    for X in target(TX, :i8; ex = :thin)
+        @test_throws ArgumentError round(eps(X), digits=-1)
+        @test_throws ArgumentError round(eps(X), sigdigits=2)
+        @test_throws ArgumentError round(eps(X), base=2)
+    end
+end
+
 function test_isapprox(TX::Type)
     @testset "approx $X" for X in target(TX, :i8, :i16; ex = :light)
         xs = typemin(X):eps(X):typemax(X)-eps(X)

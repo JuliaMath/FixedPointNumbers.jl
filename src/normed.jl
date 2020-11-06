@@ -288,10 +288,6 @@ function checked_mul(x::N, y::N) where {T <: Union{UInt8,UInt16,UInt32,UInt64}, 
     N(div_2fm1(z, Val(Int(f))) % T, 0)
 end
 
-# TODO: decide the default arithmetic for `Normed` mul
-# Override the default arithmetic with `checked` for backward compatibility
-*(x::N, y::N) where {N <: Normed} = checked_mul(x, y)
-
 
 # Functions
 floor(x::N) where {N <: Normed} = reinterpret(N, x.i - x.i % rawone(N))

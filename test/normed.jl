@@ -690,6 +690,8 @@ end
 end
 
 @testset "show" begin
+    @test (@test_deprecated FixedPointNumbers.typechar(N0f8)) === 'N'
+
     iob = IOBuffer()
     n0f8 = reinterpret(N0f8, 0xaa)
     show(iob, n0f8)

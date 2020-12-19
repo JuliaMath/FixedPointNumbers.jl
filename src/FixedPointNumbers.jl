@@ -290,17 +290,24 @@ end
 hasalias(::Type) = false
 hasalias(::Type{X}) where {T<:NotBiggerThanInt64, f, X<:FixedPoint{T,f}} = f isa Int
 
-# Printing. These are used to generate type-symbols, so we need them
-# before we include any files.
-function showtype(io::IO, ::Type{X}) where {X <: FixedPoint}
+# `alias_symbol` is used to define type aliases, so we need this before we
+# include "src/fixed.jl" / "src/normed.jl".
+function alias_symbol(@nospecialize(X))
+    Symbol(type_prefix(X), nbitsint(X), 'f', nbitsfrac(X))
+end
+
+function _alias_symbol(::Type{X}) where {X <: FixedPoint}
+    if @generated
+        sym = string(alias_symbol(X))
+        return :(Symbol($sym))
+    else
+        return alias_symbol(X)
+    end
+end
+
+@inline function showtype(io::IO, ::Type{X}) where {X <: FixedPoint}
     if hasalias(X)
-        f = nbitsfrac(X)
-        m = nbitsint(X)
-        write(io, typechar(X))
-        m > 9 && write(io, Char(m ÷ 10 + 0x30))
-        write(io, Char(m % 10 + 0x30), 'f')
-        f > 9 && write(io, Char(f ÷ 10 + 0x30))
-        write(io, Char(f % 10 + 0x30))
+        write(io, _alias_symbol(X))
     else
         print(io, X)
     end

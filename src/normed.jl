@@ -19,14 +19,14 @@ struct Normed{T <: Unsigned, f} <: FixedPoint{T, f}
     end
 end
 
-typechar(::Type{X}) where {X <: Normed} = 'N'
+type_prefix(::Type{N}) where {N <: Normed{<:Unsigned}} = :N
 
 for T in (UInt8, UInt16, UInt32, UInt64)
-    io = IOBuffer()
     for f in 1:bitwidth(T)
-        sym = Symbol(String(take!(showtype(io, Normed{T,f}))))
+        N = Normed{T,f}
+        sym = alias_symbol(N)
         @eval begin
-            const $sym = Normed{$T,$f}
+            const $sym = $N
             export $sym
         end
     end

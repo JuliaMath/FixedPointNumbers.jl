@@ -1,0 +1,66 @@
+name: Unit test for Arm
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        julia-version: ['1.0', '1', 'nightly']
+        os: [ubuntu-20.04]
+        distro: [ubuntu20.04]
+        arch: [aarch64]
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Download Julia Binary
+        run: >
+          julia -e '
+            using Pkg; Pkg.add("JSON"); using JSON;
+            if "${{ matrix.julia-version }}" == "nightly";
+              url = "https://julialangnightlies-s3.julialang.org/bin/linux/${{ matrix.arch }}/julia-latest-linux${{ matrix.arch }}.tar.gz";
+            else;
+              path = download("https://julialang-s3.julialang.org/bin/versions.json");
+              json = JSON.parsefile(path);
+              rm(path);
+              a(f) = f["arch"] == "${{ matrix.arch }}" && f["os"] == "linux" && !occursin("musl", f["triplet"]);
+              m = filter(json) do v; VersionNumber(v[1]) in Pkg.Types.VersionSpec("${{ matrix.julia-version }}") && any(a, v[2]["files"]); end;
+              v = sort(VersionNumber.(keys(m)))[end];
+              url = filter(a, json[string(v)]["files"])[1]["url"];
+            end;
+            download(url, "/tmp/julia-aarch64.tar.gz");'
+
+      - name: Extract Julia Files
+        run: |
+          cd /tmp
+          tar -xzf julia-aarch64.tar.gz -C /home/runner/work/
+          mv /home/runner/work/julia-*/ /home/runner/work/julia/
+          rm julia-aarch64.tar.gz
+
+      - uses: uraimo/run-on-arch-action@v2.0.7
+        name: Unit Test
+        with:
+          arch: ${{ matrix.arch }}
+          distro: ${{ matrix.distro }}
+          dockerRunArgs: |
+            -v "/home/runner/work/julia:/home/runner/work/julia"
+            -v "/home/runner/.julia/registries/General:/root/.julia/registries/General"
+            --net=host
+          install: |
+            ln -s /home/runner/work/julia/bin/julia /usr/local/bin/julia
+            echo /home/runner/work/julia/lib > /etc/ld.so.conf.d/julia.conf
+            mkdir -p /root/.julia/registries/General
+          run: |
+            julia -e 'using InteractiveUtils; versioninfo();'
+            julia --project=. --check-bounds=yes --color=yes -e 'using Pkg; Pkg.build(); Pkg.test(coverage=true)'
+      - uses: julia-actions/julia-processcoverage@v1
+      - uses: codecov/codecov-action@v1
+        with:
+          file: lcov.info

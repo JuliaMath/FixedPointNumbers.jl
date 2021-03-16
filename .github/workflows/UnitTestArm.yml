@@ -29,9 +29,10 @@ jobs:
             else;
               path = download("https://julialang-s3.julialang.org/bin/versions.json");
               json = JSON.parsefile(path);
-              rm(path);
+              try rm(path) catch end;
+              vspec = Pkg.Types.VersionSpec("${{ matrix.julia-version }}");
               a(f) = f["arch"] == "${{ matrix.arch }}" && f["os"] == "linux" && !occursin("musl", f["triplet"]);
-              m = filter(json) do v; VersionNumber(v[1]) in Pkg.Types.VersionSpec("${{ matrix.julia-version }}") && any(a, v[2]["files"]); end;
+              m = filter(json) do v; vn = VersionNumber(v[1]); vn in vspec && isempty(vn.prerelease) && any(a, v[2]["files"]); end;
               v = sort(VersionNumber.(keys(m)))[end];
               url = filter(a, json[string(v)]["files"])[1]["url"];
             end;
@@ -44,7 +45,7 @@ jobs:
           mv /home/runner/work/julia-*/ /home/runner/work/julia/
           rm julia-aarch64.tar.gz
 
-      - uses: uraimo/run-on-arch-action@v2.0.7
+      - uses: uraimo/run-on-arch-action@v2.0.9
         name: Unit Test
         with:
           arch: ${{ matrix.arch }}

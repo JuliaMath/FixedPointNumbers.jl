@@ -727,6 +727,10 @@ end
     @test str == "-0.672Q0f7"
     @test eval(Meta.parse(str)) === q0f7
 
+    print(iob, q0f7)
+    str = String(take!(iob))
+    @test str == "-0.672" # w/o type suffix
+
     q15f16 = reinterpret(Q15f16, signed(0xaaaaaaaa))
     show(iob, q15f16)
     str = String(take!(iob))

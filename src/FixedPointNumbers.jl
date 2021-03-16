@@ -1,7 +1,7 @@
 module FixedPointNumbers
 
 import Base: ==, <, <=, -, +, *, /, ~, isapprox,
-             convert, promote_rule, show, bitstring, abs, decompose,
+             convert, promote_rule, print, show, bitstring, abs, decompose,
              isnan, isinf, isfinite, isinteger,
              zero, oneunit, one, typemin, typemax, floatmin, floatmax, eps, reinterpret,
              big, rationalize, float, trunc, round, floor, ceil, bswap, clamp,
@@ -468,11 +468,18 @@ end
 
 function _alias_symbol(::Type{X}) where {X <: FixedPoint}
     if @generated
-        sym = string(alias_symbol(X))
-        return :(Symbol($sym))
+        return QuoteNode(alias_symbol(X))
     else
         return alias_symbol(X)
     end
+end
+
+function print(io::IO, x::FixedPoint{T,f}) where {T,f}
+    compact = get(io, :compact, false)::Bool
+    log10_2 = 0.3010299956639812
+    digits = min(ceil(Int, f * log10_2), compact ? 6 : typemax(Int))
+    val = round(convert(Float64, x), digits=digits)
+    print(io, val)
 end
 
 @inline function showtype(io::IO, ::Type{X}) where {X <: FixedPoint}
@@ -481,22 +488,20 @@ end
     else
         print(io, X)
     end
-    io
+    return nothing
 end
 
 function show(io::IO, x::FixedPoint{T,f}) where {T,f}
     compact = get(io, :compact, false)::Bool
-    log10_2 = 0.3010299956639812
-    digits = min(ceil(Int, f * log10_2), compact ? 6 : typemax(Int))
-    val = round(convert(Float64, x), digits=digits)
     if compact || get(io, :typeinfo, Any) === typeof(x)
-        show(io, val)
+        print(io, x)
     elseif hasalias(typeof(x))
-        show(io, val)
+        print(io, x)
         showtype(io, typeof(x))
     else
-        print(io, typeof(x), '(', val, ')')
+        print(io, typeof(x), '(', x, ')')
     end
+    return nothing
 end
 
 if VERSION < v"1.6.0-DEV.356" # JuliaLang/julia#36107

@@ -607,7 +607,7 @@ end
     NInt1 = Normed{UInt,1}
     @test length(NInt1(0):typemax(NInt1)-oneunit(NInt1)) == typemax(UInt)
     @test_throws OverflowError length(NInt1(0):typemax(NInt1))
-    @test Base.unsafe_length(NInt1(0):typemax(NInt1)) == 0  # overflow
+    @test checked_length(NInt1(0):typemax(NInt1)) == 0  # overflow
     N64f64 = Normed{UInt128,64}
     @test_broken length(N64f64(0):typemax(N64f64)) == UInt128(typemax(UInt64)) + 1
     @test length(N1f63(2):N1f63(0)) == 0

@@ -11,6 +11,7 @@ if Sys.ARCH === :x86_64 || Sys.ARCH === :i686
     doctest(FixedPointNumbers, manual = false)
 end
 
+# Compat for Julia 1.7
 if !isdefined(Base, :checked_length)
     const checked_length = Base.unsafe_length
 else

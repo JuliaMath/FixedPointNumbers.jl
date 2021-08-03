@@ -4,27 +4,27 @@ function _precompile_()
     realtypes = (Float16, Float32, Float64, Int)     # types for mixed Normed/Real operations
     for T in normedtypes
         for f in (+, -, abs, eps, rand)       # unary operations
-            @assert precompile(Tuple{typeof(f),T})
+            precompile(Tuple{typeof(f),T})
         end
-        @assert precompile(Tuple{typeof(rand),T,Tuple{Int}})
-        @assert precompile(Tuple{typeof(rand),T,Tuple{Int,Int}})
+        precompile(Tuple{typeof(rand),T,Tuple{Int}})
+        precompile(Tuple{typeof(rand),T,Tuple{Int,Int}})
         for f in (trunc, floor, ceil, round)  # rounding operations
-            @assert precompile(Tuple{typeof(f),T})
-            @assert precompile(Tuple{typeof(f),Type{Int},T})
+            precompile(Tuple{typeof(f),T})
+            precompile(Tuple{typeof(f),Type{Int},T})
         end
         for f in (+, -, *, /, <, <=, ==)      # binary operations
-            @assert precompile(Tuple{typeof(f),T,T})
+            precompile(Tuple{typeof(f),T,T})
             for S in realtypes
-                @assert precompile(Tuple{typeof(f),T,S})
-                @assert precompile(Tuple{typeof(f),S,T})
+                precompile(Tuple{typeof(f),T,S})
+                precompile(Tuple{typeof(f),S,T})
             end
         end
         # conversions
         for S in realtypes
-            @assert precompile(Tuple{Type{T},S})
-            @assert precompile(Tuple{Type{S},T})
-            @assert precompile(Tuple{typeof(convert),Type{T},S})
-            @assert precompile(Tuple{typeof(convert),Type{S},T})
+            precompile(Tuple{Type{T},S})
+            precompile(Tuple{Type{S},T})
+            precompile(Tuple{typeof(convert),Type{T},S})
+            precompile(Tuple{typeof(convert),Type{S},T})
         end
     end
 end

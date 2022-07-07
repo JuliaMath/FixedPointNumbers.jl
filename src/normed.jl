@@ -142,7 +142,11 @@ function (::Type{T})(x::Normed) where {T <: AbstractFloat}
 end
 
 function Base.Float16(x::Normed{Ti,f}) where {Ti <: Union{UInt8, UInt16, UInt32}, f}
-    f == 1 ? Float16(x.i) : Float16(Float32(x))
+    f == 1 && return Float16(x.i)
+    f == 14 && return Float16(Float64(x))
+    f == 15 && return Float16(Float64(x))
+    f == 16 && return Float16(Float64(x))
+    return Float16(Float32(x))
 end
 function Base.Float16(x::Normed{Ti,f}) where {Ti <: Union{UInt64, UInt128}, f}
     f == 1 ? Float16(x.i) : Float16(Float64(x))

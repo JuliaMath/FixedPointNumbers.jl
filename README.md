@@ -31,11 +31,11 @@ For `T<:Signed` (a signed integer), there is a fixed-point type
 `Normed{T, f}` type. However, there are slight differences in behavior
 that go beyond signed/unsigned distinctions.
 
-The `Fixed{T,f}` types use 1 bit for sign, and `f` bits to represent
-the fraction. For example, `Fixed{Int8,7}` uses 7 bits (all bits
-except the sign bit) for the fractional part. The value of the number
-is interpreted as if the integer representation has been divided by
-`2^f`. Consequently, `Fixed{Int8,7}` numbers `x` satisfy
+The `Fixed{T,f}` types take the integer type `T` and simply shift the "decimal"
+point (or more accurately, the [radix or binary
+point](https://en.wikipedia.org/wiki/Decimal_separator#Radix_point)) `f` bits to
+the left, i.e. they represent real numbers of the form `x::T / 2^f`.
+Consequently, `Fixed{Int8,7}` numbers `x` satisfy
 
 ```julia
 -1.0 = -128/128 ≤ x ≤ 127/128 ≈ 0.992.

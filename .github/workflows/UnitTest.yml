@@ -32,7 +32,7 @@ jobs:
           arch: ${{ matrix.julia-arch }}
 
       - name: Cache artifacts
-        uses: actions/cache@v1
+        uses: actions/cache@v3
         env:
           cache-name: cache-artifacts
         with:

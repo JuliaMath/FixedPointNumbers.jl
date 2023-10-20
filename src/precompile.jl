@@ -1,3 +1,5 @@
+using Random
+
 function _precompile_()
     ccall(:jl_generating_output, Cint, ()) == 1 || return nothing
     normedtypes = (N0f8, N0f16)                      # precompiled Normed types

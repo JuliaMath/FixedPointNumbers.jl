@@ -45,7 +45,7 @@ jobs:
           mv /home/runner/work/julia-*/ /home/runner/work/julia/
           rm julia-aarch64.tar.gz
 
-      - uses: uraimo/run-on-arch-action@v2.5.0
+      - uses: uraimo/run-on-arch-action@v2.7.1
         name: Unit Test
         with:
           arch: ${{ matrix.arch }}

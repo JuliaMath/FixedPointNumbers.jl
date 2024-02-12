@@ -9,7 +9,6 @@ import Base: ==, <, <=, -, +, *, /, ~, isapprox,
              signed, unsigned, copysign, flipsign, signbit,
              length
 
-using Requires
 import Random: Random, AbstractRNG, SamplerType, rand!
 
 import Base.Checked: checked_neg, checked_abs, checked_add, checked_sub, checked_mul,
@@ -623,22 +622,6 @@ end
 if VERSION >= v"1.1" # work around https://github.com/JuliaLang/julia/issues/34121
     include("precompile.jl")
     _precompile_()
-end
-
-@static if VERSION >= v"1.9.0-DEV.873"
-    function __init__()
-        # Statistics and SparseArrays are moved out from sysimage
-        # https://github.com/JuliaLang/julia/pull/44247#issuecomment-1172847231
-        @require Statistics="10745b16-79ce-11e8-11f9-7d13ad32a3b2" begin
-            Statistics._mean_promote(x::Real, y::FixedPoint) = Treduce(y)
-        end
-    end
-else
-    import Statistics
-    if isdefined(Statistics, :_mean_promote)
-        # https://github.com/JuliaMath/FixedPointNumbers.jl/pull/183
-        Statistics._mean_promote(x::Real, y::FixedPoint) = Treduce(y)
-    end
 end
 
 end # module

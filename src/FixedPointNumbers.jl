@@ -629,4 +629,8 @@ if VERSION >= v"1.1" # work around https://github.com/JuliaLang/julia/issues/341
     _precompile_()
 end
 
+if !isdefined(Base, :get_extension)
+    include("../ext/FixedPointNumbersStatisticsExt.jl")
+end
+
 end # module

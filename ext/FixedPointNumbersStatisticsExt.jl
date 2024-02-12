@@ -1,6 +1,7 @@
 module FixedPointNumbersStatisticsExt
 
 using FixedPointNumbers
+import FixedPointNumbers: Treduce
 using Statistics
 
 import Statistics

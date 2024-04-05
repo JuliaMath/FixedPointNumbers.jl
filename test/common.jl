@@ -1,4 +1,4 @@
-using FixedPointNumbers, Statistics, Random, Test
+using FixedPointNumbers, Statistics, Random, StableRNGs, Test
 using FixedPointNumbers: bitwidth, rawtype, nbitsfrac
 using Base.Checked
 

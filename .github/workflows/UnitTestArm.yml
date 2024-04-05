@@ -6,6 +6,9 @@ on:
       - master
   pull_request:
   workflow_dispatch:
+permissions:
+  actions: write
+  contents: read
 jobs:
   test:
     runs-on: ${{ matrix.os }}
@@ -19,7 +22,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: ${{ matrix.julia-version }}
+      - uses: julia-actions/cache@v1
       - name: Download Julia Binary
         run: >
           julia -e '
@@ -40,10 +46,9 @@ jobs:
 
       - name: Extract Julia Files
         run: |
-          cd /tmp
-          tar -xzf julia-aarch64.tar.gz -C /home/runner/work/
-          mv /home/runner/work/julia-*/ /home/runner/work/julia/
-          rm julia-aarch64.tar.gz
+          mkdir -p /home/runner/work/julia/
+          tar -xf /tmp/julia-aarch64.tar.gz --strip-components=1 -C /home/runner/work/julia/
+          rm /tmp/julia-aarch64.tar.gz
 
       - uses: uraimo/run-on-arch-action@v2.7.1
         name: Unit Test
@@ -52,14 +57,14 @@ jobs:
           distro: ${{ matrix.distro }}
           dockerRunArgs: |
             -v "/home/runner/work/julia:/home/runner/work/julia"
-            -v "/home/runner/.julia/registries/General:/root/.julia/registries/General"
+            -v "/home/runner/.julia/registries:/root/.julia/registries"
             --net=host
           install: |
             ln -s /home/runner/work/julia/bin/julia /usr/local/bin/julia
             echo /home/runner/work/julia/lib > /etc/ld.so.conf.d/julia.conf
             mkdir -p /root/.julia/registries/General
           run: |
-            julia -e 'using InteractiveUtils; versioninfo();'
+            julia --compile=min -O0 -e 'using InteractiveUtils; versioninfo();'
             julia --project=. --check-bounds=yes --color=yes -e 'using Pkg; Pkg.build(); Pkg.test(coverage=true)'
       - uses: julia-actions/julia-processcoverage@v1
       - uses: codecov/codecov-action@v4

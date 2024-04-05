@@ -13,8 +13,8 @@ jobs:
       fail-fast: false
       matrix:
         julia-version: ['1.0', '1', '1.6', 'nightly']
-        os: [ubuntu-20.04]
-        distro: [ubuntu20.04]
+        os: [ubuntu-latest]
+        distro: [ubuntu_latest]
         arch: [aarch64]
 
     steps:
@@ -45,7 +45,7 @@ jobs:
           mv /home/runner/work/julia-*/ /home/runner/work/julia/
           rm julia-aarch64.tar.gz
 
-      - uses: uraimo/run-on-arch-action@v2.5.0
+      - uses: uraimo/run-on-arch-action@v2.7.1
         name: Unit Test
         with:
           arch: ${{ matrix.arch }}

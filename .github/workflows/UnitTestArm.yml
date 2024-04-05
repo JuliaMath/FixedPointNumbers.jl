@@ -25,7 +25,7 @@ jobs:
           julia -e '
             using Pkg; Pkg.add("JSON"); using JSON;
             if "${{ matrix.julia-version }}" == "nightly";
-              url = "https://julialangnightlies-s3.julialang.org/bin/linux/${{ matrix.arch }}/julia-latest-linux${{ matrix.arch }}.tar.gz";
+              url = "https://julialangnightlies-s3.julialang.org/bin/linux/${{ matrix.arch }}/julia-latest-linux-${{ matrix.arch }}.tar.gz";
             else;
               path = download("https://julialang-s3.julialang.org/bin/versions.json");
               json = JSON.parsefile(path);

@@ -685,7 +685,13 @@ end
     @test @inferred(promote_type(Float32, Int, N0f8)) === Float32
     @test @inferred(promote_type(Float32, N0f8, Int)) === Float32
 
-    @test @inferred(promote_type(N0f8,N1f7,N2f6,N3f5,N4f4,N5f3)) === Normed{UInt128,8}
+    if promote_type(Int, Float32, Complex{Int}, typeof(pi)) === ComplexF64
+        # right-to-left
+        @test @inferred(promote_type(N0f8, N1f7, N2f6, N3f5, N4f4, N5f3)) === Normed{UInt128,8}
+    else
+        # left-to-right
+        @test @inferred(promote_type(N5f3, N4f4, N3f5, N2f6, N1f7, N0f8)) === Normed{UInt128,8}
+    end
 
     @test @inferred(promote_type(N0f8, Q0f31)) === Float64
 end

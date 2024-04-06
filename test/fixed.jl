@@ -594,7 +594,13 @@ end
     @test @inferred(promote_type(Float32, Int, Q0f7)) === Float32
     @test @inferred(promote_type(Float32, Q0f7, Int)) === Float32
 
-    @test @inferred(promote_type(Q0f7,Q1f6,Q2f5,Q3f4,Q4f3,Q5f2)) == Fixed{Int128,7}
+    if promote_type(Int, Float32, Complex{Int}, typeof(pi)) === ComplexF64
+        # right-to-left
+        @test @inferred(promote_type(Q0f7, Q1f6, Q2f5, Q3f4, Q4f3, Q5f2)) == Fixed{Int128,7}
+    else
+        # left-to-right
+        @test @inferred(promote_type(Q5f2, Q4f3, Q3f4, Q2f5, Q1f6, Q0f7)) == Fixed{Int128,7}
+    end
 
     @test @inferred(promote_type(Q0f7, N0f32)) === FixedPoint # Float64 on v0.9 (#207)
 end

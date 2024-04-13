@@ -559,7 +559,8 @@ end
 
 @testset "rand" begin
     test_rand(Fixed)
-    @test rand(MersenneTwister(1234), Q0f7) === -0.156Q0f7
+    @test !(rand(Q0f15) == rand(Q0f15) == rand(Q0f15)) # If this fails, we should suspect a bug.
+    @test rand(StableRNG(1234), Q0f7) === 0.531Q0f7
 end
 
 @testset "Promotion within Fixed" begin

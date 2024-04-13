@@ -557,7 +557,8 @@ end
 
 @testset "rand" begin
     test_rand(Normed)
-    @test rand(MersenneTwister(1234), N0f8) === 0.925N0f8
+    @test !(rand(N0f16) == rand(N0f16) == rand(N0f16)) # If this fails, we should suspect a bug.
+    @test rand(StableRNG(1234), N0f8) === 0.267N0f8
 end
 
 @testset "Promotion within Normed" begin

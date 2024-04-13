@@ -1,4 +1,4 @@
-using FixedPointNumbers, Statistics, Random, Test
+using FixedPointNumbers, Statistics, Random, StableRNGs, Test
 using FixedPointNumbers: bitwidth, rawtype, nbitsfrac
 
 SP = VERSION >= v"1.6.0-DEV.771" ? " " : "" # JuliaLang/julia #37085

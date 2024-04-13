@@ -3,6 +3,7 @@
 [![Build Status][action-img]][action-url]
 [![Build Status][pkgeval-img]][pkgeval-url]
 [![coverage][codecov-img]][codecov-url]
+[![Aqua QA](https://raw.githubusercontent.com/JuliaTesting/Aqua.jl/master/badge.svg)](https://github.com/JuliaTesting/Aqua.jl)
 
 This library implements fixed-point number types.  A
 [fixed-point number] represents a fractional, or

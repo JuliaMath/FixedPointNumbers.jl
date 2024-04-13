@@ -9,7 +9,6 @@ import Base: ==, <, <=, -, +, *, /, ~, isapprox,
              signed, unsigned, copysign, flipsign, signbit,
              length
 
-import Statistics   # for _mean_promote
 import Random: Random, AbstractRNG, SamplerType, rand!
 
 import Base.Checked: checked_neg, checked_abs, checked_add, checked_sub, checked_mul,
@@ -557,10 +556,6 @@ Base.mul_prod(x::FixedPoint, y::FixedPoint) = Treduce(x) * Treduce(y)
 Base.reduce_empty(::typeof(Base.mul_prod), ::Type{F}) where {F<:FixedPoint} = one(Treduce)
 Base.reduce_first(::typeof(Base.mul_prod), x::FixedPoint)  = Treduce(x)
 
-if isdefined(Statistics, :_mean_promote)
-    Statistics._mean_promote(x::Real, y::FixedPoint) = Treduce(y)
-end
-
 """
     sd, ad = scaledual(s::Number, a)
 
@@ -622,6 +617,10 @@ function rand!(r::AbstractRNG, A::Array{X}, ::SamplerType{X}) where {T, X <: Fix
     At = unsafe_wrap(Array, reinterpret(Ptr{T}, pointer(A)), size(A))
     Random.rand!(r, At, SamplerType{T}())
     A
+end
+
+if !isdefined(Base, :get_extension)
+    include("../ext/FixedPointNumbersStatisticsExt.jl")
 end
 
 if VERSION >= v"1.1" # work around https://github.com/JuliaLang/julia/issues/34121

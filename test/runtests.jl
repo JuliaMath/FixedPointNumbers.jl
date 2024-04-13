@@ -1,11 +1,5 @@
 using FixedPointNumbers, Test, Aqua
 
-if VERSION >= v"1.6.0-DEV.816" # JuliaLang/julia #36962 # FIXME
-    @test isempty(detect_ambiguities(FixedPointNumbers))
-else
-    @test isempty(detect_ambiguities(FixedPointNumbers, Base, Core))
-end
-
 Aqua.test_all(FixedPointNumbers)
 
 if Sys.ARCH === :x86_64 || Sys.ARCH === :i686

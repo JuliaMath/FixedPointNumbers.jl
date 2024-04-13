@@ -619,13 +619,13 @@ function rand!(r::AbstractRNG, A::Array{X}, ::SamplerType{X}) where {T, X <: Fix
     A
 end
 
+if !isdefined(Base, :get_extension)
+    include("../ext/FixedPointNumbersStatisticsExt.jl")
+end
+
 if VERSION >= v"1.1" # work around https://github.com/JuliaLang/julia/issues/34121
     include("precompile.jl")
     _precompile_()
-end
-
-if !isdefined(Base, :get_extension)
-    include("../ext/FixedPointNumbersStatisticsExt.jl")
 end
 
 end # module

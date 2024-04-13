@@ -1,6 +1,6 @@
-using FixedPointNumbers, Test
+using FixedPointNumbers, Test, Aqua
 
-@test isempty(detect_ambiguities(FixedPointNumbers, Base, Core))
+Aqua.test_all(FixedPointNumbers)
 
 if Sys.ARCH === :x86_64 || Sys.ARCH === :i686
     using Documenter

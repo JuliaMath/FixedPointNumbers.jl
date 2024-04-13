@@ -1,4 +1,6 @@
-include("common.jl")
+if !isdefined(Main, :target)
+    include("common.jl")
+end
 
 function symbol_to_inttype(::Type{Fixed}, s::Symbol)
     d = Dict(:i8 => Int8, :i16 => Int16, :i32 => Int32, :i64 => Int64, :i128 => Int128)

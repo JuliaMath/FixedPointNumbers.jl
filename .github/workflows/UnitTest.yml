@@ -1,11 +1,11 @@
 name: Unit test
 
 on:
-  create:
-    tags:
   push:
     branches:
       - master
+      - release-*
+    tags: ['*']
   pull_request:
 
 jobs:
@@ -14,14 +14,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        julia-version: ['1.0', '1', '1.6', 'nightly']
-        os: [ubuntu-latest, windows-latest, macOS-latest]
+        julia-version: ['1.0', '1.6', '1', 'nightly']
+        os: [ubuntu-latest, windows-latest, macos-13]
         julia-arch: [x64]
-        # only test one 32-bit job
         include:
-          - os: ubuntu-latest
+          - os: ubuntu-latest # only test one 32-bit job
             julia-version: '1'
             julia-arch: x86
+          - os: macos-latest
+            julia-version: '1'
+            julia-arch: aarch64
+          - os: macos-latest
+            julia-version: 'nightly'
+            julia-arch: aarch64
 
     steps:
       - uses: actions/checkout@v2

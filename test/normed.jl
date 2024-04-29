@@ -7,6 +7,46 @@ function symbol_to_inttype(::Type{Normed}, s::Symbol)
     d[s]
 end
 
+# issue #288
+# The following needs to be outside of `@testset` to reproduce the issue.
+_to_normed(::Val, x) = x % N0f8
+_to_normed(::Val{:N0f8}, x) = x % N0f8
+_to_normed(::Val{:N0f16}, x) = x % N0f16
+buf = IOBuffer()
+# in range
+for vs in ((:N0f8, :N0f16), (:N0f16, :N0f8))
+    for v in vs
+        show(buf, _to_normed(Val(v), 1.0))
+        print(buf, " ")
+    end
+end
+issue288_in = String(take!(buf))
+# out of range
+for vs in ((:N0f8, :N0f16), (:N0f16, :N0f8))
+    for v in vs
+        show(buf, _to_normed(Val(v), -1.0))
+        print(buf, " ")
+    end
+end
+issue288_out = String(take!(buf))
+
+@testset "issue288" begin
+    expected_issue288 = "1.0N0f8 1.0N0f16 1.0N0f16 1.0N0f8 "
+    if issue288_in == expected_issue288 # just leave it in the report
+        @test issue288_in == expected_issue288
+    else
+        @test_broken issue288_in == expected_issue288
+        @warn """broken: "$issue288_in"\nexpected: "$expected_issue288" """
+    end
+    expected_issue288 = "0.004N0f8 2.0e-5N0f16 2.0e-5N0f16 0.004N0f8 "
+    if issue288_out == expected_issue288 # just leave it in the report
+        @test issue288_out == expected_issue288
+    else
+        @test_broken issue288_out == expected_issue288
+        @warn """broken: "$issue288_out"\nexpected: "$expected_issue288" """
+    end
+end
+
 @testset "domain of f" begin
     @test_throws DomainError zero(Normed{UInt8,-1})
     @test_throws DomainError zero(Normed{UInt8,0})

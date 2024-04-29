@@ -1,6 +1,46 @@
 using FixedPointNumbers, Statistics, Test
 using FixedPointNumbers: bitwidth
 
+# issue #288
+# The following needs to be outside of `@testset` to reproduce the issue.
+_to_fixed(::Val, x) = x % Q0f7
+_to_fixed(::Val{:Q0f7}, x) = x % Q0f7
+_to_fixed(::Val{:Q0f15}, x) = x % Q0f15
+buf = IOBuffer()
+# in range
+for vs in ((:Q0f7, :Q0f15), (:Q0f15, :Q0f7))
+    for v in vs
+        show(buf, _to_fixed(Val(v), -1.0))
+        print(buf, " ")
+    end
+end
+issue288_in = String(take!(buf))
+# out of range
+for vs in ((:Q0f7, :Q0f15), (:Q0f15, :Q0f7))
+    for v in vs
+        show(buf, _to_fixed(Val(v), 1.0))
+        print(buf, " ")
+    end
+end
+issue288_out = String(take!(buf))
+
+@testset "issue288" begin
+    expected_issue288 = "-1.0Q0f7 -1.0Q0f15 -1.0Q0f15 -1.0Q0f7 "
+    if issue288_in == expected_issue288 # just leave it in the report
+        @test issue288_in == expected_issue288
+    else
+        @test_broken issue288_in == expected_issue288
+        @warn """broken: "$issue288_in"\nexpected: "$expected_issue288" """
+    end
+    expected_issue288 = "-1.0Q0f7 -1.0Q0f15 -1.0Q0f15 -1.0Q0f7 "
+    if issue288_out == expected_issue288 # just leave it in the report
+        @test issue288_out == expected_issue288
+    else
+        @test_broken issue288_out == expected_issue288
+        @warn """broken: "$issue288_out"\nexpected: "$expected_issue288" """
+    end
+end
+
 function test_op(fun::F, ::Type{T}, fx, fy, fxf, fyf, tol) where {F,T}
     # Make sure that the result is representable
     (typemin(T) <= fun(fxf, fyf) <= typemax(T)) || return nothing

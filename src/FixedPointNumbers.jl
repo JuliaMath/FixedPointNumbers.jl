@@ -241,6 +241,9 @@ end
 
 signbit(x::X) where {X <: FixedPoint} = signbit(x.i)
 
+trunc(x::X) where {X <: FixedPoint{<:Unsigned}} = floor(x)
+trunc(::Type{Ti}, x::X) where {X <: FixedPoint{<:Unsigned}, Ti <: Integer} = floor(Ti, x)
+
 for f in (:zero, :oneunit, :one, :eps, :rawone, :rawtype, :floattype)
     @eval begin
         $f(x::FixedPoint) = $f(typeof(x))

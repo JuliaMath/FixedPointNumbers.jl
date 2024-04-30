@@ -286,7 +286,6 @@ end
 /(x::T, y::T) where {T <: Normed} = convert(T,convert(floattype(T), x)/convert(floattype(T), y))
 
 # Functions
-trunc(x::N) where {N <: Normed} = floor(x)
 floor(x::N) where {N <: Normed} = reinterpret(N, x.i - x.i % rawone(N))
 function ceil(x::Normed{T,f}) where {T, f}
     f == 1 && return x
@@ -303,7 +302,6 @@ function round(x::Normed{T,f}) where {T, f}
     reinterpret(Normed{T,f}, r > q ? x.i + q : x.i - r)
 end
 
-trunc(::Type{Ti}, x::Normed) where {Ti <: Integer} = floor(Ti, x)
 function floor(::Type{Ti}, x::Normed) where {Ti <: Integer}
     convert(Ti, reinterpret(x) ÷ rawone(x))
 end

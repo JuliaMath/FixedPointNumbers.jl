@@ -31,20 +31,8 @@ end
 issue288_out = String(take!(buf))
 
 @testset "issue288" begin
-    expected_issue288 = "1.0N0f8 1.0N0f16 1.0N0f16 1.0N0f8 "
-    if issue288_in == expected_issue288 # just leave it in the report
-        @test issue288_in == expected_issue288
-    else
-        @test_broken issue288_in == expected_issue288
-        @warn """broken: "$issue288_in"\nexpected: "$expected_issue288" """
-    end
-    expected_issue288 = "0.004N0f8 2.0e-5N0f16 2.0e-5N0f16 0.004N0f8 "
-    if issue288_out == expected_issue288 # just leave it in the report
-        @test issue288_out == expected_issue288
-    else
-        @test_broken issue288_out == expected_issue288
-        @warn """broken: "$issue288_out"\nexpected: "$expected_issue288" """
-    end
+    @test issue288_in == "1.0N0f8 1.0N0f16 1.0N0f16 1.0N0f8 "
+    @test issue288_out == "0.004N0f8 2.0e-5N0f16 2.0e-5N0f16 0.004N0f8 "
 end
 
 @testset "domain of f" begin

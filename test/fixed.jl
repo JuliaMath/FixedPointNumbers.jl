@@ -1,6 +1,9 @@
 using FixedPointNumbers, Statistics, Test
 using FixedPointNumbers: bitwidth
 
+# FIXME: Remove this (borrowed from PR #224)
+SP = VERSION >= v"1.6.0-DEV.771" ? " " : "" # JuliaLang/julia #37085
+
 function test_op(fun::F, ::Type{T}, fx, fy, fxf, fyf, tol) where {F,T}
     # Make sure that the result is representable
     (typemin(T) <= fun(fxf, fyf) <= typemax(T)) || return nothing
@@ -492,11 +495,11 @@ end
     @test String(take!(iob)) == "-21845.33334Q15f16"
 
     show(iob, Fixed{Int128,64}(-1.2345e6))
-    @test_broken String(take!(iob)) == "Fixed{Int128,64}(-1.2345e6)" # "Q63f64" is not defined
+    @test String(take!(iob)) == "Fixed{Int128,$(SP)64}(-1.2345e6)"
 
     # TODO: remove this test
     show(iob, reinterpret(Fixed{Int8,8}, signed(0xaa)))
-    @test_broken String(take!(iob)) == "Fixed{Int8,8}(-0.336)" # "Q-1f8" is invalid
+    @test String(take!(iob)) == "Fixed{Int8,$(SP)8}(-0.336)"
 end
 
 @testset "summary" begin

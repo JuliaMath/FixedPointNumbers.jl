@@ -49,6 +49,7 @@ rawtype(::Type{X}) where {T, X <: FixedPoint{T}} = T
 
 # traits based on static parameters
 signbits(::Type{X}) where {T, X <: FixedPoint{T}} = T <: Unsigned ? 0 : 1
+nbitsint(::Type{X}) where {X <: FixedPoint} = bitwidth(X) - nbitsfrac(X) - signbits(X)
 
 # construction using the (approximate) intended value, i.e., N0f8
 *(x::Real, ::Type{X}) where {X <: FixedPoint} = _convert(X, x)
@@ -260,19 +261,38 @@ function length(r::StepRange{<:FixedPoint})
     return div((stop - start) + step, step)
 end
 
+hasalias(::Type) = false
+hasalias(::Type{X}) where {T<:NotBiggerThanInt64, f, X<:FixedPoint{T,f}} = f isa Int
+
 # Printing. These are used to generate type-symbols, so we need them
 # before we include any files.
 function showtype(io::IO, ::Type{X}) where {X <: FixedPoint}
-    print(io, typechar(X))
-    f = nbitsfrac(X)
-    m = bitwidth(X)-f-signbits(X)
-    print(io, m, 'f', f)
+    if hasalias(X)
+        f = nbitsfrac(X)
+        m = nbitsint(X)
+        write(io, typechar(X))
+        m > 9 && write(io, Char(m ÷ 10 + 0x30))
+        write(io, Char(m % 10 + 0x30), 'f')
+        f > 9 && write(io, Char(f ÷ 10 + 0x30))
+        write(io, Char(f % 10 + 0x30))
+    else
+        print(io, X)
+    end
     io
 end
+
 function show(io::IO, x::FixedPoint{T,f}) where {T,f}
+    compact = get(io, :compact, false)::Bool
     log10_2 = 0.3010299956639812
-    show(io, round(convert(Float64,x), digits=ceil(Int, f * log10_2)))
-    get(io, :compact, false) || showtype(io, typeof(x))
+    val = round(convert(Float64, x), digits=ceil(Int, f * log10_2))
+    if compact
+        show(io, val)
+    elseif hasalias(typeof(x))
+        show(io, val)
+        showtype(io, typeof(x))
+    else
+        print(io, typeof(x), '(', val, ')')
+    end
 end
 
 function Base.showarg(io::IO, a::Array{T}, toplevel) where {T<:FixedPoint}

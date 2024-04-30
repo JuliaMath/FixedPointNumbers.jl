@@ -1,6 +1,9 @@
 using FixedPointNumbers, Statistics, Test
 using FixedPointNumbers: bitwidth
 
+# FIXME: Remove this (borrowed from PR #224)
+SP = VERSION >= v"1.6.0-DEV.771" ? " " : "" # JuliaLang/julia #37085
+
 @testset "domain of f" begin
     @test_throws DomainError zero(Normed{UInt8,-1})
     @test_throws DomainError zero(Normed{UInt8,0})
@@ -479,7 +482,7 @@ end
     @test String(take!(iob)) == "43691.33333N16f16"
 
     show(iob, Normed{UInt128,64}(1.2345e6))
-    @test_broken String(take!(iob)) == "Normed{UInt128,64}(1.2345e6)" # "N64f64" is not defined
+    @test String(take!(iob)) == "Normed{UInt128,$(SP)64}(1.2345e6)"
 end
 
 @testset "summary" begin

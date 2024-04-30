@@ -539,8 +539,8 @@ function promote_rule(::Type{X1}, ::Type{X2}) where {T1, f1, X1 <: FixedPoint{T1
     m = max(nbitsint(X1), nbitsint(X2))
     _widen_rawtype(X{T,f}, m)
 end
-# TODO: avoid using @pure
-@pure function _widen_rawtype(::Type{X}, m) where {T, f, X<:FixedPoint{T,f}}
+
+function _widen_rawtype(::Type{X}, m) where {T, f, X<:FixedPoint{T,f}}
     nbitsint(X) >= m && return X
     Tw = widen1(T)
     T === Tw && return X

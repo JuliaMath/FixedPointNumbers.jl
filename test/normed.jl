@@ -485,13 +485,24 @@ end
     @test Normed{UInt16,4}(1)   == Normed{UInt8,6}(1)
     @test Normed{UInt16,4}(0.2) == Normed{UInt8,6}(0.2)
 
-    @test promote_type(N0f8,Float32,Int) == Float32
-    @test promote_type(N0f8,Int,Float32) == Float32
-    @test promote_type(Int,N0f8,Float32) == Float32
-    @test promote_type(Int,Float32,N0f8) == Float32
-    @test promote_type(Float32,Int,N0f8) == Float32
-    @test promote_type(Float32,N0f8,Int) == Float32
-    @test promote_type(N0f8,N1f7,N2f6,N3f5,N4f4,N5f3) == Normed{UInt128,8}
+    @test @inferred(promote_type(N0f8, Float64)) === Float64
+    @test @inferred(promote_type(Float32, N8f24)) === Float64
+
+    @test @inferred(promote_type(N0f8, Int8)) === Float32
+    @test @inferred(promote_type(Int128, N8f24)) === Float64
+
+    @test @inferred(promote_type(N0f16, Rational{Int8})) === Rational{Int8}
+
+    @test @inferred(promote_type(N0f8, Float32, Int)) === Float32
+    @test @inferred(promote_type(N0f8, Int, Float32)) === Float32
+    @test @inferred(promote_type(Int, N0f8, Float32)) === Float32
+    @test @inferred(promote_type(Int, Float32, N0f8)) === Float32
+    @test @inferred(promote_type(Float32, Int, N0f8)) === Float32
+    @test @inferred(promote_type(Float32, N0f8, Int)) === Float32
+
+    @test @inferred(promote_type(N0f8,N1f7,N2f6,N3f5,N4f4,N5f3)) === Normed{UInt128,8}
+
+    @test @inferred(promote_type(N0f8, Q0f31)) === FixedPoint # Float64 on v0.9 (#207)
 end
 
 @testset "show" begin

@@ -25,20 +25,8 @@ end
 issue288_out = String(take!(buf))
 
 @testset "issue288" begin
-    expected_issue288 = "-1.0Q0f7 -1.0Q0f15 -1.0Q0f15 -1.0Q0f7 "
-    if issue288_in == expected_issue288 # just leave it in the report
-        @test issue288_in == expected_issue288
-    else
-        @test_broken issue288_in == expected_issue288
-        @warn """broken: "$issue288_in"\nexpected: "$expected_issue288" """
-    end
-    expected_issue288 = "-1.0Q0f7 -1.0Q0f15 -1.0Q0f15 -1.0Q0f7 "
-    if issue288_out == expected_issue288 # just leave it in the report
-        @test issue288_out == expected_issue288
-    else
-        @test_broken issue288_out == expected_issue288
-        @warn """broken: "$issue288_out"\nexpected: "$expected_issue288" """
-    end
+    @test issue288_in == "-1.0Q0f7 -1.0Q0f15 -1.0Q0f15 -1.0Q0f7 "
+    @test issue288_out == "-1.0Q0f7 -1.0Q0f15 -1.0Q0f15 -1.0Q0f7 "
 end
 
 function test_op(fun::F, ::Type{T}, fx, fy, fxf, fyf, tol) where {F,T}

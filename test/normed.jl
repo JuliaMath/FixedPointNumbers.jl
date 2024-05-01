@@ -606,6 +606,10 @@ end
     @test str == "0.667N0f8"
     @test eval(Meta.parse(str)) === n0f8
 
+    print(iob, n0f8)
+    str = String(take!(iob))
+    @test str == "0.667N0f8" # w/ type suffix (cf. PR #243)
+
     n16f16 = reinterpret(N16f16, 0xaaaaaaaa)
     show(iob, n16f16)
     str = String(take!(iob))

@@ -298,8 +298,7 @@ end
 
 function _alias_symbol(::Type{X}) where {X <: FixedPoint}
     if @generated
-        sym = string(alias_symbol(X))
-        return :(Symbol($sym))
+        return QuoteNode(alias_symbol(X))
     else
         return alias_symbol(X)
     end
@@ -311,7 +310,7 @@ end
     else
         print(io, X)
     end
-    io
+    return nothing
 end
 
 function show(io::IO, x::FixedPoint{T,f}) where {T,f}
@@ -326,6 +325,7 @@ function show(io::IO, x::FixedPoint{T,f}) where {T,f}
     else
         print(io, typeof(x), '(', val, ')')
     end
+    return nothing
 end
 
 function Base.showarg(io::IO, a::Array{T}, toplevel) where {T<:FixedPoint}

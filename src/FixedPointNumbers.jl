@@ -194,6 +194,12 @@ clamp(x::X, lo::X, hi::X) where {X <: FixedPoint} = X(clamp(x.i, lo.i, hi.i), 0)
 
 clamp(x, ::Type{X}) where {X <: FixedPoint} = clamp(x, typemin(X), typemax(X)) % X
 
+# Workaround for poor promotion due to lack of PR #207
+function clamp(x::AbstractFloat, ::Type{X}) where {X <: FixedPoint}
+    Tf = promote_type(typeof(x), floattype(X))
+    clamp(Tf(x), typemin(X), typemax(X)) % X
+end
+
 # Since `FixedPoint` is not an integer type, it is not clear in what type
 # `signed` and `unsigned` for `FixedPoint` should return values. They should
 # currently throw errors in case we support "unsigned Fixed" or "signed Normed"

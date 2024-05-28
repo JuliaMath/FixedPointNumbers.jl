@@ -7,9 +7,10 @@ import Base: ==, <, <=, -, +, *, /, ~, isapprox,
              big, rationalize, float, trunc, round, floor, ceil, bswap, clamp,
              div, fld, rem, mod, mod1, fld1, min, max, minmax,
              signed, unsigned, copysign, flipsign, signbit,
-             rand, length
+             length
 
 import Statistics   # for _mean_promote
+import Random: Random, AbstractRNG, SamplerType, rand!
 
 using Base.Checked: checked_add, checked_sub, checked_div
 
@@ -326,8 +327,15 @@ scaledual(::Type{Tdual}, x::AbstractArray{T}) where {Tdual, T <: FixedPoint} =
     throw(ArgumentError("$X is $bitstring type representing $n values from $Xmin to $Xmax; cannot represent $x"))
 end
 
-rand(::Type{T}) where {T <: FixedPoint} = reinterpret(T, rand(rawtype(T)))
-rand(::Type{T}, sz::Dims) where {T <: FixedPoint} = reinterpret(T, rand(rawtype(T), sz))
+function Random.rand(r::AbstractRNG, ::SamplerType{X}) where X <: FixedPoint
+    X(rand(r, rawtype(X)), 0)
+end
+
+function rand!(r::AbstractRNG, A::Array{X}, ::SamplerType{X}) where {T, X <: FixedPoint{T}}
+    At = unsafe_wrap(Array, reinterpret(Ptr{T}, pointer(A)), size(A))
+    Random.rand!(r, At, SamplerType{T}())
+    A
+end
 
 if VERSION >= v"1.1" # work around https://github.com/JuliaLang/julia/issues/34121
     include("precompile.jl")

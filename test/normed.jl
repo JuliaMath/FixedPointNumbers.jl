@@ -1,4 +1,4 @@
-using FixedPointNumbers, Statistics, Test
+using FixedPointNumbers, Statistics, Random, StableRNGs, Test
 using FixedPointNumbers: bitwidth
 
 # issue #288
@@ -595,6 +595,8 @@ end
         @test ndims(a) == 2 && eltype(a) == T
         @test size(a) == (3,5)
     end
+    @test !(rand(N0f16) == rand(N0f16) == rand(N0f16)) # If this fails, we should suspect a bug.
+    @test rand(StableRNG(1234), N0f8) === 0.267N0f8
 end
 
 @testset "Overflow with Float16" begin

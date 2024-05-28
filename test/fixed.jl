@@ -1,4 +1,4 @@
-using FixedPointNumbers, Statistics, Test
+using FixedPointNumbers, Statistics, Random, StableRNGs, Test
 using FixedPointNumbers: bitwidth
 
 # issue #288
@@ -404,6 +404,8 @@ end
         @test ndims(a) == 2 && eltype(a) == F
         @test size(a) == (3,5)
     end
+    @test !(rand(Q0f15) == rand(Q0f15) == rand(Q0f15)) # If this fails, we should suspect a bug.
+    @test rand(StableRNG(1234), Q0f7) === 0.531Q0f7
 end
 
 @testset "floatmin" begin

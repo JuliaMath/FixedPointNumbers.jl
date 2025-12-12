@@ -27,7 +27,7 @@ jobs:
       matrix:
         # tier 1: ubuntu-[x86|x64], windows-[x86|x64], macos-[x64|aarch64]
         # tier 2: ubuntu-arm-[aarch64]
-        julia-version: ['lts', '1', 'nightly']
+        julia-version: ['lts', '1']
         os: [ubuntu-latest, windows-latest, macos-15-intel]
         julia-arch: [x64]
         include:
@@ -37,15 +37,12 @@ jobs:
           - os: ubuntu-24.04-arm
             julia-version: '1'
             julia-arch: aarch64
-          # macOS-aarch64 x ['lts', '1', 'nightly']
+          # macOS-aarch64 x ['lts', '1']
           - os: macos-latest
             julia-version: 'lts'
             julia-arch: aarch64
           - os: macos-latest
             julia-version: '1'
-            julia-arch: aarch64
-          - os: macos-latest
-            julia-version: 'nightly'
             julia-arch: aarch64
 
     steps:

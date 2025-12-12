@@ -13,6 +13,9 @@ jobs:
   test:
     name: Julia v${{ matrix.julia-version }}-${{ matrix.julia-arch }} - ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    permissions: # needed to allow julia-actions/cache to proactively delete old caches that it has created
+      actions: write
+      contents: read
     strategy:
       fail-fast: false
       matrix:

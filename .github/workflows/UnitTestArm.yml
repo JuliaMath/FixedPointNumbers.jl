@@ -19,7 +19,7 @@ jobs:
       matrix:
         julia-version: ['1.0', '1.6', '1', 'nightly']
         os: [ubuntu-latest]
-        distro: [ubuntu_latest]
+        distro: [ubuntu24.04]
         arch: [aarch64]
 
     steps:
@@ -51,8 +51,7 @@ jobs:
           mkdir -p /home/runner/work/julia/
           tar -xf /tmp/julia-aarch64.tar.gz --strip-components=1 -C /home/runner/work/julia/
           rm /tmp/julia-aarch64.tar.gz
-
-      - uses: uraimo/run-on-arch-action@v2.7.2
+      - uses: uraimo/run-on-arch-action@v3
         name: Unit Test
         with:
           arch: ${{ matrix.arch }}

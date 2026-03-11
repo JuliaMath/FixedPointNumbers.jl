@@ -16,7 +16,7 @@ jobs:
       fail-fast: false
       matrix:
         julia-version: ['1.0', '1.6', '1', 'nightly']
-        os: [ubuntu-latest, windows-latest, macos-13]
+        os: [ubuntu-latest, windows-latest]
         julia-arch: [x64]
         include:
           - os: ubuntu-latest # only test one 32-bit job

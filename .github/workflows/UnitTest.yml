@@ -28,7 +28,7 @@ jobs:
         # tier 1: ubuntu-[x86|x64], windows-[x86|x64], macos-[x64|aarch64]
         # tier 2: ubuntu-arm-[aarch64]
         julia-version: ['lts', '1']
-        os: [ubuntu-latest, windows-latest, macos-15-intel]
+        os: [ubuntu-latest, windows-latest, macos-13]
         julia-arch: [x64]
         include:
           - os: ubuntu-latest # only test one 32-bit job

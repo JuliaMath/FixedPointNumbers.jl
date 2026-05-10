@@ -57,6 +57,7 @@ end
     @test saturating_mul(1.635, N0f8) === N0f8(1.0)
     @test checked_mul(0.635, N0f8) === N0f8(0.635)
     @test_throws ArgumentError checked_mul(1.635, N0f8)
+    @test unchecked_mul(1.635, N0f8) === wrapping_mul(1.635, N0f8)
 end
 
 @testset "reinterpret/bitstring" begin
@@ -326,6 +327,10 @@ end
         @test (x^2.1f0) ≈ fx^2.1f0
         @test (x^2.1) ≈ convert(Float64, x)^2.1
     end
+end
+
+@testset "unchecked arithmetic" begin
+    test_unchecked(Normed)
 end
 
 @testset "neg" begin

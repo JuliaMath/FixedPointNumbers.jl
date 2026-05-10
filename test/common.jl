@@ -1,5 +1,6 @@
 using FixedPointNumbers, Statistics, Random, StableRNGs, Test
 using FixedPointNumbers: bitwidth, rawtype, nbitsfrac
+using FixedPointNumbers.FixedPointArithmetic
 using Base.Checked
 
 SP = VERSION >= v"1.6.0-DEV.771" ? " " : "" # JuliaLang/julia #37085
@@ -157,7 +158,8 @@ function test_rem_type(TX::Type)
     @testset "% $X" for X in target(TX, :i8, :i16; ex = :thin)
         xs = typemin(X):0.1:typemax(X)
         @test all(x -> x % X === X(x), xs)
-        @test wrapping_rem(2, X) === saturating_rem(2, X) === checked_rem(2, X) === 2 % X
+        @test wrapping_rem(2, X) === saturating_rem(2, X) ===
+              checked_rem(2, X) === unchecked_rem(2, X) === 2 % X
     end
 end
 
@@ -165,6 +167,28 @@ function test_rem_nan(TX::Type)
     # TODO: avoid undefined behavior
     @testset "nan % $X" for X in target(TX, :i8, :i16, :i32, :i64; ex = :thin)
         @test NaN % X === NaN32 % X === NaN16 % X === zero(X)
+    end
+end
+
+function test_unchecked(TX::Type)
+    for X in target(TX, :i8, :i16, :i32, :i64; ex = :thin)
+        xs = (typemin(X), eps(X))
+        ys = (typemax(X), zero(X))
+        @test all(unchecked_neg.(xs) === wrapping_neg.(xs))
+        @test all(unchecked_abs.(xs) === wrapping_abs.(xs))
+        @test all(unchecked_add.(xs, ys) === wrapping_add.(xs, ys))
+        @test all(unchecked_sub.(xs, ys) === wrapping_sub.(xs, ys))
+        @test all(unchecked_mul.(xs, ys) === wrapping_mul.(xs, ys))
+        @test all(unchecked_div.(xs, ys) === wrapping_div.(xs, ys))
+        @test all(unchecked_fld.(xs, ys) === wrapping_fld.(xs, ys))
+        @test all(unchecked_cld.(xs, ys) === wrapping_cld.(xs, ys))
+        @test all(unchecked_rem.(xs, ys) === wrapping_rem.(xs, ys))
+        @test all(unchecked_mod.(xs, ys) === wrapping_mod.(xs, ys))
+        @test all(unchecked_fdiv.(xs, ys) === wrapping_fdiv.(xs, ys))
+        for r in (RoundNearest, RoundToZero, RoundUp, RoundDown)
+            @test all(unchecked_div.(xs, ys, r) === wrapping_div.(xs, ys, r))
+            @test all(unchecked_rem.(xs, ys, r) === wrapping_rem.(xs, ys, r))
+        end
     end
 end
 

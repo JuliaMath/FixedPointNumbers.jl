@@ -17,9 +17,7 @@ Aqua = "0.8"
 Documenter = "0.27, 1"
 Random = "<0.0.1, 1"
 StableRNGs = "1"
-# Update this version specifier when Statistics.jl v1.11.2 is released.
-# https://github.com/JuliaStats/Statistics.jl/issues/165
-Statistics = "< 1.11.2"
+Statistics = "1"
 Test = "1"
 julia = "1"
 

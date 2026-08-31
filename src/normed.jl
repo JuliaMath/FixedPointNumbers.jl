@@ -112,7 +112,7 @@ _rem(x::N, ::Type{N}) where {N <: Normed} = x
 _rem(x::Normed, ::Type{N}) where {T, N <: Normed{T}} =
     reinterpret(N, _unsafe_trunc(T, round((rawone(N)/rawone(x))*reinterpret(x))))
 function _rem(x::Real, ::Type{N}) where {T, N <: Normed{T}}
-    bitwidth(T) < 32 || isfinite(x) || return zero(N)
+    isfinite(x) || return zero(N)
     reinterpret(N, _unsafe_trunc(T, round(rawone(N) * x)))
 end
 _rem(x::Float16, ::Type{X}) where {X <: Normed} = _rem(Float32(x), X)  # avoid overflow

@@ -112,7 +112,7 @@ _rem(x::N, ::Type{N}) where {N <: Normed} = x
 _rem(x::Normed, ::Type{N}) where {T, N <: Normed{T}} =
     reinterpret(N, _unsafe_trunc(T, round((rawone(N)/rawone(x))*reinterpret(x))))
 function _rem(x::Real, ::Type{N}) where {T, N <: Normed{T}}
-    bitwidth(T) < 32 || isfinite(x) || return zero(N)
+    isfinite(x) || return zero(N)
     reinterpret(N, _unsafe_trunc(T, round(rawone(N) * x)))
 end
 _rem(x::Float16, ::Type{X}) where {X <: Normed} = _rem(Float32(x), X)  # avoid overflow
@@ -283,8 +283,10 @@ end
 function checked_mul(x::N, y::N) where {T <: Union{UInt8,UInt16,UInt32,UInt64}, f, N <: Normed{T,f}}
     f == bitwidth(T) && return wrapping_mul(x, y)
     z = widemul(x.i, y.i)
+    # `rawone(N)` is odd, so `z` rounds to `typemax(N).i` (no overflow) up to
+    # and including `m`; overflow starts at `m + 1`.
     m = widemul(typemax(N).i, rawone(N)) + (rawone(N) >> 0x1)
-    z < m || throw_overflowerror(:*, x, y)
+    z <= m || throw_overflowerror(:*, x, y)
     N(div_2fm1(z, Val(Int(f))) % T, 0)
 end
 

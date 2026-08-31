@@ -162,9 +162,10 @@ function test_rem_type(TX::Type)
 end
 
 function test_rem_nan(TX::Type)
-    # TODO: avoid undefined behavior
     @testset "nan % $X" for X in target(TX, :i8, :i16, :i32, :i64; ex = :thin)
         @test NaN % X === NaN32 % X === NaN16 % X === zero(X)
+        @test Inf % X === Inf32 % X === Inf16 % X === zero(X)
+        @test -Inf % X === -Inf32 % X === -Inf16 % X === zero(X)
     end
 end
 

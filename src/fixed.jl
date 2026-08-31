@@ -103,10 +103,10 @@ function _rem(x::Fixed, ::Type{F}) where {T, f, F <: Fixed{T,f}}
 end
 _rem(x::Integer, ::Type{F}) where {T, f, F <: Fixed{T,f}} = F(_unsafe_trunc(T, x) << f, 0)
 function _rem(x::Real, ::Type{F}) where {T, f, F <: Fixed{T,f}}
+    isfinite(x) || return zero(F)
     if bitwidth(T) < 32
         Ti = T
     else
-        isfinite(x) || return zero(F)
         Ti = promote_type(Int64, T)
     end
     Tf = floattype(F)

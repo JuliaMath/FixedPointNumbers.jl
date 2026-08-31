@@ -409,6 +409,10 @@ end
             @test_throws OverflowError checked_mul(typemax(N), typemax(N))
         end
     end
+    # products whose exact value rounds to `typemax` must not throw
+    @test checked_mul(reinterpret(N1f7, 0x9c), reinterpret(N1f7, 0xd0)) === typemax(N1f7)
+    @test checked_mul(reinterpret(N7f9, 0x0201), reinterpret(N7f9, 0xff00)) === typemax(N7f9)
+
     test_mul(Normed)
 end
 

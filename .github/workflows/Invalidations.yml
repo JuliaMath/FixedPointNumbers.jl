@@ -27,7 +27,7 @@ jobs:
           lines = readlines("Project.toml")
           open("Project.toml", "w") do f
               for l in lines
-                  if l == "version = \"0.9.0-dev\""
+                  if startswith(l, "version = ")
                       l = "version = \"0.8.4\""
                   end
                   println(f, l)
@@ -46,7 +46,7 @@ jobs:
           lines = readlines("Project.toml")
           open("Project.toml", "w") do f
               for l in lines
-                  if l == "version = \"0.9.0-dev\""
+                  if startswith(l, "version = ")
                       l = "version = \"0.8.4\""
                   end
                   println(f, l)

@@ -1,18 +1,16 @@
 module FixedPointNumbers
 
-import Base: ==, <, <=, -, +, *, /, ~, isapprox,
+# arithmetic functions (operators) are imported in "arithmetic.jl"
+import Base: ==, <, <=, ~, isapprox,
              convert, promote_rule, print, show, bitstring, abs, decompose,
              isnan, isinf, isfinite, isinteger,
              zero, oneunit, one, typemin, typemax, floatmin, floatmax, eps, reinterpret,
              big, rationalize, float, trunc, round, floor, ceil, bswap, clamp,
-             div, fld, cld, rem, mod, mod1, fld1, min, max, minmax,
+             mod1, fld1, min, max, minmax,
              signed, unsigned, copysign, flipsign, signbit,
              length
 
 import Random: Random, AbstractRNG, SamplerType, rand!
-
-import Base.Checked: checked_neg, checked_abs, checked_add, checked_sub, checked_mul,
-                     checked_div, checked_fld, checked_cld, checked_rem, checked_mod
 
 using Base: @pure
 
@@ -26,7 +24,6 @@ of fraction bits.
 """
 abstract type FixedPoint{T <: Integer, f} <: Real end
 
-
 export
     FixedPoint,
     Fixed,
@@ -35,12 +32,18 @@ export
 # "special" typealiases
     # Q and N typealiases are exported in separate source files
 # Functions
-    scaledual,
-    wrapping_neg, wrapping_abs, wrapping_add, wrapping_sub, wrapping_mul,
-    wrapping_div, wrapping_fld, wrapping_cld, wrapping_rem, wrapping_mod,
-    saturating_neg, saturating_abs, saturating_add, saturating_sub, saturating_mul,
-    saturating_div, saturating_fld, saturating_cld, saturating_rem, saturating_mod,
-    wrapping_fdiv, saturating_fdiv, checked_fdiv
+    scaledual
+
+include("arithmetic.jl")
+
+import .FixedPointArithmetic
+import .FixedPointArithmetic: Wrapping, Saturating, Checked, Unchecked
+
+for modname in (:Wrapping, :Saturating, :Checked, :Unchecked)
+    for name in names(getproperty(FixedPointArithmetic, modname))
+        @eval import .$modname: $name
+    end
+end
 
 include("utilities.jl")
 
@@ -58,16 +61,18 @@ signbits(::Type{X}) where {T, X <: FixedPoint{T}} = T <: Unsigned ? 0 : 1
 nbitsint(::Type{X}) where {X <: FixedPoint} = bitwidth(X) - nbitsfrac(X) - signbits(X)
 
 # construction using the (approximate) intended value, i.e., N0f8
-*(x::Real, ::Type{X}) where {X <: FixedPoint} = _convert(X, x)
+Base.:*(x::Real, ::Type{X}) where {X <: FixedPoint} = _convert(X, x)
 wrapping_mul(x::Real, ::Type{X}) where {X <: FixedPoint} = x % X
 saturating_mul(x::Real, ::Type{X}) where {X <: FixedPoint} = clamp(x, X)
 checked_mul(x::Real, ::Type{X}) where {X <: FixedPoint} = _convert(X, x)
+unchecked_mul(x::Real, ::Type{X}) where {X <: FixedPoint} = x % X
 
 # type modulus
-rem(x::Real, ::Type{X}) where {X <: FixedPoint} = _rem(x, X)
+Base.rem(x::Real, ::Type{X}) where {X <: FixedPoint} = _rem(x, X)
 wrapping_rem(x::Real, ::Type{X}) where {X <: FixedPoint} = _rem(x, X)
 saturating_rem(x::Real, ::Type{X}) where {X <: FixedPoint} = _rem(x, X)
 checked_rem(x::Real, ::Type{X}) where {X <: FixedPoint} = _rem(x, X)
+unchecked_rem(x::Real, ::Type{X}) where {X <: FixedPoint} = _rem(x, X)
 
 # constructor-style conversions
 (::Type{X})(x::X) where {X <: FixedPoint}      = x
@@ -324,31 +329,6 @@ function checked_rem(x::X, y::X, r::RoundingMode = RoundToZero) where {T, X <: F
     X(_unsafe_trunc(T, z), 0)
 end
 checked_mod(x::X, y::X) where {X <: FixedPoint} = checked_rem(x, y, RoundDown)
-
-# default arithmetic
-const DEFAULT_ARITHMETIC = :wrapping
-
-for (op, name) in ((:-, :neg), (:abs, :abs))
-    f = Symbol(DEFAULT_ARITHMETIC, :_, name)
-    @eval begin
-        $op(x::X) where {X <: FixedPoint} = $f(x)
-    end
-end
-for (op, name) in ((:+, :add), (:-, :sub), (:*, :mul))
-    f = Symbol(DEFAULT_ARITHMETIC, :_, name)
-    @eval begin
-        $op(x::X, y::X) where {X <: FixedPoint} = $f(x, y)
-    end
-end
-# force checked arithmetic
-/(x::X, y::X) where {X <: FixedPoint} = checked_fdiv(x, y)
-div(x::X, y::X, r::RoundingMode = RoundToZero) where {X <: FixedPoint} = checked_div(x, y, r)
-fld(x::X, y::X) where {X <: FixedPoint} = checked_div(x, y, RoundDown)
-cld(x::X, y::X) where {X <: FixedPoint} = checked_div(x, y, RoundUp)
-rem(x::X, y::X) where {X <: FixedPoint} = checked_rem(x, y, RoundToZero)
-rem(x::X, y::X, ::RoundingMode{:Down}) where {X <: FixedPoint} = checked_rem(x, y, RoundDown)
-rem(x::X, y::X, ::RoundingMode{:Up}) where {X <: FixedPoint} = checked_rem(x, y, RoundUp)
-mod(x::X, y::X) where {X <: FixedPoint} = checked_rem(x, y, RoundDown)
 
 function minmax(x::X, y::X) where {X <: FixedPoint}
     a, b = minmax(reinterpret(x), reinterpret(y))

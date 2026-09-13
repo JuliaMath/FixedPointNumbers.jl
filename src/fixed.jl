@@ -180,7 +180,7 @@ function mul_with_rounding(x::F, y::F, ::RoundingMode{:Down}) where
 end
 
 
-function trunc(x::Fixed{T,f}) where {T, f}
+function _trunc(x::Fixed{T,f}) where {T, f}
     f == 0 && return x
     f == bitwidth(T) && return zero(x) # TODO: remove this line
     f == bitwidth(T) - 1 && return x.i == typemin(T) ? x : zero(x)
@@ -189,17 +189,17 @@ function trunc(x::Fixed{T,f}) where {T, f}
     _rawone = oneunit(T) << f
     reinterpret(Fixed{T,f}, (x.i < 0) & (r != 0) ? t + _rawone : t)
 end
-function floor(x::Fixed{T,f}) where {T, f}
+function _floor(x::Fixed{T,f}) where {T, f}
     f == bitwidth(T) && x.i < 0 && throw_converterror(Fixed{T,f}, -1) # TODO: remove this line
     Fixed{T,f}(x.i & intmask(x), 0)
 end
-function ceil(x::Fixed{T,f}) where {T, f}
+function _ceil(x::Fixed{T,f}) where {T, f}
     f == 0 && return x
     upper = typemax(T) & intmask(x)
     x.i > upper && throw_converterror(Fixed{T,f}, ceil(float(x)))
     reinterpret(Fixed{T,f}, (x.i + fracmask(x)) & intmask(x))
 end
-function round(x::Fixed{T,f}) where {T, f}
+function _round(x::Fixed{T,f}) where {T, f}
     f == 0 && return x
     f == bitwidth(T) && return zero(x) # TODO: remove this line
     upper = intmask(x) >>> 0x1
@@ -236,7 +236,7 @@ function _round_digits(x::F, r::RoundingMode, d::Int) where {f, F <: Fixed{Int8,
     return x
 end
 
-function trunc(::Type{Ti}, x::Fixed{T,f}) where {Ti <: Integer, T, f}
+function _trunc(::Type{Ti}, x::Fixed{T,f}) where {Ti <: Integer, T, f}
     f == 0 && return convert(Ti, x.i)
     f == bitwidth(T) && return zero(Ti) # TODO: remove this line
     f == bitwidth(T) - 1 && return x.i == typemin(T) ? convert(Ti, -1) : zero(Ti)
@@ -244,16 +244,16 @@ function trunc(::Type{Ti}, x::Fixed{T,f}) where {Ti <: Integer, T, f}
     r = x.i & fracmask(x)
     convert(Ti, (x.i < 0) & (r != 0) ? t + oneunit(T) : t)
 end
-function floor(::Type{Ti}, x::Fixed{T,f}) where {Ti <: Integer, T, f}
+function _floor(::Type{Ti}, x::Fixed{T,f}) where {Ti <: Integer, T, f}
     f == bitwidth(T) && return x.i < 0 ? convert(Ti, -1) : zero(Ti) # TODO: remove this line
     convert(Ti, x.i >> f)
 end
-function ceil(::Type{Ti}, x::Fixed{T,f}) where {Ti <: Integer, T, f}
+function _ceil(::Type{Ti}, x::Fixed{T,f}) where {Ti <: Integer, T, f}
     f == bitwidth(T) && return x.i > 0 ? oneunit(Ti) : zero(Ti) # TODO: remove this line
     y = x.i + fracmask(x)
     convert(Ti, x.i >= 0 ? y >>> f : y >> f)
 end
-function round(::Type{Ti}, x::Fixed{T,f}) where {Ti <: Integer, T, f}
+function _round(::Type{Ti}, x::Fixed{T,f}) where {Ti <: Integer, T, f}
     f == 0 && return convert(Ti, x.i)
     f == bitwidth(T) && return zero(Ti) # TODO: remove this line
     upper = intmask(x) >>> 0x1

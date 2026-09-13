@@ -129,7 +129,7 @@ function _isapprox_rtol(m::X, n::X, rtol) where {X <: FixedPoint}
 end
 
 # predicates
-isinteger(x::FixedPoint) = x == trunc(x) # TODO: use floor(x) when dropping support for Fixed{Int8,8}
+isinteger(x::FixedPoint) = x == _trunc(x) # TODO: use _floor(x) when dropping support for Fixed{Int8,8}
 isfinite(x::FixedPoint) = true
 isnan(x::FixedPoint) = false
 isinf(x::FixedPoint) = false
@@ -405,7 +405,7 @@ function round(x::FixedPoint, r::RoundingMode=RoundNearest;
     elseif d < 0
         throw(ArgumentError("negative `digits` is not supported."))
     end
-    d === 0 ? _round_digits0(x, r) : _round_digits(x, r, d)
+    d === 0 ? round(x, r) : _round_digits(x, r, d)
 end
 function _round_digits(x::X, r::RoundingMode, d::Int) where {T, f, X <: FixedPoint{T,f}}
     log10_2 = 0.3010299956639812
@@ -414,9 +414,6 @@ function _round_digits(x::X, r::RoundingMode, d::Int) where {T, f, X <: FixedPoi
     typemin(X) - eps(X)/2 <= r < typemax(X) + eps(X)/2 || throw_converterror(X, r)
     clamp(r, X)
 end
-
-trunc(x::X) where {X <: FixedPoint{<:Unsigned}} = floor(x)
-trunc(::Type{Ti}, x::X) where {X <: FixedPoint{<:Unsigned}, Ti <: Integer} = floor(Ti, x)
 
 for f in (:zero, :oneunit, :one, :eps, :rawone, :rawtype, :floattype)
     @eval begin
@@ -437,11 +434,20 @@ for (m, f) in ((:(:Nearest), :round),
                (:(:ToZero), :trunc),
                (:(:Up), :ceil),
                (:(:Down), :floor))
+    _f = Symbol(:_, f)
     @eval begin
-        _round_digits0(x::FixedPoint, ::RoundingMode{$m}) = $f(x)
-        round(::Type{Ti}, x::FixedPoint, ::RoundingMode{$m}) where {Ti <: Integer} = $f(Ti, x)
+        round(x::FixedPoint, ::RoundingMode{$m}) = $_f(x)
+        round(::Type{Ti}, x::FixedPoint, ::RoundingMode{$m}) where {Ti <: Integer} = $_f(Ti, x)
+
+        if !hasmethod($f, Tuple{Type{<:Integer}, FixedPoint}) ||
+            which($f, Tuple{Type{<:Integer}, FixedPoint}).module !== Base
+
+            $f(::Type{Ti}, x::FixedPoint) where {Ti <: Integer} = $_f(Ti, x)
+        end
     end
 end
+_trunc(x::X) where {X <: FixedPoint{<:Unsigned}} = _floor(x)
+_trunc(::Type{Ti}, x::X) where {X <: FixedPoint{<:Unsigned}, Ti <: Integer} = _floor(Ti, x)
 
 function length(r::StepRange{X,X}) where {X <: FixedPoint{<:ShorterThanInt}}
     start, step, stop = Int(reinterpret(r.start)), Int(reinterpret(r.step)), Int(reinterpret(r.stop))

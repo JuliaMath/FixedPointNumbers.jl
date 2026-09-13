@@ -292,8 +292,8 @@ end
 
 
 # Functions
-floor(x::N) where {N <: Normed} = reinterpret(N, x.i - x.i % rawone(N))
-function ceil(x::Normed{T,f}) where {T, f}
+_floor(x::N) where {N <: Normed} = reinterpret(N, x.i - x.i % rawone(N))
+function _ceil(x::Normed{T,f}) where {T, f}
     f == 1 && return x
     if typemax(T) % rawone(x) != 0
         upper = typemax(T) - typemax(T) % rawone(x)
@@ -302,7 +302,7 @@ function ceil(x::Normed{T,f}) where {T, f}
     r = x.i % rawone(x)
     reinterpret(Normed{T,f}, x.i - r + (r > 0 ? rawone(x) : zero(T)))
 end
-function round(x::Normed{T,f}) where {T, f}
+function _round(x::Normed{T,f}) where {T, f}
     r = x.i % rawone(x)
     q = rawone(x) - r
     reinterpret(Normed{T,f}, r > q ? x.i + q : x.i - r)
@@ -327,14 +327,14 @@ function _round_digits(x::N0f8, r::RoundingMode, d::Int)
     end
 end
 
-function floor(::Type{Ti}, x::Normed) where {Ti <: Integer}
+function _floor(::Type{Ti}, x::Normed) where {Ti <: Integer}
     convert(Ti, reinterpret(x) ÷ rawone(x))
 end
-function ceil(::Type{Ti}, x::Normed) where {Ti <: Integer}
+function _ceil(::Type{Ti}, x::Normed) where {Ti <: Integer}
     d, r = divrem(x.i, rawone(x))
     convert(Ti, r > 0 ? d + oneunit(rawtype(x)) : d)
 end
-function round(::Type{Ti}, x::Normed) where {Ti <: Integer}
+function _round(::Type{Ti}, x::Normed) where {Ti <: Integer}
     d, r = divrem(x.i, rawone(x))
     convert(Ti, r > (rawone(x) >> 0x1) ? d + oneunit(rawtype(x)) : d)
 end

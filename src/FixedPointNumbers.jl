@@ -14,8 +14,6 @@ import Random: Random, AbstractRNG, SamplerType, rand!
 import Base.Checked: checked_neg, checked_abs, checked_add, checked_sub, checked_mul,
                      checked_div, checked_fld, checked_cld, checked_rem, checked_mod
 
-using Base: @pure
-
 """
     FixedPoint{T <: Integer, f} <: Real
 

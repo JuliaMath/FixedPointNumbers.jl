@@ -273,10 +273,12 @@ Base.unitrange_last(start::F, stop::F) where {F<:Fixed} =
     stop >= start ? convert(F, start+floor(stop-start)) : convert(F, start+F(-1))
 
 # Range lengths
-length(r::AbstractUnitRange{F}) where {F <: Fixed{<:SShorterThanInt,f}} where {f} =
-    ((Int(reinterpret(last(r))) - Int(reinterpret(first(r)))) >> f) + 1
-length(r::AbstractUnitRange{F}) where {F <: Fixed{T}} where {T <: Signed} =
-    checked_add(checked_sub(floor(T, last(r)), floor(T, first(r))), oneunit(T))
+function _length(r::AbstractUnitRange{F}) where {f, F <: Fixed{<:SShorterThanInt,f}}
+    return ((Int(reinterpret(last(r))) - Int(reinterpret(first(r)))) >> f) + 1
+end
+function _length(r::AbstractUnitRange{F}) where {T <: Signed, F <: Fixed{T}}
+    return checked_add(checked_sub(floor(T, last(r)), floor(T, first(r))), oneunit(T))
+end
 
 # TODO: Document and check that it still does the right thing.
 decompose(x::Fixed{T,f}) where {T,f} = x.i, -f, 1

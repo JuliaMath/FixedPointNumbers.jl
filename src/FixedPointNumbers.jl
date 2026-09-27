@@ -447,17 +447,19 @@ end
 _trunc(x::X) where {X <: FixedPoint{<:Unsigned}} = _floor(x)
 _trunc(::Type{Ti}, x::X) where {X <: FixedPoint{<:Unsigned}, Ti <: Integer} = _floor(Ti, x)
 
-function length(r::StepRange{X,X}) where {X <: FixedPoint{<:ShorterThanInt}}
-    start, step, stop = Int(reinterpret(r.start)), Int(reinterpret(r.step)), Int(reinterpret(r.stop))
+length(r::AbstractUnitRange{<:FixedPoint}) = _length(r)
+length(r::StepRange{<:FixedPoint}) = _length(r)
+
+function _length(r::StepRange{X,X}) where {X <: FixedPoint{<:ShorterThanInt}}
+    start, step, stop = Int.(reinterpret.((r.start, r.step, r.stop)))
     return div((stop - start) + step, step)
 end
-function length(r::StepRange{X,X}) where {X <: FixedPoint}
-    start, step, stop = reinterpret(r.start), reinterpret(r.step), reinterpret(r.stop)
+function _length(r::StepRange{X,X}) where {X <: FixedPoint}
+    start, step, stop = reinterpret.((r.start, r.step, r.stop))
     return checked_div(checked_add(checked_sub(stop, start), step), step)
 end
-function length(r::StepRange{<:FixedPoint})
-    start, step, stop = float(r.start), r.step, float(r.stop)
-    return div((stop - start) + step, step)
+function _length(r::StepRange{<:FixedPoint})
+    return length(float(r.start):r.step:float(r.stop))
 end
 
 hasalias(::Type) = false

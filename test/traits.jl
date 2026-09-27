@@ -1,5 +1,5 @@
 using FixedPointNumbers, Test
-using FixedPointNumbers: bitwidth
+using FixedPointNumbers: bitwidth, rawtype
 
 struct MyReal <: Real end
 struct MyInteger <: Integer end
@@ -31,4 +31,14 @@ struct MyInteger <: Integer end
 
     @test_throws MethodError floattype(MyReal) # See #177.
     @test floattype(MyInteger) === Float64
+end
+
+@testset "rawtype" begin
+    @test rawtype(FixedPoint) === Union{}
+    @test rawtype(Normed) === Union{}
+    @test rawtype(Fixed) === Union{}
+    @test rawtype(Normed{<:Unsigned}) === Union{}
+    @test rawtype(Fixed{Union{Int8, Int16}}) === Union{Int8, Int16}
+    @test rawtype(N0f8) === UInt8
+    @test rawtype(Q0f7) === Int8
 end

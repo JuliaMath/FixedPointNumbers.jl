@@ -49,7 +49,8 @@ reinterpret(::Type{X}, x::T) where {T <: Integer, X <: FixedPoint{T}} = X(x, 0)
 
 # static parameters
 nbitsfrac(::Type{X}) where {T, f, X <: FixedPoint{T,f}} = f
-rawtype(::Type{X}) where {T, X <: FixedPoint{T}} = T
+rawtype(::Type{X}) where {T <: Integer, X <: FixedPoint{T}} = T
+rawtype(::Type{<:FixedPoint}) = Union{} # Don't care the constraints for `T`
 
 # traits based on static parameters
 signbits(::Type{X}) where {T, X <: FixedPoint{T}} = T <: Unsigned ? 0 : 1
@@ -531,12 +532,18 @@ promote_rule(::Type{X}, ::Type{Tr}) where {X <: FixedPoint, Tr <: Rational} = Tr
 
 promote_rule(::Type{X}, ::Type{Ti}) where {X <: FixedPoint, Ti <: Integer} = floattype(X)
 
-function promote_rule(::Type{X1}, ::Type{X2}) where {T1, f1, X1 <: FixedPoint{T1,f1},
-                                                     T2, f2, X2 <: FixedPoint{T2,f2}}
-    X = wrapper(X1)
-    X !== wrapper(X2) && return promote_type(floattype(X1), floattype(X2))
-
-    f = max(f1, f2)  # ensure we have enough precision
+function promote_rule(::Type{X1}, ::Type{X2}) where {X1 <: FixedPoint, X2 <: FixedPoint}
+    X1w, X2w = wrapper.((X1, X2))
+    if X1w !== X2w
+        X1w <: X2w && return X2w
+        X2w <: X1w && return X1w
+        return promote_type(floattype(X1), floattype(X2))
+    end
+    X = X1w
+    T1, T2 = rawtype.((X1, X2))
+    isconcretetype(T1) && isconcretetype(T2) || return X{promote_type(T1, T2)}
+    f1, f2 = nbitsfrac.((X1, X2))
+    f = max(f1, f2) # ensure we have enough precision
     Tp = promote_type(T1, T2)
     T = (T1 <: Signed || T2 <: Signed) ? signedtype(Tp) : Tp
     # make sure we have enough integer bits

@@ -408,3 +408,20 @@ function test_rand(TX::Type)
         @test size(a) == (3, 5)
     end
 end
+
+function test_promote_type(TX::Type)
+    @testset "promote_type with Union/UnionAll" begin
+        # Although `TX{Union{},f}` is not a valid data type, it should not cause an error.
+        # `<:Real` means that the rule is not well-defined and may change in the future.
+        @test promote_type(TX{Union{},1}, TX{Union{},2}) <: Real
+        @test promote_type(TX{Union{},1}, TX{Union{}}) <: Real
+        for X in target(TX, :i8, :i64; ex = :thin)
+            T = rawtype(X)
+            Tw = widen(T)
+            @test promote_type(TX{Union{},2}, X) <: Real
+            @test promote_type(TX{Union{T, Tw},2}, X) <: Real
+            @test promote_type(Union{TX{T,2}, TX{Tw,2}}, X) <: Real
+        end
+    end
+    # TODO: Add more tests
+end

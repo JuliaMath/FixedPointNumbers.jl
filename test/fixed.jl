@@ -714,6 +714,8 @@ end
 end
 
 @testset "Promotion within Fixed" begin
+    test_promote_type(Fixed)
+
     @test @inferred(promote(Q0f7(0.25), Q0f7(0.75))) ===
         (Q0f7(0.25), Q0f7(0.75))
     @test @inferred(promote(Fixed{Int16,3}(0.25), Fixed{Int8,3}(0.875))) ===

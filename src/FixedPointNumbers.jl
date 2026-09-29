@@ -522,7 +522,6 @@ end
 include("fixed.jl")
 include("normed.jl")
 include("deprecations.jl")
-const UF = (N0f8, N6f10, N4f12, N2f14, N0f16)
 
 # Promotions
 promote_rule(::Type{X}, ::Type{Tf}) where {X <: FixedPoint, Tf <: AbstractFloat} =

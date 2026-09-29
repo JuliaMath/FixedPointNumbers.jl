@@ -675,6 +675,9 @@ end
     end
     @test counter == 256
     @test length(r) == 256
+    @test 1.23Q15f16:-0.4Q0f7:-5.67Q15f16 isa StepRange{Q15f16, Q0f7}
+    @test length(1.23Q15f16:-0.4Q0f7:-5.67Q15f16) == length(1.23:-0.4:-5.67)
+    @test length(1.23Q15f16:-0.4Q0f7:5.67Q15f16) == 0
     QInt1 = Fixed{Int,1}
     @test length(QInt1(0):eps(QInt1):typemax(QInt1)-eps(QInt1)) == typemax(Int)
     @test_throws OverflowError length(typemin(QInt1):eps(QInt1):typemax(QInt1)-eps(QInt1))

@@ -734,6 +734,14 @@ end
     @test @inferred(promote_type(N0f8, Q0f31)) === Float64
 end
 
+@testset "widen" begin
+    @test @inferred(widen(N0f8)) === N8f8
+    @test @inferred(widen(Normed{UInt64,10})) === Normed{UInt128,10}
+    @test @inferred(widen(0.2N0f8)) === 0.2N8f8
+    @test @inferred(widemul(N4f4(15), N4f4(15))) === N12f4(225)
+    @test_throws MethodError widen(Normed{UInt128,8})
+end
+
 @testset "show" begin
     @test (@test_deprecated FixedPointNumbers.typechar(N0f8)) === 'N'
 

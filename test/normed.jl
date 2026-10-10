@@ -116,7 +116,7 @@ end
     @test occursin("N0f8 is an 8-bit type representing 256 values from 0.0 to 1.0;", msg)
     ret = @test_throws ArgumentError convert(Normed{UInt128,100}, 10.0^9)
     msg = ret.value.msg
-    @test occursin("Normed{UInt128,$(SP)100} is a 128-bit type representing 2^128 values", msg)
+    @test occursin("Normed{UInt128, 100} is a 128-bit type representing 2^128 values", msg)
 end
 
 @testset "disambiguation constructors" begin
@@ -193,6 +193,8 @@ end
     @test rationalize(Int16, 0.804N0f8) === Rational{Int16}(41//51)
     @test rationalize(0.804N0f8, tol=0.002) === Rational{Int}(41//51)
     @test rationalize(Int8, 0.804N0f8, tol=0.005) === Rational{Int8}(4//5)
+
+    test_hash_rational(Normed)
 end
 
 @testset "BigFloat conversions" begin
@@ -230,7 +232,6 @@ end
              end
 
             input_upper = Tf(BigFloat(typemax(T)) / r, RoundDown)
-            isinf(input_upper) && continue # for Julia v0.7
             @test reinterpret(N(input_upper)) == T(min(round(BigFloat(input_upper) * r), typemax(T)))
 
             input_exp2 = Tf(exp2(bitwidth(T) - f))
@@ -250,6 +251,11 @@ end
     for T in (Float16, Float32, Float64)
         y = convert(T, x)
         @test isa(y, T)
+    end
+
+    # the generic method serves `AbstractFloat` types without a dedicated method
+    for Tf in (Float16, Float32, Float64), x in (0.2N0f8, 0.2N0f16, 0.2N2f14, 0.2N0f32, 0.2N0f64)
+        @test invoke(Tf, Tuple{Normed}, x) === Tf(x)
     end
 
     for Tf in (Float16, Float32, Float64)
@@ -591,10 +597,10 @@ end
 end
 
 @testset "sign-related functions" begin
-    @test_throws Exception signed(N0f8)
-    @test_throws Exception signed(1N0f8)
-    @test_throws Exception unsigned(N0f8)
-    @test_throws Exception unsigned(1N0f8)
+    @test_throws MethodError signed(N0f8)
+    @test_throws MethodError signed(1N0f8)
+    @test_throws MethodError unsigned(N0f8)
+    @test_throws MethodError unsigned(1N0f8)
     @test_throws ArgumentError copysign(1N0f8, 0x1)
     @test_throws ArgumentError copysign(1N0f8, -1)
     @test_throws ArgumentError flipsign(1N0f8, 0x1)
@@ -672,6 +678,8 @@ end
     acmp = Float64(a[1])*Float64(a[2])
     @test prod(a) == acmp
     @test prod(a, dims=1) == [acmp]
+
+    test_reductions_short(Normed)
 end
 
 @testset "reductions, Statistics" begin
@@ -770,22 +778,16 @@ end
     @test String(take!(iob)) == "43691.33333N16f16"
 
     show(iob, Normed{UInt128,64}(1.2345e6))
-    @test String(take!(iob)) == "Normed{UInt128,$(SP)64}(1.2345e6)"
+    @test String(take!(iob)) == "Normed{UInt128, 64}(1.2345e6)"
 end
 
 @testset "summary" begin
     a = N0f8[0.2, 0.4]
     aa = Normed[0.2N0f8 0.4N0f16]
 
-    if VERSION >= v"1.6.0-DEV.356"
-        @test summary(a) == "2-element Vector{N0f8}"
-        @test summary(view(a, 1:2)) == "2-element view(::Vector{N0f8}, 1:2) with eltype N0f8"
-        @test summary(aa) == "1×2 Matrix{Normed}"
-    else
-        @test summary(a) == "2-element Array{N0f8,1} with eltype Normed{UInt8,8}"
-        @test summary(view(a, 1:2)) == "2-element view(::Array{N0f8,1}, 1:2) with eltype Normed{UInt8,8}"
-        @test summary(aa) == "1×2 Array{Normed,2}"
-    end
+    @test summary(a) == "2-element Vector{N0f8}"
+    @test summary(view(a, 1:2)) == "2-element view(::Vector{N0f8}, 1:2) with eltype N0f8"
+    @test summary(aa) == "1×2 Matrix{Normed}"
 end
 
 @testset "scaledual" begin

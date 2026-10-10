@@ -26,10 +26,6 @@ const UShorterThanInt = typeintersect(ShorterThanInt, Unsigned)
 macro f32(x::Float64) # just for hexadecimal floating-point literals
     :(Float32($x))
 end
-macro exp2(n)
-     :(_exp2(Val($(esc(n)))))
-end
-_exp2(::Val{N}) where {N} = exp2(N)
 
 # these are defined in julia/float.jl or julia/math.jl, but not exported
 significand_bits(::Type{Float32}) = 23

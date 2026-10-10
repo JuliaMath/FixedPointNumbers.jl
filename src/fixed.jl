@@ -50,7 +50,7 @@ fracmask(x::Fixed{T,f}) where {T, f} = ~intmask(x) # Signed
 
 # constructor-style conversions
 function _convert(::Type{F}, x::Fixed{T2,f2}) where {T, T2, f, f2, F <: Fixed{T,f}}
-    y = round(@exp2(f-f2) * reinterpret(x))
+    y = round(exp2(f-f2) * reinterpret(x))
     (typemin(T) <= y) & (y <= typemax(T)) || throw_converterror(F, x)
     reinterpret(F, _unsafe_trunc(T, y))
 end
@@ -65,10 +65,10 @@ end
 
 function _convert(::Type{F}, x::AbstractFloat) where {T, f, F <: Fixed{T,f}}
     bigx = big(x)
-    bmin = BigFloat(typemin(F)) - @exp2(-f-1)
-    bmax = BigFloat(typemax(F)) + @exp2(-f-1)
+    bmin = BigFloat(typemin(F)) - exp2(-f-1)
+    bmax = BigFloat(typemax(F)) + exp2(-f-1)
     if bmin <= bigx < bmax
-        reinterpret(F, round(T, bigx * @exp2(f)))
+        reinterpret(F, round(T, bigx * exp2(f)))
     else
         throw_converterror(F, x)
     end
@@ -78,8 +78,8 @@ _convert(::Type{F}, x::Float16) where {T, f, F <: Fixed{T,f}} = F(Float32(x))
 
 function _convert(::Type{F}, x::Union{Float32, Float64}) where {T, f, F <: Fixed{T,f}}
     Tf = typeof(x)
-    if Tf(typemin(F) - @exp2(-f-1)) <= x < Tf(typemax(F) + @exp2(-f-1))
-        reinterpret(F, round(T, x * @exp2(f)))
+    if Tf(typemin(F) - exp2(-f-1)) <= x < Tf(typemax(F) + exp2(-f-1))
+        reinterpret(F, round(T, x * exp2(f)))
     else
         throw_converterror(F, x)
     end
@@ -89,7 +89,7 @@ function _convert(::Type{F}, x::Rational) where {T, f, F <: Fixed{T,f}}
     xmin = widemul(denominator(x), widen1(T)(typemin(T)) << 0x1 - 0x1)
     xmax = widemul(denominator(x), oneunit(widen1(T)) << bitwidth(T) - 0x1)
     if xmin <= (widen1(numerator(x)) << UInt8(f + 1)) < xmax
-        reinterpret(F, round(T, convert(floattype(T), x) * @exp2(f)))
+        reinterpret(F, round(T, convert(floattype(T), x) * exp2(f)))
     else
         throw_converterror(F, x)
     end
@@ -98,7 +98,7 @@ end
 _rem(x::F, ::Type{F}) where {F <: Fixed} = x
 function _rem(x::Fixed, ::Type{F}) where {T, f, F <: Fixed{T,f}}
     f2 = nbitsfrac(typeof(x))
-    y = round(@exp2(f - f2) * reinterpret(x))
+    y = round(exp2(f - f2) * reinterpret(x))
     reinterpret(F, _unsafe_trunc(T, y))
 end
 _rem(x::Integer, ::Type{F}) where {T, f, F <: Fixed{T,f}} = F(_unsafe_trunc(T, x) << f, 0)
@@ -110,18 +110,18 @@ function _rem(x::Real, ::Type{F}) where {T, f, F <: Fixed{T,f}}
         Ti = promote_type(Int64, T)
     end
     Tf = floattype(F)
-    y = _unsafe_trunc(Ti, round(x * Tf(@exp2(f))))
+    y = _unsafe_trunc(Ti, round(x * Tf(exp2(f))))
     reinterpret(F, _unsafe_trunc(T, y))
 end
 function _rem(x::BigFloat, ::Type{F}) where {T, f, F <: Fixed{T,f}}
     isfinite(x) || return zero(F)
-    reinterpret(F, _unsafe_trunc(T, round(x * @exp2(f))))
+    reinterpret(F, _unsafe_trunc(T, round(x * exp2(f))))
 end
 
-(::Type{Tf})(x::Fixed{T,f}) where {Tf <: AbstractFloat, T, f} = Tf(Tf(x.i) * Tf(@exp2(-f)))
+(::Type{Tf})(x::Fixed{T,f}) where {Tf <: AbstractFloat, T, f} = Tf(Tf(x.i) * Tf(exp2(-f)))
 Base.Float16(x::Fixed{T,f}) where {T, f} = Float16(Float32(x))
-Base.Float32(x::Fixed{T,f}) where {T, f} = Float32(x.i) * Float32(@exp2(-f))
-Base.Float64(x::Fixed{T,f}) where {T, f} = Float64(x.i) * @exp2(-f)
+Base.Float32(x::Fixed{T,f}) where {T, f} = Float32(x.i) * Float32(exp2(-f))
+Base.Float64(x::Fixed{T,f}) where {T, f} = Float64(x.i) * exp2(-f)
 
 function Base.Rational(x::Fixed{T,f}) where {T, f}
     f < bitwidth(T)-1 ? x.i//rawone(x) : x.i//(one(widen1(T))<<f)
@@ -205,10 +205,10 @@ function _round(x::Fixed{T,f}) where {T, f}
     upper = intmask(x) >>> 0x1
     lower = intmask(x) >> 0x1
     if f == bitwidth(T) - 1
-        x.i > upper && throw_converterror(Fixed{T,f}, @exp2(bitwidth(T)-f-1))
+        x.i > upper && throw_converterror(Fixed{T,f}, exp2(bitwidth(T)-f-1))
         return x.i < lower ? typemin(x) : zero(x)
     end
-    x.i >= upper && throw_converterror(Fixed{T,f}, @exp2(bitwidth(T)-f-1))
+    x.i >= upper && throw_converterror(Fixed{T,f}, exp2(bitwidth(T)-f-1))
     y = oneunit(T) << UInt8(f - 1) + x.i
     m = oneunit(T) << UInt8(f + 1) - oneunit(T)
     z = y & intmask(x)
@@ -223,7 +223,7 @@ function _round_digits(x::F, r::RoundingMode, d::Int) where {f, F <: Fixed{Int8,
     else
         xr = r isa RoundingMode{:Up} ? (xd + fracmask(x)) >> uf : div_2f(xd, Val(Int(f)))
         if d < 3 && xr == (Int16(d === 1 ? 10 : 100) << (0x7 - uf))
-            throw_converterror(F, @exp2(7 - f))
+            throw_converterror(F, exp2(7 - f))
         end
     end
     h8, h24  = Int16(0x80), Int32(1 << 23)

@@ -179,7 +179,7 @@ function Base.Float32(x::Normed{UInt32,f}) where f
         return muladd(rh, @f32(0x1p-16), rl * @f32(0x1p-40))
     elseif f >= 25
         rh, rl = Float32(i32>>>0x10), Float32((i32&0xFFFF)<<0xE + i32>>>UInt8(f-14))
-        return muladd(rh, Float32(@exp2(16-f)), rl * Float32(@exp2(-14-f)))
+        return muladd(rh, Float32(exp2(16-f)), rl * Float32(exp2(-14-f)))
     end
     # FIXME: avoid the branch in native x86_64 (non-SIMD) codes
     m = ifelse(i32 < 0, 0x1p32 * inv_rawone(x), 0.0)
@@ -225,24 +225,24 @@ end
 function Base.Float64(x::Normed{UInt64,f}) where f
     f == 1 && return Float64(x.i)
     if f >= 53
-        rh = Float64(unsafe_trunc(Int64, x.i>>0x10)) * @exp2(16-f) # upper 48 bits
-        rl = Float64(unsafe_trunc(Int32, x.i&0xFFFF)) * @exp2(-f)  # lower 16 bits
-        return rh + muladd(rh, @exp2(-f), rl)
+        rh = Float64(unsafe_trunc(Int64, x.i>>0x10)) * exp2(16-f) # upper 48 bits
+        rl = Float64(unsafe_trunc(Int32, x.i&0xFFFF)) * exp2(-f)  # lower 16 bits
+        return rh + muladd(rh, exp2(-f), rl)
     end
     x.i / rawone(x)
 end
 function Base.Float64(x::Normed{UInt128,f}) where f
     f == 1 && return Float64(x.i)
     ih, il = unsafe_trunc(Int64, x.i>>0x40), unsafe_trunc(Int64, x.i)
-    rh = Float64(ih>>>0x10) * @exp2(f <= 53 ? 80 : 80 - f) # upper 48 bits
-    km = @exp2(f <= 53 ? 48 : 48 - f) # for middle 32 bits
+    rh = Float64(ih>>>0x10) * exp2(f <= 53 ? 80 : 80 - f) # upper 48 bits
+    km = exp2(f <= 53 ? 48 : 48 - f) # for middle 32 bits
     rm = Float64(unsafe_trunc(Int32, ih&0xFFFF)) * (0x1p16 * km) +
          Float64(unsafe_trunc(Int32, il>>>0x30)) * km
-    rl = Float64(il&0xFFFFFFFFFFFF) * @exp2(f <= 53 ? 0 : -f) # lower 48 bits
+    rl = Float64(il&0xFFFFFFFFFFFF) * exp2(f <= 53 ? 0 : -f) # lower 48 bits
     if f <= 53
         return (rh + (rm + rl)) / unsafe_trunc(Int64, rawone(x))
     elseif f < 76
-        return rh + (rm + muladd(rh, @exp2(-f), rl))
+        return rh + (rm + muladd(rh, exp2(-f), rl))
     else
         return rh + (rm + rl)
     end

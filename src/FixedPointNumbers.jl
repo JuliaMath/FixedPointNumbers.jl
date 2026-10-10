@@ -6,7 +6,7 @@ import Base: ==, <, <=, -, +, *, /, ~, isapprox,
              zero, oneunit, one, typemin, typemax, floatmin, floatmax, eps, reinterpret,
              big, rationalize, float, trunc, round, floor, ceil, bswap, clamp,
              div, fld, cld, rem, mod, mod1, fld1, min, max, minmax,
-             signed, unsigned, sign, copysign, flipsign, signbit,
+             sign, copysign, flipsign, signbit,
              length, widen, widemul
 
 import Random: Random, AbstractRNG, SamplerType, rand!
@@ -137,8 +137,7 @@ zero(::Type{X}) where {X <: FixedPoint} = X(zero(rawtype(X)), 0)
 oneunit(::Type{X}) where {X <: FixedPoint} = X(rawone(X), 0)
 one(::Type{X}) where {X <: FixedPoint} = oneunit(X)
 
-# for Julia v1.0, which does not fold `div_float` before inlining
-inv_rawone(x) = (@generated) ? (y = 1.0 / rawone(x); :($y)) : 1.0 / rawone(x)
+inv_rawone(x) = 1.0 / rawone(x)
 
 # traits
 eps(::Type{X}) where {X <: FixedPoint} = X(oneunit(rawtype(X)), 0)
@@ -357,19 +356,10 @@ bitstring(x::FixedPoint) = bitstring(x.i)
 
 bswap(x::X) where {X <: FixedPoint} = sizeof(X) == 1 ? x : X(bswap(x.i), 0)
 
-# At least on Julia v1.5.0 or earlier, the following specialization helps the
-# SIMD vectorization. (cf. PR #194)
+# Julia 1.10 and earlier vectorize the loops over `clamp` only with this specialization. (cf. PR #194)
 clamp(x::X, lo::X, hi::X) where {X <: FixedPoint} = X(clamp(x.i, lo.i, hi.i), 0)
 
 clamp(x, ::Type{X}) where {X <: FixedPoint} = clamp(x, typemin(X), typemax(X)) % X
-
-# Since `FixedPoint` is not an integer type, it is not clear in what type
-# `signed` and `unsigned` for `FixedPoint` should return values. They should
-# currently throw errors in case we support "unsigned Fixed" or "signed Normed"
-# in the future. The following "incomplete" code is necessary for Julia v1.0
-# etc. to prevent accidental conversion to an integer type.
-signed(x::X) where {X <: FixedPoint} = signed(X)(signed(x.i), 0)
-unsigned(x::X) where {X <: FixedPoint} = unsigned(X)(unsigned(x.i), 0)
 
 function sign(x::X) where {T, X <: FixedPoint{T}}
     T <: Unsigned && return iszero(x) ? x : oneunit(X)
@@ -377,15 +367,12 @@ function sign(x::X) where {T, X <: FixedPoint{T}}
     x <= zero(X) && return x === zero(X) ? x : X(-1)
     return oneunit(X)
 end
+
 function copysign(x::X, y::Real) where {T, X <: FixedPoint{T}}
     T <: Signed ? X(copysign(x.i, y), 0) : throw_not_a_signed_number_error(x)
 end
 function flipsign(x::X, y::Real) where {T, X <: FixedPoint{T}}
     T <: Signed ? X(flipsign(x.i, y), 0) : throw_not_a_signed_number_error(x)
-end
-if copysign(-1, 0x1) !== 1 # for Julia v1.0 and v1.1 (julia #30748)
-    copysign(x::X, y::Unsigned) where {T, X <: FixedPoint{T}} = copysign(x, signed(y))
-    flipsign(x::X, y::Unsigned) where {T, X <: FixedPoint{T}} = flipsign(x, signed(y))
 end
 @noinline function throw_not_a_signed_number_error(x)
     throw(ArgumentError("$x is not a signed number."))
@@ -513,16 +500,6 @@ function show(io::IO, x::FixedPoint{T,f}) where {T,f}
         print(io, typeof(x), '(', x, ')')
     end
     return nothing
-end
-
-if VERSION < v"1.6.0-DEV.356" # JuliaLang/julia#36107
-    function Base.showarg(io::IO, a::Array{X}, toplevel) where {X<:FixedPoint}
-        toplevel || print(io, "::")
-        print(io, "Array{")
-        showtype(io, X)
-        print(io, ",$(ndims(a))}")
-        toplevel && hasalias(X) && print(io, " with eltype ", X)
-    end
 end
 
 include("fixed.jl")
@@ -666,9 +643,7 @@ if !isdefined(Base, :get_extension)
     include("../ext/FixedPointNumbersStatisticsExt.jl")
 end
 
-if VERSION >= v"1.1" # work around https://github.com/JuliaLang/julia/issues/34121
-    include("precompile.jl")
-    _precompile_()
-end
+include("precompile.jl")
+_precompile_()
 
 end # module

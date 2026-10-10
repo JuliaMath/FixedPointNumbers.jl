@@ -2,8 +2,6 @@ using FixedPointNumbers, Statistics, Random, StableRNGs, Test
 using FixedPointNumbers: bitwidth, rawtype, nbitsfrac
 using Base.Checked
 
-SP = VERSION >= v"1.6.0-DEV.771" ? " " : "" # JuliaLang/julia #37085
-
 """
     target(X::Type, Ss...; ex = :default)
 
@@ -399,10 +397,10 @@ end
 function test_sign_related(TX::Type)
     for X in target(TX, :i8; ex = :thin)
         # `FixedPoint` is not a signed or unsigned integer type
-        @test_throws Exception signed(X)
-        @test_throws Exception signed(X(0.5))
-        @test_throws Exception unsigned(X)
-        @test_throws Exception unsigned(X(0.5))
+        @test_throws MethodError signed(X)
+        @test_throws MethodError signed(X(0.5))
+        @test_throws MethodError unsigned(X)
+        @test_throws MethodError unsigned(X(0.5))
 
         @test sign(X(0.0)) === zero(X)
         if typemax(X) >= 1.0

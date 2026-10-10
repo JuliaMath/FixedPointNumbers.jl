@@ -172,7 +172,7 @@ end
     @test occursin("Q0f7 is an 8-bit type representing 256 values from -1.0 to 0.992;", msg)
     ret = @test_throws ArgumentError convert(Fixed{Int128,100}, 10.0^9)
     msg = ret.value.msg
-    @test occursin("Fixed{Int128,$(SP)100} is a 128-bit type representing 2^128 values", msg)
+    @test occursin("Fixed{Int128, 100} is a 128-bit type representing 2^128 values", msg)
 end
 
 @testset "disambiguation constructors" begin
@@ -811,24 +811,18 @@ end
     @test String(take!(iob)) == "-21845.33334Q15f16"
 
     show(iob, Fixed{Int128,64}(-1.2345e6))
-    @test String(take!(iob)) == "Fixed{Int128,$(SP)64}(-1.2345e6)"
+    @test String(take!(iob)) == "Fixed{Int128, 64}(-1.2345e6)"
 
     # TODO: remove this test
     show(iob, reinterpret(Fixed{Int8,8}, signed(0xaa)))
-    @test String(take!(iob)) == "Fixed{Int8,$(SP)8}(-0.336)"
+    @test String(take!(iob)) == "Fixed{Int8, 8}(-0.336)"
 end
 
 @testset "summary" begin
     a = Q0f7[0.2, 0.4]
     aa = Fixed[0.2Q0f7 0.4Q0f15]
 
-    if VERSION >= v"1.6.0-DEV.356"
-        @test summary(a) == "2-element Vector{Q0f7}"
-        @test summary(view(a, 1:2)) == "2-element view(::Vector{Q0f7}, 1:2) with eltype Q0f7"
-        @test summary(aa) == "1×2 Matrix{Fixed}"
-    else
-        @test summary(a) == "2-element Array{Q0f7,1} with eltype Fixed{Int8,7}"
-        @test summary(view(a, 1:2)) == "2-element view(::Array{Q0f7,1}, 1:2) with eltype Fixed{Int8,7}"
-        @test summary(aa) == "1×2 Array{Fixed,2}"
-    end
+    @test summary(a) == "2-element Vector{Q0f7}"
+    @test summary(view(a, 1:2)) == "2-element view(::Vector{Q0f7}, 1:2) with eltype Q0f7"
+    @test summary(aa) == "1×2 Matrix{Fixed}"
 end

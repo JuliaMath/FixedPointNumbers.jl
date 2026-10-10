@@ -2,8 +2,6 @@ using FixedPointNumbers, Statistics, Random, StableRNGs, Test
 using FixedPointNumbers: bitwidth, rawtype, nbitsfrac
 using Base.Checked
 
-SP = VERSION >= v"1.6.0-DEV.771" ? " " : "" # JuliaLang/julia #37085
-
 """
     target(X::Type, Ss...; ex = :default)
 

@@ -310,6 +310,10 @@ end
 
     @test -1 % Q0f7 === Q0f7(-1)
     @test -2 % Q0f7 === Q0f7(0)
+
+    @test (1//3) % Q0f7 === 1/3 % Q0f7 === Q0f7(43 / 128)
+    @test (-1//3) % Q0f7 === -1/3 % Q0f7 === Q0f7(-43 / 128)
+    @test (3//2) % Q0f7 === 1.5 % Q0f7 === Q0f7(-0.5)
 end
 
 @testset "neg" begin

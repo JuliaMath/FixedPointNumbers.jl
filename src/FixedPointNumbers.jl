@@ -553,7 +553,7 @@ function _widen_rawtype(::Type{X}, m) where {T, f, X<:FixedPoint{T,f}}
 end
 
 # `widen(Int128) === BigInt`, which is no valid raw type
-Base.widen(::Type{X}) where {T <: Base.BitInteger64, f, X <: FixedPoint{T, f}} = wrapper(X){widen(T), f}
+Base.widen(::Type{X}) where {T <: NotBiggerThanInt64, f, X <: FixedPoint{T, f}} = wrapper(X){widen(T), f}
 
 # Promotions for reductions
 const Treduce = Float64

@@ -29,5 +29,12 @@ function _precompile_()
             precompile(Tuple{typeof(convert),Type{T},S})
             precompile(Tuple{typeof(convert),Type{S},T})
         end
+        # display in the terminal and into buffers (e.g. `repr`)
+        for IOT in (IOContext{Base.TTY}, IOContext{IOBuffer}, IOBuffer)
+            precompile(Tuple{typeof(show),IOT,T})
+            precompile(Tuple{typeof(print),IOT,T})
+            precompile(Tuple{typeof(show),IOT,MIME"text/plain",T})
+            precompile(Tuple{typeof(show),IOT,MIME"text/plain",Vector{T}})
+        end
     end
 end

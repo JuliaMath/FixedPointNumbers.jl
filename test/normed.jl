@@ -193,6 +193,9 @@ end
     @test rationalize(Int16, 0.804N0f8) === Rational{Int16}(41//51)
     @test rationalize(0.804N0f8, tol=0.002) === Rational{Int}(41//51)
     @test rationalize(Int8, 0.804N0f8, tol=0.005) === Rational{Int8}(4//5)
+
+    @test 0.4N0f8 == 2//5
+    @test hash(0.4N0f8) == hash(2//5)
 end
 
 @testset "BigFloat conversions" begin
@@ -252,6 +255,11 @@ end
         @test isa(y, T)
     end
 
+    # the generic method serves `AbstractFloat` types without a dedicated method
+    for Tf in (Float16, Float32, Float64), x in (0.2N0f8, 0.2N0f16, 0.2N2f14, 0.2N0f32, 0.2N0f64)
+        @test invoke(Tf, Tuple{Normed}, x) === Tf(x)
+    end
+
     for Tf in (Float16, Float32, Float64)
         @testset "$Tf(::$N)" for N in target(Normed, :i8, :i16)
             T = rawtype(N)
@@ -283,6 +291,14 @@ end
     end
 end
 
+struct IntReal <: Real
+    i::Int
+end
+Base.:*(a::Integer, x::IntReal) = IntReal(a * x.i)
+Base.isfinite(::IntReal) = true
+Base.round(x::IntReal) = x
+Base.unsafe_trunc(::Type{T}, x::IntReal) where {T <: Integer} = x.i % T
+
 @testset "type modulus" begin
     test_rem_type(Normed)
     test_rem_nan(Normed)
@@ -299,6 +315,10 @@ end
 
     @test 1 % N0f8 === N0f8(1)
     @test 2 % N0f8 === N0f8(0.996)
+
+    # a `Real` type that defines `round` and `unsafe_trunc`
+    @test IntReal(1) % N0f8 === N0f8(1)
+    @test IntReal(2) % N0f8 === 2 % N0f8
 
     # issue #150
     @test all(f -> 1.0f0 % Normed{UInt32,f} == oneunit(Normed{UInt32,f}), 1:32)
@@ -672,6 +692,11 @@ end
     acmp = Float64(a[1])*Float64(a[2])
     @test prod(a) == acmp
     @test prod(a, dims=1) == [acmp]
+
+    @test sum(N0f8[]) === 0.0
+    @test prod(N0f8[]) === 1.0
+    @test sum([0.5N0f8]) === Float64(0.5N0f8)
+    @test prod([0.5N0f8]) === Float64(0.5N0f8)
 end
 
 @testset "reductions, Statistics" begin

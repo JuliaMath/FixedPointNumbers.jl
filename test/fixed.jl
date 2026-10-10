@@ -399,6 +399,12 @@ end
     end
     test_mul(Fixed)
 
+    # `f == 0` has its own overflow bounds
+    @test checked_mul(Q7f0(127), Q7f0(1)) === Q7f0(127)
+    @test checked_mul(Q7f0(-64), Q7f0(2)) === Q7f0(-128)
+    @test_throws OverflowError checked_mul(Q7f0(64), Q7f0(2))
+    @test_throws OverflowError checked_mul(Q7f0(-128), Q7f0(-1))
+
     FixedPointNumbers.mul_with_rounding(1.5Q6f1,  0.5Q6f1, RoundNearest) ===  1.0Q6f1
     FixedPointNumbers.mul_with_rounding(1.5Q6f1, -0.5Q6f1, RoundNearest) === -1.0Q6f1
     FixedPointNumbers.mul_with_rounding(1.5Q6f1,  0.5Q6f1, RoundNearestTiesUp) ===  1.0Q6f1
@@ -695,6 +701,11 @@ end
     acmp = Float64(a[1])*Float64(a[2])
     @test prod(a) == acmp
     @test prod(a, dims=1) == [acmp]
+
+    @test sum(Q0f7[]) === 0.0
+    @test prod(Q0f7[]) === 1.0
+    @test sum([0.5Q0f7]) === 0.5
+    @test prod([0.5Q0f7]) === 0.5
 end
 
 @testset "reductions, Statistics" begin

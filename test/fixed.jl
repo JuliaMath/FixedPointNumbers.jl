@@ -229,6 +229,8 @@ end
     @test rationalize(Int16, 0.81Q3f4) === Rational{Int16}(13//16)
     @test rationalize(-0.81Q3f4, tol=0.02) === Rational{Int}(-13//16)
     @test rationalize(Int8, -0.81Q3f4, tol=0.07) === Rational{Int8}(-3//4)
+
+    test_hash_rational(Fixed)
 end
 
 @testset "BigFloat conversions" begin
@@ -402,6 +404,12 @@ end
         @test_throws OverflowError checked_mul(typemin(F), typemin(F))
     end
     test_mul(Fixed)
+
+    # `f == 0` has its own overflow bounds
+    @test checked_mul(Q7f0(127), Q7f0(1)) === Q7f0(127)
+    @test checked_mul(Q7f0(-64), Q7f0(2)) === Q7f0(-128)
+    @test_throws OverflowError checked_mul(Q7f0(64), Q7f0(2))
+    @test_throws OverflowError checked_mul(Q7f0(-128), Q7f0(-1))
 
     FixedPointNumbers.mul_with_rounding(1.5Q6f1,  0.5Q6f1, RoundNearest) ===  1.0Q6f1
     FixedPointNumbers.mul_with_rounding(1.5Q6f1, -0.5Q6f1, RoundNearest) === -1.0Q6f1
@@ -694,6 +702,8 @@ end
     acmp = Float64(a[1])*Float64(a[2])
     @test prod(a) == acmp
     @test prod(a, dims=1) == [acmp]
+
+    test_reductions_short(Fixed)
 end
 
 @testset "reductions, Statistics" begin

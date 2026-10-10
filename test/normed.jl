@@ -738,8 +738,9 @@ end
     @test @inferred(widen(N0f8)) === N8f8
     @test @inferred(widen(Normed{UInt64,10})) === Normed{UInt128,10}
     @test @inferred(widen(0.2N0f8)) === 0.2N8f8
-    @test @inferred(widemul(N4f4(15), N4f4(15))) === N12f4(225)
     @test_throws MethodError widen(Normed{UInt128,8})
+    @test_throws MethodError widemul(N4f4(15), N4f4(15))
+    @test_throws MethodError widemul(1N0f8, 1N1f7)
 end
 
 @testset "show" begin

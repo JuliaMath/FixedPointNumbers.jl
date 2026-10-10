@@ -761,8 +761,9 @@ end
     @test @inferred(widen(Q0f7)) === Q8f7
     @test @inferred(widen(Fixed{Int64,10})) === Fixed{Int128,10}
     @test @inferred(widen(0.5Q0f7)) === 0.5Q8f7
-    @test @inferred(widemul(-1Q0f7, -1Q0f7)) === Q8f7(1)
     @test_throws MethodError widen(Fixed{Int128,8})
+    @test_throws MethodError widemul(-1Q0f7, -1Q0f7)
+    @test_throws MethodError widemul(0.5Q0f7, 0.5Q1f6)
 end
 
 @testset "show" begin

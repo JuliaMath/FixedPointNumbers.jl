@@ -7,7 +7,7 @@ import Base: ==, <, <=, -, +, *, /, ~, isapprox,
              big, rationalize, float, trunc, round, floor, ceil, bswap, clamp,
              div, fld, cld, rem, mod, mod1, fld1, min, max, minmax,
              signed, unsigned, copysign, flipsign, signbit,
-             length
+             length, widen, widemul
 
 import Random: Random, AbstractRNG, SamplerType, rand!
 
@@ -552,8 +552,17 @@ function _widen_rawtype(::Type{X}, m) where {T, f, X<:FixedPoint{T,f}}
     _widen_rawtype(wrapper(X){Tw,f}, m)
 end
 
-# `widen(Int128) === BigInt`, which is no valid raw type
-Base.widen(::Type{X}) where {T <: NotBiggerThanInt64, f, X <: FixedPoint{T, f}} = wrapper(X){widen(T), f}
+"""
+    widen(X::Type{<:FixedPoint})::Type{<:FixedPoint}
+
+Widen the raw type of `X` like a bit integer of `Base` and keep the number of fractional bits.
+
+For example, `widen(N0f8) === N8f8`. A 128-bit raw type cannot be widened.
+"""
+widen(::Type{X}) where {T <: NotBiggerThanInt64, f, X <: FixedPoint{T, f}} = wrapper(X){widen(T), f}
+
+# the generic `widen(x) * widen(y)` would round the exact product
+widemul(x::FixedPoint, y::FixedPoint) = throw(MethodError(widemul, (x, y)))
 
 # Promotions for reductions
 const Treduce = Float64

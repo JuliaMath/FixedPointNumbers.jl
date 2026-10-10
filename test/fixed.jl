@@ -229,6 +229,8 @@ end
     @test rationalize(Int16, 0.81Q3f4) === Rational{Int16}(13//16)
     @test rationalize(-0.81Q3f4, tol=0.02) === Rational{Int}(-13//16)
     @test rationalize(Int8, -0.81Q3f4, tol=0.07) === Rational{Int8}(-3//4)
+
+    test_hash_rational(Fixed)
 end
 
 @testset "BigFloat conversions" begin
@@ -702,10 +704,7 @@ end
     @test prod(a) == acmp
     @test prod(a, dims=1) == [acmp]
 
-    @test sum(Q0f7[]) === 0.0
-    @test prod(Q0f7[]) === 1.0
-    @test sum([0.5Q0f7]) === 0.5
-    @test prod([0.5Q0f7]) === 0.5
+    test_reductions_short(Fixed)
 end
 
 @testset "reductions, Statistics" begin

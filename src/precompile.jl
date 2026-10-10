@@ -5,11 +5,12 @@ function _precompile_()
     normedtypes = (N0f8, N0f16)                      # precompiled Normed types
     realtypes = (Float16, Float32, Float64, Int)     # types for mixed Normed/Real operations
     for T in normedtypes
-        for f in (+, -, abs, eps, rand)       # unary operations
+        for f in (+, -, abs, eps)       # unary operations
             precompile(Tuple{typeof(f),T})
         end
-        precompile(Tuple{typeof(rand),T,Tuple{Int}})
-        precompile(Tuple{typeof(rand),T,Tuple{Int,Int}})
+        precompile(Tuple{typeof(rand),Type{T}})
+        precompile(Tuple{typeof(rand),Type{T},Tuple{Int}})
+        precompile(Tuple{typeof(rand),Type{T},Tuple{Int,Int}})
         for f in (trunc, floor, ceil, round)  # rounding operations
             precompile(Tuple{typeof(f),T})
             precompile(Tuple{typeof(f),Type{Int},T})

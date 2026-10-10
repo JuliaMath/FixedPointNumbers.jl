@@ -553,13 +553,33 @@ function _widen_rawtype(::Type{X}, m) where {T, f, X<:FixedPoint{T,f}}
 end
 
 """
-    widen(X::Type{<:FixedPoint})::Type{<:FixedPoint}
+    widen(x::FixedPoint)
+    widen(X::Type{<:FixedPoint})
 
-Widen the raw type of `X` like a bit integer of `Base` and keep the number of fractional bits.
+Widen the raw type like a bit integer of `Base` and keep the number of fractional bits.
 
-For example, `widen(N0f8) === N8f8`. A 128-bit raw type cannot be widened.
+A 128-bit raw type cannot be widened by default.
+
+# Examples
+
+```jldoctest; setup = :(using FixedPointNumbers)
+julia> widen(N0f8) === N8f8
+true
+
+julia> widen(1N0f8) + widen(1N0f8)
+2.0N8f8
+
+julia> widen(-1Q0f7) * widen(-1Q0f7)
+1.0Q8f7
+
+julia> widen(Fixed{Int128, 8})
+ERROR: MethodError: no method matching widen(::Type{Fixed{Int128, 8}})
+[...]
+```
 """
-widen(::Type{X}) where {T <: NotBiggerThanInt64, f, X <: FixedPoint{T, f}} = wrapper(X){widen(T), f}
+widen(::Type{X}) where {T, f, X <: FixedPoint{T, f}} = wrapper(X){widen(T), f}
+# `widen` of a 128-bit integer is `BigInt`, which is no valid raw type
+widen(::Type{X}) where {T <: Union{Int128, UInt128}, f, X <: FixedPoint{T, f}} = throw(MethodError(widen, (X,)))
 
 # the generic `widen(x) * widen(y)` would round the exact product
 widemul(x::FixedPoint, y::FixedPoint) = throw(MethodError(widemul, (x, y)))

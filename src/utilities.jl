@@ -39,6 +39,7 @@ exponent_bias(::Type{Float64}) = 1023
 
 _unsafe_trunc(::Type{T}, x::Integer) where {T} = x % T
 _unsafe_trunc(::Type{T}, x) where {T} = unsafe_trunc(T, x)
+_unsafe_trunc(::Type{T}, x::Rational) where {T <: Integer} = div(numerator(x), denominator(x)) % T
 # issue #202, #211
 _unsafe_trunc(::Type{T}, x::BigFloat) where {T <: Integer} = trunc(BigInt, x) % T
 

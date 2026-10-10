@@ -300,6 +300,10 @@ end
     @test 1 % N0f8 === N0f8(1)
     @test 2 % N0f8 === N0f8(0.996)
 
+    @test (1//3) % N0f8 === N0f8(1//3)
+    @test (-1//3) % N0f8 === -1/3 % N0f8
+    @test (2//1) % N0f8 === 2.0 % N0f8
+
     # issue #150
     @test all(f -> 1.0f0 % Normed{UInt32,f} == oneunit(Normed{UInt32,f}), 1:32)
     @test all(f -> 1.0e0 % Normed{UInt64,f} == oneunit(Normed{UInt64,f}), 1:64)

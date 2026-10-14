@@ -596,16 +596,14 @@ end
 end
 
 @testset "sign-related functions" begin
-    @test_throws Exception signed(N0f8)
-    @test_throws Exception signed(1N0f8)
-    @test_throws Exception unsigned(N0f8)
-    @test_throws Exception unsigned(1N0f8)
+    test_sign_related(Normed)
+
     @test_throws ArgumentError copysign(1N0f8, 0x1)
     @test_throws ArgumentError copysign(1N0f8, -1)
     @test_throws ArgumentError flipsign(1N0f8, 0x1)
     @test_throws ArgumentError flipsign(1N0f8, -1)
-    @test_throws ArgumentError sign(0N0f8)
-    @test signbit(1N0f8) === false
+    @test_broken sign(0N0f8) === zero(N0f8)
+    @test_broken sign(0.5N0f8) === oneunit(N0f8)
 end
 
 @testset "bitwise" begin

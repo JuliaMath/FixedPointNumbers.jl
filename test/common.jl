@@ -375,6 +375,18 @@ function test_clamp_nan(TX::Type)
     end
 end
 
+function test_sign_related(TX::Type)
+    for X in target(TX, :i8; ex = :thin)
+        # `FixedPoint` is not a signed or unsigned integer type
+        @test_throws Exception signed(X)
+        @test_throws Exception signed(X(0.5))
+        @test_throws Exception unsigned(X)
+        @test_throws Exception unsigned(X(0.5))
+
+        @test signbit(X(0.5)) === signbit(X(0.0)) === false
+    end
+end
+
 function test_isinteger(TX::Type)
     @testset "isinteger(::$X)" for X in target(TX, :i8, :i16)
         xs = typemin(X):eps(X):typemax(X)

@@ -6,7 +6,7 @@ import Base: ==, <, <=, -, +, *, /, ~, isapprox,
              zero, oneunit, one, typemin, typemax, floatmin, floatmax, eps, reinterpret,
              big, rationalize, float, trunc, round, floor, ceil, bswap, clamp,
              div, fld, cld, rem, mod, mod1, fld1, min, max, minmax,
-             signed, unsigned, copysign, flipsign, signbit,
+             copysign, flipsign, signbit,
              length, widen, widemul
 
 import Random: Random, AbstractRNG, SamplerType, rand!
@@ -361,14 +361,6 @@ bswap(x::X) where {X <: FixedPoint} = sizeof(X) == 1 ? x : X(bswap(x.i), 0)
 clamp(x::X, lo::X, hi::X) where {X <: FixedPoint} = X(clamp(x.i, lo.i, hi.i), 0)
 
 clamp(x, ::Type{X}) where {X <: FixedPoint} = clamp(x, typemin(X), typemax(X)) % X
-
-# Since `FixedPoint` is not an integer type, it is not clear in what type
-# `signed` and `unsigned` for `FixedPoint` should return values. They should
-# currently throw errors in case we support "unsigned Fixed" or "signed Normed"
-# in the future. The following "incomplete" code is necessary for Julia v1.0
-# etc. to prevent accidental conversion to an integer type.
-signed(x::X) where {X <: FixedPoint} = signed(X)(signed(x.i), 0)
-unsigned(x::X) where {X <: FixedPoint} = unsigned(X)(unsigned(x.i), 0)
 
 function copysign(x::X, y::Real) where {T, X <: FixedPoint{T}}
     T <: Signed ? X(copysign(x.i, y), 0) : throw_not_a_signed_number_error(x)

@@ -602,8 +602,6 @@ end
     @test_throws ArgumentError copysign(1N0f8, -1)
     @test_throws ArgumentError flipsign(1N0f8, 0x1)
     @test_throws ArgumentError flipsign(1N0f8, -1)
-    @test_broken sign(0N0f8) === zero(N0f8)
-    @test_broken sign(0.5N0f8) === oneunit(N0f8)
 end
 
 @testset "bitwise" begin

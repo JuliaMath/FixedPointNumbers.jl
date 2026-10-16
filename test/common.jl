@@ -383,6 +383,12 @@ function test_sign_related(TX::Type)
         @test_throws Exception unsigned(X)
         @test_throws Exception unsigned(X(0.5))
 
+        @test sign(X(0.0)) === zero(X)
+        if typemax(X) >= 1.0
+            @test sign(X(0.5)) === oneunit(X)
+        else
+            @test_throws ArgumentError sign(X(0.5))
+        end
         @test signbit(X(0.5)) === signbit(X(0.0)) === false
     end
 end

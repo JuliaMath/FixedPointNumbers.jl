@@ -174,6 +174,51 @@ end
     @test_throws InexactError convert(Int8, 256N8f8)
 end
 
+@testset "parse" begin
+    @test parse(N0f8, "0.5") === N0f8(0.5)
+    @test parse(N0f8, "1.0") === 1N0f8
+    @test parse(N0f8, "0.0") === 0N0f8
+    @test tryparse(N0f8, "0.5") === N0f8(0.5)
+    @test tryparse(N0f8, "-0.1") === nothing
+    @test tryparse(N0f8, "1.5") === nothing
+    @test tryparse(N0f8, "abc") === nothing
+    @test_throws ArgumentError parse(N0f8, "-0.1")
+    @test_throws ArgumentError parse(N0f8, "abc")
+
+    # leading/trailing whitespace and exponent notation
+    @test tryparse(N0f8, " 0.5 ") === N0f8(0.5)
+    @test tryparse(N0f8, "1e0") === 1N0f8
+    @test tryparse(N0f8, "0.5e0") === N0f8(0.5)
+    # signs, bare dot positions and malformed input
+    @test tryparse(N0f8, "+0.5") === N0f8(0.5)
+    @test tryparse(N0f8, ".5") === N0f8(0.5)
+    @test tryparse(N0f8, "-1") === nothing
+    @test tryparse(N0f8, "") === nothing
+    @test tryparse(N0f8, ".") === nothing
+    @test tryparse(N0f8, "0.5.0") === nothing
+    @test tryparse(N0f8, "0x1p-1") === nothing
+    # the value must lie in range exactly, but negative zero is fine
+    @test tryparse(N0f8, "-0.0") === 0N0f8
+    @test tryparse(N0f8, "-0e-$(typemax(Int))") === 0N0f8
+    @test tryparse(N0f8, "-0e99999999999999999999") === 0N0f8
+    @test tryparse(N0f8, "-0.001") === nothing
+    @test tryparse(N0f8, "-1e-$(typemax(Int))") === nothing
+    @test tryparse(N0f8, "-1e-99999999999999999999") === nothing
+    @test tryparse(N0f8, "1e-99999999999999999999") === 0N0f8
+    @test tryparse(N0f8, "1.000000000000000000000000000001") === nothing
+    @test tryparse(N0f8, "0.999999999999999999999999999999") === 1N0f8
+    @test tryparse(N0f8, "1e99999999999999999999") === nothing
+    # ties go to even
+    @test tryparse(N0f8, "0.5") === reinterpret(N0f8, 0x80)
+    @test tryparse(N7f1, "0.25") === 0N7f1
+    @test tryparse(N7f1, "0.75") === 1N7f1
+    @test tryparse(N7f1, "255") === typemax(N7f1)
+    @test tryparse(N7f1, "255.25") === nothing
+    @test tryparse(Normed{UInt128,128}, "0.5") === reinterpret(Normed{UInt128,128}, typemax(UInt128) ÷ 2 + 1)
+
+    test_parse(Normed)
+end
+
 @testset "rational conversions" begin
     @testset "$N to/from rational" for N in target(Normed)
         @test convert(Rational, oneunit(N)) == 1//1

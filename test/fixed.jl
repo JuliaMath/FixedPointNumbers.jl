@@ -86,7 +86,11 @@ end
 
 @testset "domain of f" begin
     # TODO: change the upper limit
-    @test_logs (:warn, r"`f=8` with raw type `T=Int8` will be removed") zero(Fixed{Int8,8})
+    if Base.JLOptions().depwarn == 1
+        @test_logs (:warn, r"`f=8` with raw type `T=Int8` will be removed") zero(Fixed{Int8,8})
+    else
+        @test zero(Fixed{Int8,8}) isa Fixed{Int8,8}
+    end
     @test_throws DomainError zero(Fixed{Int8,-1})
     # @test_throws DomainError zero(Fixed{Int8,8})
     @test_throws DomainError zero(Fixed{Int8,9})
@@ -202,6 +206,75 @@ end
     @test_throws ArgumentError convert(Q7f8, Base.TwicePrecision(0x80, 0x01))
     tp = Base.TwicePrecision(0xFFFFFFFFp-32, 0xFFFFFFFEp-64)
     @test convert(Q0f63, tp) === reinterpret(Q0f63, typemax(Int64))
+end
+
+@testset "parse" begin
+    @test parse(Q3f4, "7.92") === 7.9375Q3f4
+    @test parse(Q0f7, "-1.0") === -1.0Q0f7
+    @test tryparse(Q3f4, "7.92") === 7.9375Q3f4
+    @test tryparse(Q3f4, "-3.5") === -3.5Q3f4
+    @test tryparse(Q3f4, "999.0") === nothing
+    @test tryparse(Q3f4, "abc") === nothing
+    @test_throws ArgumentError parse(Q3f4, "abc")
+    @test_throws ArgumentError parse(Q3f4, "999.0")
+
+    # leading/trailing whitespace and exponent notation
+    @test tryparse(Q3f4, " 1.5 ") === 1.5Q3f4
+    @test tryparse(Q3f4, "1e0") === 1.0Q3f4
+    @test tryparse(Q3f4, "1.0e0") === 1.0Q3f4
+    # signs, bare dot positions and malformed input
+    @test tryparse(Q3f4, "+1.5") === 1.5Q3f4
+    @test tryparse(Q3f4, ".5") === 0.5Q3f4
+    @test tryparse(Q3f4, "1.") === 1.0Q3f4
+    @test tryparse(Q3f4, "-.5") === -0.5Q3f4
+    @test tryparse(Q3f4, "") === nothing
+    @test tryparse(Q3f4, ".") === nothing
+    @test tryparse(Q3f4, "1.2.3") === nothing
+    @test tryparse(Q3f4, "\t1.5\r\n") === 1.5Q3f4
+    @test tryparse(Q3f4, SubString("x1.5", 2)) === 1.5Q3f4
+    @test tryparse(Q3f4, Test.GenericString("-1.5e0")) === -1.5Q3f4
+    @test tryparse(Q3f4, "1 .5") === nothing
+    @test tryparse(Q3f4, "+-1") === nothing
+    @test tryparse(Q3f4, "1_0") === nothing
+    @test tryparse(Q3f4, "1e") === nothing
+    @test tryparse(Q3f4, "1e+") === nothing
+    @test tryparse(Q3f4, "e1") === nothing
+    @test tryparse(Q3f4, "0x1p-1") === nothing
+    @test tryparse(Q3f4, "Inf") === nothing
+    @test tryparse(Q3f4, "NaN") === nothing
+    # exponents, of which only the sign matters beyond the `Int` range
+    @test tryparse(Q3f4, "25E-1") === 2.5Q3f4
+    @test tryparse(Q3f4, ".0625e+2") === 6.25Q3f4
+    @test tryparse(Q3f4, "1e1") === nothing
+    @test tryparse(Q3f4, "0e$(typemax(Int))") === 0Q3f4
+    @test tryparse(Q3f4, "0e99999999999999999999") === 0Q3f4
+    @test tryparse(Q3f4, "1e99999999999999999999") === nothing
+    @test tryparse(Q3f4, "-1e-$(typemax(Int))") === 0Q3f4
+    @test tryparse(Q3f4, "-1e-99999999999999999999") === 0Q3f4
+    # zeros before the first nonzero digit, before and after the dot
+    @test tryparse(Q3f4, "00000000000000000000000000001.5") === 1.5Q3f4
+    @test tryparse(Q3f4, "0." * "0"^27 * "15e28") === 1.5Q3f4
+    @test tryparse(Q3f4, "0") === 0Q3f4
+    @test tryparse(Q3f4, "00.") === 0Q3f4
+    @test tryparse(Q3f4, ".00") === 0Q3f4
+    @test tryparse(Q3f4, "-0.0e1") === 0Q3f4
+    @test tryparse(Q3f4, "0..5") === nothing
+    @test tryparse(Q3f4, ".e1") === nothing
+    # ties go to even, the bounds are typemin - eps/2 inclusive and typemax + eps/2 exclusive
+    @test tryparse(Q3f4, "0.03125") === 0Q3f4
+    @test tryparse(Q3f4, "0.09375") === 0.125Q3f4
+    @test tryparse(Q3f4, "0.03125000000000000000000000001") === eps(Q3f4)
+    @test tryparse(Q3f4, "7.96874999999999999999999999999") === typemax(Q3f4)
+    @test tryparse(Q3f4, "7.96875") === nothing
+    @test tryparse(Q3f4, "-8.03125") === typemin(Q3f4)
+    @test tryparse(Q3f4, "-8.03125000000000000000000000001") === nothing
+    # rounding through `Float64` would round to the midpoint first, and then to even
+    @test tryparse(Q0f7, "0.00390625000000000000001") === eps(Q0f7)
+    @test tryparse(Fixed{Int128,64}, "0.5") === reinterpret(Fixed{Int128,64}, Int128(1) << 63)
+    @test tryparse(Q3f4, "0.50000000000000000000") === 0.5Q3f4
+    @test tryparse(Q3f4, "0.50000000000000000001") === 0.5Q3f4
+
+    test_parse(Fixed)
 end
 
 @testset "bool conversions" begin

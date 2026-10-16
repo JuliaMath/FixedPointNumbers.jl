@@ -60,6 +60,12 @@ To construct such a number, use `1.3N4f12`, `N4f12(1.3)`, `convert(N4f12, 1.3)`,
 `Normed{UInt16,12}(1.3)`, or `reinterpret(N4f12, 0x14cc)`.
 The last syntax means to construct a `N4f12` from the `UInt16` value `0x14cc`.
 
+To read a number from its textual representation, use `parse(N4f12, "1.3")`, or
+`tryparse(N4f12, "1.3")` which returns `nothing` instead of throwing when the
+string is malformed or out of range.
+The string must hold a decimal number, optionally with an exponent such as `"13e-1"`,
+and is rounded exactly to the nearest representable value, with ties to even.
+
 More generally, an arbitrary number of bits from any of the standard unsigned
 integer widths can be used for the fractional part.  For example:
 `Normed{UInt32,16}`, `Normed{UInt64,3}`, `Normed{UInt128,7}`.

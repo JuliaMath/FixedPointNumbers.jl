@@ -161,6 +161,40 @@ function test_rem_type(TX::Type)
     end
 end
 
+# `n / 10^d` written out in decimal notation
+function decimal_string(n::BigInt, d::Int)
+    s = lpad(string(abs(n)), d + 1, '0')
+    string(n < 0 ? "-" : "", s[1:end-d], d == 0 ? "" : ".", s[end-d+1:end])
+end
+
+# exact conversion of `v`, rounding ties to even
+function parse_reference(::Type{X}, v::Rational{BigInt}) where {T, f, X <: FixedPoint{T,f}}
+    if X <: Fixed
+        y = round(BigInt, v * big(2)^f)
+        typemin(T) <= y <= typemax(T) || return nothing
+    else
+        y = v * (big(2)^f - 1)
+        0 <= y <= typemax(T) || return nothing
+        y = round(BigInt, y)
+    end
+    return reinterpret(X, y % T)
+end
+
+function test_parse(TX::Type)
+    @testset "parse $X" for X in target(TX; ex = :light)
+        T, f = rawtype(X), nbitsfrac(X)
+        S = X <: Fixed ? big(2)^f : big(2)^f - 1
+        rng = StableRNG(1234)
+        raws = (typemin(T), typemax(T), zero(T), one(T), rand(rng, T, 10)...)
+        # decimals next to a representable value (h == 0) or a midpoint, which
+        # is exact for `Fixed` with `d == f + 1`
+        @test all(Iterators.product(raws, -1:1, (0, 3, 20, f + 1), -1:1)) do (raw, h, d, δ)
+            n = round(BigInt, (2big(raw) + h) * big(10)^d // 2S) + δ
+            tryparse(X, decimal_string(n, d)) === parse_reference(X, n // big(10)^d)
+        end
+    end
+end
+
 function test_rem_nan(TX::Type)
     @testset "nan % $X" for X in target(TX, :i8, :i16, :i32, :i64; ex = :thin)
         @test NaN % X === NaN32 % X === NaN16 % X === zero(X)

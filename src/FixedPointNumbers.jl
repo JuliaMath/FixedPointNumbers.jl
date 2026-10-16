@@ -97,6 +97,124 @@ function rationalize(::Type{Ti}, x::FixedPoint; tol::Real=eps(x)) where Ti <: In
     tol <= eps(x) ? Rational{Ti}(x) : rationalize(Ti, float(x), tol)
 end
 
+# parsing
+
+_isdigit(c) = UInt8('0') <= c <= UInt8('9')
+_isspace(c) = (c == UInt8(' ')) | (UInt8('\t') <= c <= UInt8('\r'))
+
+# unsigned type that holds ten times the scale of `X` without overflow
+_parsetype(::Type{X}) where {T, X <: FixedPoint{T}} =
+    bitwidth(T) <= 32 ? UInt64 : bitwidth(T) <= 64 ? UInt128 : BigInt
+
+# the parser compares code units with ASCII bytes, which needs UTF-8
+Base.tryparse(::Type{X}, s::AbstractString) where {X <: FixedPoint} = tryparse(X, String(s))
+
+function Base.tryparse(::Type{X}, s::Union{String, SubString{String}}) where {X <: FixedPoint}
+    cu = codeunits(s)
+    lo, hi = 1, length(cu)
+    # skip leading whitespace
+    while lo <= hi && _isspace(cu[lo])
+        lo += 1
+    end
+    lo <= hi || return nothing
+    # skip trailing whitespace, stopping at the latest at `lo`, which holds no space
+    while _isspace(cu[hi])
+        hi -= 1
+    end
+    neg = cu[lo] == UInt8('-')
+    if neg || cu[lo] == UInt8('+')
+        lo += 1
+    end
+    i = lo
+    # digits before the dot
+    point = 0
+    hasdot = false
+    # scan the digits and at most one dot
+    while i <= hi
+        c = cu[i]
+        if _isdigit(c)
+            point += !hasdot
+        elseif c == UInt8('.') && !hasdot
+            hasdot = true
+        else
+            break
+        end
+        i += 1
+    end
+    # the loop consumed at most one dot, so it consumed a digit if it consumed more
+    i - lo > hasdot || return nothing
+    mantissa_end = i - 1
+    exponent = zero(widen(Int))
+    if i <= hi
+        (cu[i] == UInt8('e')) | (cu[i] == UInt8('E')) || return nothing
+        i += 1
+        i <= hi || return nothing
+        negexp = cu[i] == UInt8('-')
+        if negexp || cu[i] == UInt8('+')
+            i += 1
+            i <= hi || return nothing
+        end
+        # accumulate the exponent digits
+        while i <= hi
+            _isdigit(cu[i]) || return nothing
+            # with at most `typemax(Int)` digits, nonzero values beyond the cap overflow or round to 0
+            exponent = min(10exponent + (cu[i] - UInt8('0')), 2 * widen(typemax(Int)))
+            i += 1
+        end
+        negexp && (exponent = -exponent)
+    end
+    return _tryparse_decimal(X, cu, lo, mantissa_end, point + exponent, neg)
+end
+
+# Round the decimal digits in `cu[lo:hi]` (ignoring the dot), of which the first `point`
+# form the integer part, exactly and with ties to even.
+function _tryparse_decimal(::Type{X}, cu::Base.CodeUnits{UInt8}, lo::Int, hi::Int, point::Integer, neg::Bool) where {T, f, X <: FixedPoint{T,f}}
+    U = _parsetype(X)
+    # the raw value is the parsed value times the scale `S`, rounded
+    S = X <: Fixed ? one(U) << f : (one(U) << f) - one(U)
+    qmax = X <: Fixed && neg ? U(typemax(T)) + one(U) : U(typemax(T))
+    imax = qmax ÷ S + one(U)
+    ip, k = zero(U), 0
+    i = lo
+    while i <= hi && k < point
+        c = cu[i]
+        if c != UInt8('.')
+            ip = 10ip + (c - UInt8('0'))
+            ip > imax && return nothing
+            k += 1
+        end
+        i += 1
+    end
+    for _ in k+1:point
+        iszero(ip) && break
+        ip *= 10
+        ip > imax && return nothing
+    end
+    # Horner's scheme from the last digit yields `S * fraction == fp + (r + rest) / 10`
+    # with an integer `fp`, a digit `r` and `0 <= rest < 1`, where `sticky == (rest > 0)`.
+    fp, r, sticky = zero(U), zero(U), false
+    for j in hi:-1:i
+        cu[j] == UInt8('.') && continue
+        sticky |= !iszero(r)
+        fp, r = divrem((cu[j] - UInt8('0')) * S + fp, U(10))
+    end
+    for _ in 1:-point
+        sticky |= !iszero(r)
+        fp, r = divrem(fp, U(10))
+        iszero(fp) & iszero(r) && break
+    end
+    q = ip * S + fp
+    inexact = !iszero(r) | sticky
+    if X <: Normed
+        neg && (!iszero(q) | inexact) && return nothing
+        (q < qmax) | ((q == qmax) & !inexact) || return nothing
+    end
+    q += (r > 5) | ((r == 5) & (sticky | isodd(q)))
+    q <= qmax || return nothing
+    raw = q % T
+    return reinterpret(X, neg ? -raw : raw)
+end
+
 """
     isapprox(x::FixedPoint, y::FixedPoint; rtol=0, atol=max(eps(x), eps(y)))
 

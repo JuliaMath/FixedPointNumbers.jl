@@ -32,17 +32,28 @@ For `T<:Signed` (a signed integer), there is a fixed-point type
 `Normed{T, f}` type. However, there are slight differences in behavior
 that go beyond signed/unsigned distinctions.
 
-The `Fixed{T,f}` types take the integer type `T` and simply shift the "decimal"
-point (or more accurately, the [radix or binary
-point](https://en.wikipedia.org/wiki/Decimal_separator#Radix_point)) `f` bits to
-the left, i.e. they represent real numbers of the form `x::T / 2^f`.
-Consequently, `Fixed{Int8,7}` numbers `x` satisfy
+A `Fixed{T,f}` number is an integer `i::T` divided by `2^f`. Its range and its
+overflow behavior therefore follow those of `T`. For example, `Fixed{Int8,7}`
+numbers `x` satisfy
 
 ```julia
 -1.0 = -128/128 ≤ x ≤ 127/128 ≈ 0.992.
 ```
 
-because the range of `Int8` is from -128 to 127.
+because the range of `Int8` is from -128 to 127. Like `Int8`, `Fixed{Int8,7}`
+has a single zero, and the raw value `-1` is the negative number closest to zero:
+
+```julia
+julia> reinterpret(Q0f7, Int8(-1))
+-0.008Q0f7
+```
+
+The `QXfY` aliases follow the Texas Instruments variant of the [Q notation]:
+`Y` is the number of fraction bits, and `X+Y+1` equals the number of bits of
+`T`. For example, `Q0f7` is aliased to `Fixed{Int8,7}` and `Q3f12` to
+`Fixed{Int16,12}`. Unlike for the `NXfY` aliases below, `X+Y` is one less than
+the number of bits, so `Fixed{Int8,0}`, which represents the same values as
+`Int8`, is called `Q7f0`.
 
 In contrast, the `Normed{T,f}`, with `f` fraction bits, map the closed
 interval [0.0,1.0] to the span of numbers with `f` bits.  For example,
@@ -141,6 +152,7 @@ Please see [CONTRIBUTING.md](CONTRIBUTING.md) for information about improving th
 
 [fixed-point number]: http://en.wikipedia.org/wiki/Fixed-point_arithmetic
 [overflow]: https://en.wikipedia.org/wiki/Integer_overflow
+[Q notation]: https://en.wikipedia.org/wiki/Q_(number_format)
 [rounding]: https://en.wikipedia.org/wiki/Round-off_error
 [underflow]: https://en.wikipedia.org/wiki/Arithmetic_underflow
 

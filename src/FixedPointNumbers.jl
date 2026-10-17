@@ -6,7 +6,7 @@ import Base: ==, <, <=, -, +, *, /, ~, isapprox,
              zero, oneunit, one, typemin, typemax, floatmin, floatmax, eps, reinterpret,
              big, rationalize, float, trunc, round, floor, ceil, bswap, clamp,
              div, fld, cld, rem, mod, mod1, fld1, min, max, minmax,
-             signed, unsigned, copysign, flipsign, signbit,
+             signed, unsigned, sign, copysign, flipsign, signbit,
              length, widen, widemul
 
 import Random: Random, AbstractRNG, SamplerType, rand!
@@ -370,6 +370,12 @@ clamp(x, ::Type{X}) where {X <: FixedPoint} = clamp(x, typemin(X), typemax(X)) %
 signed(x::X) where {X <: FixedPoint} = signed(X)(signed(x.i), 0)
 unsigned(x::X) where {X <: FixedPoint} = unsigned(X)(unsigned(x.i), 0)
 
+function sign(x::X) where {T, X <: FixedPoint{T}}
+    T <: Unsigned && return iszero(x) ? x : oneunit(X)
+    # `Q0f7`, etc., result in an error for `oneunit(X)`.
+    x <= zero(X) && return x === zero(X) ? x : X(-1)
+    return oneunit(X)
+end
 function copysign(x::X, y::Real) where {T, X <: FixedPoint{T}}
     T <: Signed ? X(copysign(x.i, y), 0) : throw_not_a_signed_number_error(x)
 end

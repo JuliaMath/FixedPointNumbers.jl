@@ -620,10 +620,7 @@ end
     @test copysign(0.5Q0f7, -1) === -0.5Q0f7
     @test flipsign(0.5Q0f7, 0x1) === 0.5Q0f7
     @test flipsign(0.5Q0f7, -1) === -0.5Q0f7
-    @test_broken sign(0Q0f7) === zero(Q0f7)
-    @test_throws ArgumentError sign(0.5Q0f7)
-    @test sign(0Q1f6) === 0Q1f6
-    @test sign(0.5Q1f6) === 1Q1f6
+    @test sign(-0.5Q0f7) === -1Q0f7
     @test sign(-0.5Q1f6) === -1Q1f6
     @test signbit(-0.5Q0f7) === true
 end

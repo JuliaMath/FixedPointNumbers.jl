@@ -196,8 +196,9 @@ floattype(::Type{T}) where {T <: Integer} = Float64
 floattype(::Type{T}) where {T <: LongInts} = BigFloat
 floattype(::Type{T}) where {I <: Integer, T <: Rational{I}} = typeof(zero(I)/oneunit(I))
 floattype(::Type{<:AbstractIrrational}) = Float64
-floattype(::Type{<:FixedPoint}) = BigFloat # fallback for `FixedPoint`
-floattype(::Type{<:FixedPoint{T}}) where {T <: Integer} = isconcretetype(T) ? floattype(T) : BigFloat
+floattype(::Type{X}) where {T <: ShortInts, X <: FixedPoint{T}} = Float32
+floattype(::Type{X}) where {T <: Integer, X <: FixedPoint{T}} = Float64
+floattype(::Type{X}) where {T <: LongInts, X <: FixedPoint{T}} = BigFloat
 
 # Non-Real types
 floattype(::Type{Complex{T}}) where T = Complex{floattype(T)}

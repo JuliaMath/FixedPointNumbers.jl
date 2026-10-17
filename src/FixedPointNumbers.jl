@@ -364,12 +364,12 @@ clamp(x::X, lo::X, hi::X) where {X <: FixedPoint} = X(clamp(x.i, lo.i, hi.i), 0)
 clamp(x, ::Type{X}) where {X <: FixedPoint} = clamp(x, typemin(X), typemax(X)) % X
 
 # Since `FixedPoint` is not an integer type, it is not clear in what type
-# `signed` and `unsigned` for `FixedPoint` should return values. They should
-# currently throw errors in case we support "unsigned Fixed" or "signed Normed"
-# in the future. The following "incomplete" code is necessary for Julia v1.0
-# etc. to prevent accidental conversion to an integer type.
-signed(x::X) where {X <: FixedPoint} = signed(X)(signed(x.i), 0)
-unsigned(x::X) where {X <: FixedPoint} = unsigned(X)(unsigned(x.i), 0)
+# `signed` and `unsigned` for `FixedPoint` should return values. They throw a
+# `MethodError` until "unsigned Fixed" or "signed Normed" are supported. The
+# explicit methods keep the generic fallbacks from converting a `FixedPoint` to
+# an integer type.
+signed(x::FixedPoint) = throw(MethodError(signed, (x,)))
+unsigned(x::FixedPoint) = throw(MethodError(unsigned, (x,)))
 
 function sign(x::X) where {T, X <: FixedPoint{T}}
     T <: Unsigned && return iszero(x) ? x : oneunit(X)
@@ -450,8 +450,6 @@ for (m, f) in ((:(:Nearest), :round),
         end
     end
 end
-_trunc(x::X) where {X <: FixedPoint{<:Unsigned}} = _floor(x)
-_trunc(::Type{Ti}, x::X) where {X <: FixedPoint{<:Unsigned}, Ti <: Integer} = _floor(Ti, x)
 
 length(r::AbstractUnitRange{<:FixedPoint}) = _length(r)
 length(r::StepRange{<:FixedPoint}) = _length(r)
@@ -657,7 +655,7 @@ function Random.rand(r::AbstractRNG, ::SamplerType{X}) where X <: FixedPoint
 end
 
 function rand!(r::AbstractRNG, A::Array{X}, ::SamplerType{X}) where {T, X <: FixedPoint{T}}
-    At = unsafe_wrap(Array, reinterpret(Ptr{T}, pointer(A)), size(A))
+    At = unsafe_wrap(Array, Ptr{T}(pointer(A)), size(A))
     Random.rand!(r, At, SamplerType{T}())
     A
 end

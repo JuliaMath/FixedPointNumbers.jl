@@ -245,6 +245,7 @@ end
     @test float(0.75Q10f53)::BigFloat == big"0.75"
 
     test_floattype(Fixed)
+    # see test/traits.jl for floattype tests for non-concrete types
 end
 
 @testset "conversions from float" begin

@@ -293,6 +293,8 @@ end
 
 # Functions
 _floor(x::N) where {N <: Normed} = reinterpret(N, x.i - x.i % rawone(N))
+_trunc(x::Normed) = _floor(x)
+_trunc(::Type{Ti}, x::Normed) where {Ti <: Integer} = _floor(Ti, x)
 function _ceil(x::Normed{T,f}) where {T, f}
     f == 1 && return x
     if typemax(T) % rawone(x) != 0

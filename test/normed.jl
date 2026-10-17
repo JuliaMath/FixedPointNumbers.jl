@@ -210,7 +210,6 @@ end
     @test float(1N11f53)::BigFloat == big"1.0"
 
     test_floattype(Normed)
-    # see test/traits.jl for floattype tests for non-concrete types
 end
 
 @testset "conversions from float" begin

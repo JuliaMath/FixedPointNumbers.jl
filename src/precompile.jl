@@ -2,8 +2,8 @@ using Random
 
 function _precompile_()
     ccall(:jl_generating_output, Cint, ()) == 1 || return nothing
-    normedtypes = (N0f8, N0f16)                      # precompiled Normed types
-    realtypes = (Float16, Float32, Float64, Int)     # types for mixed Normed/Real operations
+    normedtypes = (N0f8,)                          # N0f8 is most common and accelerates others, too
+    realtypes = (Float16, Float32, Float64, Int)   # types for mixed Normed/Real operations
     for T in normedtypes
         for f in (+, -, abs, eps)       # unary operations
             precompile(Tuple{typeof(f),T})

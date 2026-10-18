@@ -195,7 +195,7 @@ function _floor(x::Fixed{T,f}) where {T <: Signed, f}
     f == bitwidth(T) && x.i < 0 && throw_converterror(Fixed{T,f}, -1) # TODO: remove this line
     Fixed{T,f}(x.i & intmask(x), 0)
 end
-_floor(x::Fixed{Union{}, f}) where f = throw(MethodError(_floor, (x,)))
+_floor(x::Fixed{Union{}, f}) where f = throw(MethodError(_floor, (x,))) # COV_EXCL_LINE
 function _ceil(x::Fixed{T,f}) where {T, f}
     f == 0 && return x
     upper = typemax(T) & intmask(x)

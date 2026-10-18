@@ -363,11 +363,8 @@ clamp(x::X, lo::X, hi::X) where {X <: FixedPoint} = X(clamp(x.i, lo.i, hi.i), 0)
 
 clamp(x, ::Type{X}) where {X <: FixedPoint} = clamp(x, typemin(X), typemax(X)) % X
 
-# Since `FixedPoint` is not an integer type, it is not clear in what type
-# `signed` and `unsigned` for `FixedPoint` should return values. They throw a
-# `MethodError` until "unsigned Fixed" or "signed Normed" are supported. The
-# explicit methods keep the generic fallbacks from converting a `FixedPoint` to
-# an integer type.
+# Throw a `MethodError` so that the generic fallbacks don't convert a `FixedPoint`
+# to an integer type.
 signed(x::FixedPoint) = throw(MethodError(signed, (x,)))
 unsigned(x::FixedPoint) = throw(MethodError(unsigned, (x,)))
 
@@ -450,6 +447,8 @@ for (m, f) in ((:(:Nearest), :round),
         end
     end
 end
+_trunc(x::X) where {X <: FixedPoint{<:Unsigned}} = _floor(x)
+_trunc(::Type{Ti}, x::X) where {X <: FixedPoint{<:Unsigned}, Ti <: Integer} = _floor(Ti, x)
 
 length(r::AbstractUnitRange{<:FixedPoint}) = _length(r)
 length(r::StepRange{<:FixedPoint}) = _length(r)

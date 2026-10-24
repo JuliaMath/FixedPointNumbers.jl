@@ -568,7 +568,7 @@ A 128-bit raw type cannot be widened by default.
 
 # Examples
 
-```jldoctest; setup = :(using FixedPointNumbers), filter = r"(?<=,) "
+```jldoctest; setup = :(using FixedPointNumbers), filter = r"(?:(?<=,) )|Core\\.|Egal"
 julia> widen(N0f8) === N8f8
 true
 

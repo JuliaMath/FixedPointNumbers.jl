@@ -43,6 +43,9 @@ jobs:
           - os: macos-latest
             julia-version: '1'
             julia-arch: aarch64
+          - os: ubuntu-latest # TODO: Delete this once v1.14 is released
+            julia-version: 'pre'
+            julia-arch: x64
 
     steps:
       - uses: actions/checkout@v7

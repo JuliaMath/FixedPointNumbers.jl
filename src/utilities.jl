@@ -13,6 +13,7 @@ widen1(::Type{UInt64})  = UInt128
 widen1(x::Integer) = x % widen1(typeof(x))
 
 signedtype(::Type{T}) where {T <: Integer} = typeof(signed(zero(T)))
+signedtype(::Type{T}) where {T <: Signed} = T
 
 const ShortInts = Union{Int8, UInt8, Int16, UInt16}
 const LongInts = Union{Int64, UInt64, Int128, UInt128, BigInt}

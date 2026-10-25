@@ -538,14 +538,21 @@ promote_rule(::Type{X}, ::Type{Tr}) where {X <: FixedPoint, Tr <: Rational} = Tr
 
 promote_rule(::Type{X}, ::Type{Ti}) where {X <: FixedPoint, Ti <: Integer} = floattype(X)
 
-function promote_rule(::Type{X1}, ::Type{X2}) where {T1, f1, X1 <: FixedPoint{T1,f1},
-                                                     T2, f2, X2 <: FixedPoint{T2,f2}}
-    X = wrapper(X1)
-    X !== wrapper(X2) && return promote_type(floattype(X1), floattype(X2))
-
-    f = max(f1, f2)  # ensure we have enough precision
+function promote_rule(::Type{X1}, ::Type{X2}) where {X1 <: FixedPoint, X2 <: FixedPoint}
+    (isconcretetype(X1) && isconcretetype(X2)) || return Union{}
+    X1w, X2w = wrapper(X1), wrapper(X2)
+    if X1w !== X2w
+        # X1w <: X2w && return X2w # for non-concrete types
+        # X2w <: X1w && return X1w # for non-concrete types
+        return promote_type(floattype(X1), floattype(X2))
+    end
+    X = X1w
+    T1, T2 = rawtype(X1), rawtype(X2)
+    f1, f2 = nbitsfrac(X1), nbitsfrac(X2)
+    f = max(f1, f2) # ensure we have enough precision
     Tp = promote_type(T1, T2)
-    T = (T1 <: Signed || T2 <: Signed) ? signedtype(Tp) : Tp
+    T = ((T1 <: Signed && T1 !== Union{}) ||
+         (T2 <: Signed && T2 !== Union{})) ? signedtype(Tp) : Tp
     # make sure we have enough integer bits
     m = max(nbitsint(X1), nbitsint(X2))
     _widen_rawtype(X{T,f}, m)

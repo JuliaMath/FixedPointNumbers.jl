@@ -692,6 +692,8 @@ end
 end
 
 @testset "Promotion within Normed" begin
+    test_promote_type(Normed)
+
     @test @inferred(promote(N0f8(0.2), N0f8(0.8))) ===
         (N0f8(0.2), N0f8(0.8))
     @test @inferred(promote(Normed{UInt16,3}(0.2), Normed{UInt8,3}(0.86))) ===

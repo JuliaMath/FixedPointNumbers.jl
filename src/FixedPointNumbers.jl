@@ -664,7 +664,7 @@ function Random.rand(r::AbstractRNG, ::SamplerType{X}) where X <: FixedPoint
 end
 
 function rand!(r::AbstractRNG, A::Array{X}, ::SamplerType{X}) where {T, X <: FixedPoint{T}}
-    At = unsafe_wrap(Array, reinterpret(Ptr{T}, pointer(A)), size(A))
+    At = unsafe_wrap(Array, Ptr{T}(pointer(A)), size(A))
     Random.rand!(r, At, SamplerType{T}())
     A
 end

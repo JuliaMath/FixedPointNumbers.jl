@@ -2,8 +2,6 @@ using FixedPointNumbers, Statistics, Random, StableRNGs, Test
 using FixedPointNumbers: bitwidth, rawtype, nbitsfrac
 using Base.Checked
 
-SP = VERSION >= v"1.6.0-DEV.771" ? " " : "" # JuliaLang/julia #37085
-
 """
     target(X::Type, Ss...; ex = :default)
 
@@ -153,11 +151,32 @@ function test_convert_from_nan(TX::Type)
     end
 end
 
+function test_hash_rational(TX::Type)
+    @testset "hash(::$X)" for X in target(TX, :i8, :i16, :i32, :i64; ex = :thin)
+        for x in (zero(X), eps(X), typemin(X), typemax(X))
+            @test x == Rational(x)
+            @test hash(x) == hash(Rational(x))
+        end
+    end
+end
+
+# a `Real` type with only the methods that `x % X` needs
+struct IntReal <: Real
+    i::Int
+end
+Base.:*(a::Integer, x::IntReal) = IntReal(a * x.i)
+Base.:*(x::IntReal, a::AbstractFloat) = IntReal(Int(x.i * a))
+Base.isfinite(::IntReal) = true
+Base.round(x::IntReal) = x
+Base.unsafe_trunc(::Type{T}, x::IntReal) where {T <: Integer} = x.i % T
+
 function test_rem_type(TX::Type)
     @testset "% $X" for X in target(TX, :i8, :i16; ex = :thin)
         xs = typemin(X):0.1:typemax(X)
         @test all(x -> x % X === X(x), xs)
         @test wrapping_rem(2, X) === saturating_rem(2, X) === checked_rem(2, X) === 2 % X
+        @test IntReal(1) % X === 1 % X
+        @test IntReal(2) % X === 2 % X
     end
 end
 
@@ -378,10 +397,10 @@ end
 function test_sign_related(TX::Type)
     for X in target(TX, :i8; ex = :thin)
         # `FixedPoint` is not a signed or unsigned integer type
-        @test_throws Exception signed(X)
-        @test_throws Exception signed(X(0.5))
-        @test_throws Exception unsigned(X)
-        @test_throws Exception unsigned(X(0.5))
+        @test_throws MethodError signed(X)
+        @test_throws MethodError signed(X(0.5))
+        @test_throws MethodError unsigned(X)
+        @test_throws MethodError unsigned(X(0.5))
 
         @test sign(X(0.0)) === zero(X)
         if typemax(X) >= 1.0
@@ -397,6 +416,16 @@ function test_isinteger(TX::Type)
     @testset "isinteger(::$X)" for X in target(TX, :i8, :i16)
         xs = typemin(X):eps(X):typemax(X)
         @test all(x -> isinteger(x) == isinteger(float(x)), xs)
+    end
+end
+
+function test_reductions_short(TX::Type)
+    @testset "sum/prod(::Vector{$X})" for X in target(TX; ex = :thin)
+        x = typemax(X)
+        @test sum(X[]) === 0.0
+        @test prod(X[]) === 1.0
+        @test sum([x]) === Float64(x)
+        @test prod([x]) === Float64(x)
     end
 end
 

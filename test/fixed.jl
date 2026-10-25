@@ -805,6 +805,9 @@ end
     show(iob, Fixed{Int128,64}(-1.2345e6))
     @test String(take!(iob)) == "Fixed{Int128,$(SP)64}(-1.2345e6)"
 
+    FixedPointNumbers.showtype(iob, Fixed{Union{}, 7})
+    @test String(take!(iob)) == "Fixed{Union{},$(SP)7}"
+
     # TODO: remove this test
     show(iob, reinterpret(Fixed{Int8,8}, signed(0xaa)))
     @test String(take!(iob)) == "Fixed{Int8,$(SP)8}(-0.336)"

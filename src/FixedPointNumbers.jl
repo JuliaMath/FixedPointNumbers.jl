@@ -469,7 +469,9 @@ function _length(r::StepRange{<:FixedPoint})
 end
 
 hasalias(::Type) = false
-hasalias(::Type{X}) where {T<:NotBiggerThanInt64, f, X<:FixedPoint{T,f}} = f isa Int
+function hasalias(::Type{X}) where {T<:NotBiggerThanInt64, f, X<:FixedPoint{T,f}}
+    isprimitivetype(T) && (f isa Int)
+end
 
 # `alias_symbol` is used to define type aliases, so we need this before we
 # include "src/fixed.jl" / "src/normed.jl".
@@ -623,15 +625,18 @@ scaledual(::Type{Tdual}, x::AbstractArray{T}) where {Tdual, T <: FixedPoint} =
     convert(Tdual, 1/rawone(T)), reinterpret(rawtype(T), x)
 
 @noinline function throw_converterror(::Type{X}, @nospecialize(x)) where X <: FixedPoint
-    nbits = bitwidth(rawtype(X))
     io = IOBuffer()
     showtype(io, X)
-    print(io, " is ")
-    print(io, nbits == 8 ? "an " : "a ", nbits, "-bit type representing ")
-    print(io, nbits <= 16 ? string(2^nbits) : "2^$nbits", " values from ")
-    print(IOContext(io, :compact=>true), typemin(X), " to ")
-    print(IOContext(io, :compact=>true), typemax(X), "; ")
-    print(io, "cannot represent ", x)
+    T = rawtype(X)
+    if isprimitivetype(T) && !(X <: FixedPoint{Union{}}) # The latter is a hint for JET.
+        nbits = bitwidth(T)
+        print(io, " is ")
+        print(io, nbits == 8 ? "an " : "a ", nbits, "-bit type representing ")
+        print(io, nbits <= 16 ? string(2^nbits) : "2^$nbits", " values from ")
+        print(IOContext(io, :compact=>true), typemin(X), " to ")
+        print(IOContext(io, :compact=>true), typemax(X), ";")
+    end
+    print(io, " cannot represent ", x)
     throw(ArgumentError(String(take!(io))))
 end
 

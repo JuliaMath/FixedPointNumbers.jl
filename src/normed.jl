@@ -157,8 +157,7 @@ function Base.Float32(x::Normed{UInt8,f}) where f
     f == 5 && return Float32(Int32(x.i) * 0x003) * @f32(0xb02c0bp-30)
     f == 6 && return Float32(Int32(x.i) * 0x049) * @f32(0xe40039p-36)
     f == 7 && return Float32(Int32(x.i) * 0x01f) * @f32(0x852b5fp-35)
-    f == 8 && return Float32(Int32(x.i) * 0x155) * @f32(0xc0f0fdp-40)
-    0.0f0
+ #= f == 8 =# return Float32(Int32(x.i) * 0x155) * @f32(0xc0f0fdp-40)
 end
 function Base.Float32(x::Normed{UInt16,f}) where f
     f32 = Float32(x.i)

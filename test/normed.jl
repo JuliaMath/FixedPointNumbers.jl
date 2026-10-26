@@ -782,6 +782,9 @@ end
 
     show(iob, Normed{UInt128,64}(1.2345e6))
     @test String(take!(iob)) == "Normed{UInt128,$(SP)64}(1.2345e6)"
+
+    FixedPointNumbers.showtype(iob, Normed{Union{}, 8})
+    @test String(take!(iob)) == "Normed{Union{},$(SP)8}"
 end
 
 @testset "summary" begin

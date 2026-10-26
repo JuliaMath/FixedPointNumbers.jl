@@ -67,6 +67,17 @@ wrapping_rem(x::Real, ::Type{X}) where {X <: FixedPoint} = _rem(x, X)
 saturating_rem(x::Real, ::Type{X}) where {X <: FixedPoint} = _rem(x, X)
 checked_rem(x::Real, ::Type{X}) where {X <: FixedPoint} = _rem(x, X)
 
+# `Type{X} where {X <: FixedPoint}` also matches `Type{Union{}}`. Since Julia 1.10, a method of the form
+# `f(..., ::Type{Union{}}, slurp...)` takes precedence over all other methods of `f`, so these calls throw a
+# plain `MethodError` instead of an ambiguity error or an error from inside another method.
+wrapping_mul(x, ::Type{Union{}}, slurp...) = throw(MethodError(wrapping_mul, (x, Union{}, slurp...)))
+saturating_mul(x, ::Type{Union{}}, slurp...) = throw(MethodError(saturating_mul, (x, Union{}, slurp...)))
+wrapping_rem(x, ::Type{Union{}}, slurp...) = throw(MethodError(wrapping_rem, (x, Union{}, slurp...)))
+saturating_rem(x, ::Type{Union{}}, slurp...) = throw(MethodError(saturating_rem, (x, Union{}, slurp...)))
+# `*`, `rem` and the functions of `Base.Checked` belong to Base, so the internal functions they call are guarded
+_convert(::Type{Union{}}, slurp...) = throw(MethodError(convert, (Union{}, slurp...)))
+_rem(x, ::Type{Union{}}, slurp...) = throw(MethodError(rem, (x, Union{}, slurp...)))
+
 # constructor-style conversions
 (::Type{X})(x::X) where {X <: FixedPoint}      = x
 (::Type{X})(x::Number) where {X <: FixedPoint} = _convert(X, x)
@@ -204,6 +215,7 @@ floattype(::Type{X}) where {T <: LongInts, X <: FixedPoint{T}} = BigFloat
 floattype(::Type{Complex{T}}) where T = Complex{floattype(T)}
 floattype(::Type{Base.TwicePrecision{Float64}}) = Float64    # wider would be nice, but hardware support is paramount
 floattype(::Type{Base.TwicePrecision{T}}) where T<:Union{Float16,Float32} = widen(T)
+floattype(::Type{Union{}}, slurp...) = throw(MethodError(floattype, (Union{}, slurp...)))
 
 float(x::FixedPoint) = convert(floattype(x), x)
 
@@ -363,13 +375,10 @@ clamp(x::X, lo::X, hi::X) where {X <: FixedPoint} = X(clamp(x.i, lo.i, hi.i), 0)
 
 clamp(x, ::Type{X}) where {X <: FixedPoint} = clamp(x, typemin(X), typemax(X)) % X
 
-# Since `FixedPoint` is not an integer type, it is not clear in what type
-# `signed` and `unsigned` for `FixedPoint` should return values. They should
-# currently throw errors in case we support "unsigned Fixed" or "signed Normed"
-# in the future. The following "incomplete" code is necessary for Julia v1.0
-# etc. to prevent accidental conversion to an integer type.
-signed(x::X) where {X <: FixedPoint} = signed(X)(signed(x.i), 0)
-unsigned(x::X) where {X <: FixedPoint} = unsigned(X)(unsigned(x.i), 0)
+# Throw a `MethodError` so that the generic fallbacks don't convert a `FixedPoint`
+# to an integer type.
+signed(x::FixedPoint) = throw(MethodError(signed, (x,)))
+unsigned(x::FixedPoint) = throw(MethodError(unsigned, (x,)))
 
 function sign(x::X) where {T, X <: FixedPoint{T}}
     T <: Unsigned && return iszero(x) ? x : oneunit(X)
@@ -623,6 +632,7 @@ scaledual(::Type{Tdual}, x::Union{Number,AbstractArray{<:Number}}) where Tdual =
 scaledual(::Type{Tdual}, x::FixedPoint) where Tdual = convert(Tdual, 1/rawone(x)), reinterpret(x)
 scaledual(::Type{Tdual}, x::AbstractArray{T}) where {Tdual, T <: FixedPoint} =
     convert(Tdual, 1/rawone(T)), reinterpret(rawtype(T), x)
+scaledual(::Type{Union{}}, slurp...) = throw(MethodError(scaledual, (Union{}, slurp...)))
 
 @noinline function throw_converterror(::Type{X}, @nospecialize(x)) where X <: FixedPoint
     io = IOBuffer()

@@ -48,8 +48,6 @@ jobs:
           julia --project=. --color=yes -e '
             using JET, Test
             using FixedPointNumbers
-            println("report_package(FixedPointNumbers, toplevel_logger=nothing)")
-            show(JET.report_package(FixedPointNumbers, toplevel_logger=nothing))
             @testset "JET" begin
-                JET.test_package(FixedPointNumbers; target_modules=(FixedPointNumbers,))
+                JET.test_package(FixedPointNumbers)
             end'

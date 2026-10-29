@@ -4,6 +4,35 @@ using Base.Checked
 
 SP = VERSION >= v"1.6.0-DEV.771" ? " " : "" # JuliaLang/julia #37085
 
+# issue #246
+from_bf(::Type{Tf}, x::BigFloat) where Tf= Tf(x)
+function from_bf(::Type{Float16}, x::BigFloat) # `x` is assumed to be finite.
+    sbit = signbit(x) ? 0x8000 : 0x0000
+    iszero(x) && return reinterpret(Float16, sbit)
+    num, pow, _ = Base.decompose(x) # x == num * 2^pow
+    n = abs(num)
+    e = ndigits(n, base=2) - 1 + pow # x == 1.xyz... * 2^e
+    e >= 16 && return reinterpret(Float16, sbit | 0x7c00) # inf
+    e < -25 && return reinterpret(Float16, sbit) # less than half of the min subnormal
+    q = max(e - 10, -24) # exponent of the least significant bit
+    s = pow - q
+    if s >= 0
+        r = n << s
+    else
+        sh = -s
+        r = n >> sh
+        rem = n & ((big(1) << sh) - 1)
+        half = big(1) << (sh - 1)
+        if rem > half || (rem == half && isodd(r))
+            r += 1
+        end
+    end
+    # a carry in `r` naturally propagates into the exponent field
+    bits = ((q + 0x18) << 0xa) + Int(r)
+    bits >= 0x7c00 && return reinterpret(Float16, sbit | 0x7c00) # inf
+    return reinterpret(Float16, sbit | UInt16(bits))
+end
+
 """
     target(X::Type, Ss...; ex = :default)
 

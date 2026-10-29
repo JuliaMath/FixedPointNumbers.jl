@@ -142,10 +142,24 @@ function (::Type{T})(x::Normed) where {T <: AbstractFloat}
     convert(T, y)  # needed for types like Float16 which promote arithmetic to Float32
 end
 
-function Base.Float16(x::Normed{Ti,f}) where {Ti <: Union{UInt8, UInt16, UInt32}, f}
-    f == 1 ? Float16(x.i) : Float16(Float32(x))
+function Base.Float16(x::Normed{T,f}) where {T <: Union{UInt8, UInt32}, f}
+    f == 1 && return Float16(x.i)
+    T === UInt8 && return Float16(Float32(x.i) * Float32(inv_rawone(x)))
+    Float16(Float32(x))
 end
-function Base.Float16(x::Normed{Ti,f}) where {Ti <: Union{UInt64, UInt128}, f}
+function Base.Float16(x::Normed{UInt16,f}) where f
+    f == 1 && return Float16(x.i)
+    f16(int::Integer, sf32::Float32) = Float16(Float32(int) * sf32)
+    f ==  3 && return Float16(Float32(x))
+    f ==  4 && return Float16(Float32(x))
+    f == 12 && return f16(signed(widemul(x.i, 0x1001) >> 0x4 | (x.i > 0x7)), @f32(0x1p-20))
+    f == 13 && return f16(signed(widemul(x.i, 0x2001) >> 0x5 | (x.i > 0x7)), @f32(0x1p-21))
+    f == 14 && return f16(signed(widemul(x.i, 0x4001) >> 0x6 | (x.i > 0x7)), @f32(0x1p-22))
+    f == 15 && return f16(x.i - (x.i in (0x7ff7, 0xffee)) + (x.i == 0x800f), 1 / 32767f0)
+    f == 16 && return f16(x.i - (x.i in (0xffaf, 0xffef)), 1 / 65535f0)
+    f16(x.i, Float32(inv_rawone(x)))
+end
+function Base.Float16(x::Normed{T,f}) where {T <: Union{UInt64, UInt128}, f}
     f == 1 ? Float16(x.i) : Float16(Float64(x))
 end
 

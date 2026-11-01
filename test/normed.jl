@@ -193,6 +193,8 @@ end
     @test rationalize(Int16, 0.804N0f8) === Rational{Int16}(41//51)
     @test rationalize(0.804N0f8, tol=0.002) === Rational{Int}(41//51)
     @test rationalize(Int8, 0.804N0f8, tol=0.005) === Rational{Int8}(4//5)
+
+    test_hash_rational(Normed)
 end
 
 @testset "BigFloat conversions" begin
@@ -250,6 +252,11 @@ end
     for T in (Float16, Float32, Float64)
         y = convert(T, x)
         @test isa(y, T)
+    end
+
+    # the generic method serves `AbstractFloat` types without a dedicated method
+    for Tf in (Float16, Float32, Float64), x in (0.2N0f8, 0.2N0f16, 0.2N2f14, 0.2N0f32, 0.2N0f64)
+        @test invoke(Tf, Tuple{Normed}, x) === Tf(x)
     end
 
     for Tf in (Float16, Float32, Float64)
@@ -672,6 +679,8 @@ end
     acmp = Float64(a[1])*Float64(a[2])
     @test prod(a) == acmp
     @test prod(a, dims=1) == [acmp]
+
+    test_reductions_short(Normed)
 end
 
 @testset "reductions, Statistics" begin

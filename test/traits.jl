@@ -17,4 +17,6 @@ struct MyReal <: Real end
     @test floattype(typeof(π))                    === Float64
 
     @test_skip(@test_throws MethodError floattype(MyReal))   # TODO: eliminate `@test_skipped` when depwarn is eliminated. See #177.
+    # meanwhile, the deprecated fallback warns and returns the type unchanged
+    @test (@test_logs (:warn, r"fallback definition of `floattype`") floattype(MyReal)) === MyReal
 end

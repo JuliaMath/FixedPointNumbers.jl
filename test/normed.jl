@@ -258,7 +258,7 @@ end
             float_err = zero(Tf)
             for i = typemin(T):typemax(T)
                 b_expected = i / BigFloat(FixedPointNumbers.rawone(N))
-                f_expected = Tf(promote_type(Tf, Float32)(b_expected)) # workaround for issue #246
+                f_expected = from_bf(Tf, b_expected)
                 isinf(f_expected) && break # for Float16(::Normed{UInt16,1})
                 f_actual = Tf(reinterpret(N, i))
                 float_err += abs(f_actual - f_expected)
@@ -270,7 +270,7 @@ end
             error_count = 0
             for i in vcat(T(0x00):T(0xFF), (typemax(T)-0xFF):typemax(T))
                 b_expected = i / BigFloat(FixedPointNumbers.rawone(N))
-                f_expected = Tf(promote_type(Tf, Float32)(b_expected)) # workaround for issue #246
+                f_expected = from_bf(Tf, b_expected)
                 isinf(f_expected) && break # for Float16() and Float32()
                 f_actual = Tf(reinterpret(N, i))
                 f_actual == f_expected && continue

@@ -163,28 +163,25 @@ function Base.Float16(x::Normed{T,f}) where {T <: Union{UInt64, UInt128}, f}
     f == 1 ? Float16(x.i) : Float16(Float64(x))
 end
 
-function Base.Float32(x::Normed{UInt8,f}) where f
-    f == 1 && return Float32(x.i)
-    f == 2 && return Float32(Int32(x.i) * 0x101) * @f32(0x550055p-32)
-    f == 3 && return Float32(Int32(x.i) * 0x00b) * @f32(0xd4c77bp-30)
-    f == 4 && return Float32(Int32(x.i) * 0x101) * @f32(0x110011p-32)
-    f == 5 && return Float32(Int32(x.i) * 0x003) * @f32(0xb02c0bp-30)
-    f == 6 && return Float32(Int32(x.i) * 0x049) * @f32(0xe40039p-36)
-    f == 7 && return Float32(Int32(x.i) * 0x01f) * @f32(0x852b5fp-35)
-    f == 8 && return Float32(Int32(x.i) * 0x155) * @f32(0xc0f0fdp-40)
-    0.0f0
-end
-function Base.Float32(x::Normed{UInt16,f}) where f
+function Base.Float32(x::Normed{T,f}) where {T <: Union{UInt8, UInt16}, f}
+    T === UInt8 && f == 8 &&return Float32(Int32(x.i) * 0x09) * @f32(0x391cabp-33)
     f32 = Float32(x.i)
     f ==  1 && return f32
-    f ==  2 && return f32 * @f32(0x55p-8)  + f32 * @f32(0x555555p-32)
-    f ==  3 && return f32 * @f32(0x49p-9)  + f32 * @f32(0x249249p-33)
-    f ==  4 && return f32 * @f32(0x11p-8)  + f32 * @f32(0x111111p-32)
-    f ==  5 && return f32 * @f32(0x21p-10) + f32 * @f32(0x108421p-35)
-    f ==  6 && return f32 * @f32(0x41p-12) + f32 * @f32(0x041041p-36)
-    f ==  7 && return f32 * @f32(0x81p-14) + f32 * @f32(0x204081p-42)
+    f ==  2 && return Float32(Int32(x.i) * 0xab) * @f32(0x03fe01p-27)
+    f ==  3 && return Float32(Int32(x.i) * 0x97) * @f32(0x0f801fp-30)
+    f ==  4 && return Float32(Int32(x.i) * 0xf3) * @f32(0x8fd66cp-35)
+    f ==  5 && return Float32(Int32(x.i) * 0xe7) * @f32(0x0249b7p-30)
+    f ==  6 && return Float32(Int32(x.i) * 0xf7) * @f32(0x436287p-36)
+    f ==  7 && return Float32(Int32(x.i) * 0x47) * @f32(0x3a24f7p-35)
+    f ==  9 && return Float32(Int32(x.i) * 0xf7) * @f32(0x084ec7p-36)
+    f == 10 && return Float32(Int32(x.i) * 0xcd) * @f32(0x500005p-40)
+    f == 13 && return Float32(Int32(x.i) * 0x4f) * @f32(0x0cf6afp-39)
+    f == 14 && return Float32(Int32(x.i) * 0x93) * @f32(0x1bdd9bp-42)
+    f == 15 && return Float32(Int32(x.i) * 0x49) * @f32(0xe071f9p-45)
     f == 16 && return f32 * @f32(0x01p-16) + f32 * @f32(0x010001p-48)
-    Float32(x.i / rawone(x))
+    # Correct the initial approximation using the residual of y0 * 2^f.
+    y0 = f32 * Float32(inv_rawone(x))
+    y0 + (y0 - (y0 * Float32(@exp2(f)) - f32)) * Float32(inv_rawone(x))
 end
 function Base.Float32(x::Normed{UInt32,f}) where f
     f == 1 && return Float32(x.i)

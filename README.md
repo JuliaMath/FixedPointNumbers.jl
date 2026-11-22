@@ -1,7 +1,7 @@
 # FixedPointNumbers
 
 [![Build Status][action-img]][action-url]
-[![Build Status][pkgeval-img]][pkgeval-url]
+[![PkgEval][pkgeval-img]][pkgeval-url]
 [![coverage][codecov-img]][codecov-url]
 [![Aqua QA](https://raw.githubusercontent.com/JuliaTesting/Aqua.jl/master/badge.svg)](https://github.com/JuliaTesting/Aqua.jl)
 
@@ -162,9 +162,8 @@ Please see [CONTRIBUTING.md](CONTRIBUTING.md) for information about improving th
 [action-img]: https://github.com/JuliaMath/FixedPointNumbers.jl/workflows/Unit%20test/badge.svg
 [action-url]: https://github.com/JuliaMath/FixedPointNumbers.jl/actions
 
-[pkgeval-img]: https://juliaci.github.io/NanosoldierReports/pkgeval_badges/F/FixedPointNumbers.svg
-[pkgeval-url]: https://juliaci.github.io/NanosoldierReports/pkgeval_badges/report.html
+[pkgeval-img]: https://perf.julialang.org/badges/pkgeval/FixedPointNumbers.svg
+[pkgeval-url]: https://perf.julialang.org/?tab=eco-pkgeval&pkg=FixedPointNumbers
 
 [codecov-img]: https://codecov.io/gh/JuliaMath/FixedPointNumbers.jl/branch/master/graph/badge.svg
 [codecov-url]: https://codecov.io/gh/JuliaMath/FixedPointNumbers.jl
-

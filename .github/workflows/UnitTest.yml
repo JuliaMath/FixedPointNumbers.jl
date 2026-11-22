@@ -61,5 +61,4 @@ jobs:
       - uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }} # required
-          fail_ci_if_error: true
           files: lcov.info

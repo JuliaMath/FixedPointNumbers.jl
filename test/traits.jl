@@ -1,5 +1,5 @@
 using FixedPointNumbers, Test
-using FixedPointNumbers: bitwidth
+using FixedPointNumbers: bitwidth, rawtype
 
 struct MyReal <: Real end
 
@@ -17,4 +17,14 @@ struct MyReal <: Real end
     @test floattype(typeof(π))                    === Float64
 
     @test_skip(@test_throws MethodError floattype(MyReal))   # TODO: eliminate `@test_skipped` when depwarn is eliminated. See #177.
+end
+
+@testset "rawtype" begin
+    @test rawtype(FixedPoint) === Union{}
+    @test rawtype(Normed) === Union{}
+    @test rawtype(Fixed) === Union{}
+    @test rawtype(Normed{<:Unsigned}) === Union{}
+    @test rawtype(Fixed{Union{Int8, Int16}}) === Union{Int8, Int16}
+    @test rawtype(N0f8) === UInt8
+    @test rawtype(Q0f7) === Int8
 end

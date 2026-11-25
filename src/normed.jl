@@ -24,7 +24,7 @@ type_prefix(::Type{N}) where {N <: Normed{<:Unsigned}} = :N
 for T in (UInt8, UInt16, UInt32, UInt64)
     for f in 1:bitwidth(T)
         N = Normed{T,f}
-        sym = alias_symbol(N)
+        sym = Symbol(:N, bitwidth(T) - f, 'f', f)
         @eval begin
             const $sym = $N
             export $sym

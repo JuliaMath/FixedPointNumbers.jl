@@ -32,7 +32,7 @@ type_prefix(::Type{F}) where {F <: Fixed{<:Signed}} = :Q
 for T in (Int8, Int16, Int32, Int64)
     for f in 0:bitwidth(T)-1
         F = Fixed{T,f}
-        sym = alias_symbol(F)
+        sym = Symbol(:Q, bitwidth(T) - f - 1, 'f', f)
         @eval begin
             const $sym = $F
             export $sym

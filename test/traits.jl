@@ -18,3 +18,14 @@ struct MyReal <: Real end
 
     @test_skip(@test_throws MethodError floattype(MyReal))   # TODO: eliminate `@test_skipped` when depwarn is eliminated. See #177.
 end
+
+@testset "`Union{}` as type argument" begin
+    @test_throws MethodError floattype(Union{})
+    @test_throws MethodError scaledual(Union{}, 0.5N0f8)
+    @test_throws MethodError 0.5 * Union{}
+    @test_throws MethodError 0.5 % Union{}
+    for f in (wrapping_mul, saturating_mul, Base.Checked.checked_mul,
+              wrapping_rem, saturating_rem, Base.Checked.checked_rem)
+        @test_throws MethodError f(0.5, Union{})
+    end
+end
